@@ -44,6 +44,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CameraStreamModal } from './camera-stream-modal'
 import type { PinEditorTab } from '@/types/pin'
 import type { Camera as CameraType } from '@/types/camera'
 
@@ -81,6 +82,7 @@ export function PinEditorDialog() {
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [nameError, setNameError] = useState('')
+  const [streamingCamera, setStreamingCamera] = useState<CameraType | null>(null)
 
   useEffect(() => {
     if (editingPin) {
@@ -280,16 +282,16 @@ export function PinEditorDialog() {
                     <div className="flex items-center gap-1 rounded border border-border p-1">
                       <Button
                         variant="ghost"
-                        size="icon-sm"
-                        className={cn(viewMode === 'list' && 'bg-muted')}
+                        size="sm"
+                        className={cn("h-7 w-7 p-0", viewMode === 'list' && 'bg-muted')}
                         onClick={() => setViewMode('list')}
                       >
                         <LayoutList className="size-4" />
                       </Button>
                       <Button
                         variant="ghost"
-                        size="icon-sm"
-                        className={cn(viewMode === 'grid' && 'bg-muted')}
+                        size="sm"
+                        className={cn("h-7 w-7 p-0", viewMode === 'grid' && 'bg-muted')}
                         onClick={() => setViewMode('grid')}
                       >
                         <LayoutGrid className="size-4" />
@@ -322,7 +324,14 @@ export function PinEditorDialog() {
                                 <div className="size-2 rounded-full bg-white" />
                               </div>
                             </TableCell>
-                            <TableCell className="font-medium text-foreground">{camera.name}</TableCell>
+                            <TableCell>
+                                <button 
+                                  onClick={() => setStreamingCamera(camera)}
+                                  className="font-medium text-foreground hover:text-primary hover:underline cursor-pointer text-left"
+                                >
+                                  {camera.name}
+                                </button>
+                              </TableCell>
                             <TableCell className="text-muted-foreground">{camera.ip}</TableCell>
                             <TableCell className="text-muted-foreground">{camera.type}</TableCell>
                             <TableCell className="text-muted-foreground">{camera.cameraId}</TableCell>
@@ -331,13 +340,13 @@ export function PinEditorDialog() {
                             <TableCell className="text-muted-foreground">{camera.telnetUsername}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
-                                <Button variant="ghost" size="icon-sm" className="text-primary">
+                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary">
                                   <Edit className="size-4" />
                                 </Button>
                                 <Button 
                                   variant="ghost" 
-                                  size="icon-sm" 
-                                  className="text-destructive"
+                                  size="sm" 
+                                  className="h-7 w-7 p-0 text-destructive"
                                   onClick={() => handleUnlinkCamera(camera.id)}
                                 >
                                   <Trash2 className="size-4" />
@@ -355,7 +364,14 @@ export function PinEditorDialog() {
                                 className="flex size-5 items-center justify-center rounded-full border-2 border-muted-foreground hover:border-primary"
                               />
                             </TableCell>
-                            <TableCell className="font-medium text-foreground">{camera.name}</TableCell>
+                            <TableCell>
+                                <button 
+                                  onClick={() => setStreamingCamera(camera)}
+                                  className="font-medium text-foreground hover:text-primary hover:underline cursor-pointer text-left"
+                                >
+                                  {camera.name}
+                                </button>
+                              </TableCell>
                             <TableCell className="text-muted-foreground">{camera.ip}</TableCell>
                             <TableCell className="text-muted-foreground">{camera.type}</TableCell>
                             <TableCell className="text-muted-foreground">{camera.cameraId}</TableCell>
@@ -364,10 +380,10 @@ export function PinEditorDialog() {
                             <TableCell className="text-muted-foreground">{camera.telnetUsername}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
-                                <Button variant="ghost" size="icon-sm" className="text-primary">
+                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary">
                                   <Edit className="size-4" />
                                 </Button>
-                                <Button variant="ghost" size="icon-sm" className="text-destructive">
+                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive">
                                   <Trash2 className="size-4" />
                                 </Button>
                               </div>
@@ -581,6 +597,14 @@ export function PinEditorDialog() {
           </div>
         </div>
       </Card>
+
+      {/* Camera Stream Modal */}
+      {streamingCamera && (
+        <CameraStreamModal
+          camera={streamingCamera}
+          onClose={() => setStreamingCamera(null)}
+        />
+      )}
     </div>
   )
 }

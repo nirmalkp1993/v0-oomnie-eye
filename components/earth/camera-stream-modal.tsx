@@ -87,16 +87,16 @@ export function CameraStreamModal({ camera, onClose }: CameraStreamModalProps) {
                   <div className="flex items-center gap-2 ml-4">
                     <Button 
                       variant="ghost" 
-                      size="icon-sm" 
+                      size="sm" 
                       className="text-white hover:bg-white/20"
                       onClick={() => setIsPlaying(!isPlaying)}
                     >
                       {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
                     </Button>
-                    <Button variant="ghost" size="icon-sm" className="text-white hover:bg-white/20">
+                    <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
                       <Settings className="size-4" />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" className="text-white hover:bg-white/20">
+                    <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
                       <Volume2 className="size-4" />
                     </Button>
                     <Slider
@@ -107,7 +107,7 @@ export function CameraStreamModal({ camera, onClose }: CameraStreamModalProps) {
                     />
                   </div>
                   
-                  <Button variant="ghost" size="icon-sm" className="ml-auto text-white hover:bg-white/20">
+                  <Button variant="ghost" size="sm" className="ml-auto text-white hover:bg-white/20">
                     <Info className="size-4" />
                   </Button>
                 </div>
@@ -120,7 +120,7 @@ export function CameraStreamModal({ camera, onClose }: CameraStreamModalProps) {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <h4 className="text-sm font-medium text-primary">Camera Diagnostic Tools</h4>
-                  <Button variant="ghost" size="icon-sm">
+                  <Button variant="ghost" size="sm">
                     <Info className="size-3 text-muted-foreground" />
                   </Button>
                 </div>
@@ -143,7 +143,7 @@ export function CameraStreamModal({ camera, onClose }: CameraStreamModalProps) {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <h4 className="text-sm font-medium text-foreground">Console Output</h4>
-                  <Button variant="ghost" size="icon-sm">
+                  <Button variant="ghost" size="sm">
                     <Info className="size-3 text-muted-foreground" />
                   </Button>
                 </div>

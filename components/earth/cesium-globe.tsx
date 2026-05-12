@@ -1,242 +1,175 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { usePinStore } from '@/lib/pin-store'
 import { MapPin } from 'lucide-react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
-// Cesium types for TypeScript
-declare global {
-  interface Window {
-    Cesium: typeof import('cesium')
-  }
+// Custom pin icon
+const createPinIcon = (color: string) => {
+  const svg = `
+    <svg width="32" height="48" viewBox="0 0 32 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16 0C7.16 0 0 7.16 0 16C0 28 16 48 16 48C16 48 32 28 32 16C32 7.16 24.84 0 16 0Z" fill="${color}"/>
+      <circle cx="16" cy="16" r="8" fill="white"/>
+    </svg>
+  `
+  return L.divIcon({
+    html: svg,
+    className: 'custom-pin-icon',
+    iconSize: [32, 48],
+    iconAnchor: [16, 48],
+    popupAnchor: [0, -48],
+  })
 }
 
 export function CesiumGlobe() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const viewerRef = useRef<any>(null)
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<L.Map | null>(null)
+  const markersRef = useRef<Map<string, L.Marker>>(new Map())
   const [isLoaded, setIsLoaded] = useState(false)
-  const [cesiumReady, setCesiumReady] = useState(false)
 
   const {
     pins,
     isAddingPin,
     setIsAddingPin,
     setPendingPinLocation,
-    selectedPin,
     setSelectedPin,
     setIsPinViewerOpen,
     setIsPinEditorOpen,
     setEditingPin,
   } = usePinStore()
 
-  // Load Cesium script
+  // Initialize map
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.Cesium) {
-      // Load Cesium CSS
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = 'https://cesium.com/downloads/cesiumjs/releases/1.119/Build/Cesium/Widgets/widgets.css'
-      document.head.appendChild(link)
+    if (!mapContainerRef.current || mapRef.current) return
 
-      // Load Cesium JS
-      const script = document.createElement('script')
-      script.src = 'https://cesium.com/downloads/cesiumjs/releases/1.119/Build/Cesium/Cesium.js'
-      script.async = true
-      script.onload = () => {
-        setCesiumReady(true)
-      }
-      document.head.appendChild(script)
-
-      return () => {
-        document.head.removeChild(link)
-        document.head.removeChild(script)
-      }
-    } else if (window.Cesium) {
-      setCesiumReady(true)
-    }
-  }, [])
-
-  // Initialize Cesium Viewer
-  useEffect(() => {
-    if (!cesiumReady || !containerRef.current || viewerRef.current) return
-
-    const Cesium = window.Cesium
-
-    // Set default access token (you can replace with your own)
-    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTc2NjMsInNjb3BlcyI6WyJhc3IiLCJnYyJdLCJpYXQiOjE2MjI1NDgwMjB9.LGPCkXPR5l0sQQlkI_2GS5c5wz5rHNjEO9hL1pYZ6yU'
-
-    const viewer = new Cesium.Viewer(containerRef.current, {
-      animation: false,
-      timeline: false,
-      baseLayerPicker: false,
-      fullscreenButton: false,
-      vrButton: false,
-      geocoder: false,
-      homeButton: false,
-      infoBox: false,
-      sceneModePicker: false,
-      selectionIndicator: false,
-      navigationHelpButton: false,
-      navigationInstructionsInitiallyVisible: false,
-      scene3DOnly: true,
+    // Create map
+    const map = L.map(mapContainerRef.current, {
+      center: [40.6901, -74.0393], // New York
+      zoom: 4,
+      zoomControl: true,
     })
 
-    // Add world terrain asynchronously
-    Cesium.createWorldTerrainAsync().then((terrainProvider: any) => {
-      if (viewerRef.current && !viewerRef.current.isDestroyed()) {
-        viewerRef.current.terrainProvider = terrainProvider
-      }
-    }).catch(() => {
-      // Terrain loading failed, continue without terrain
-      console.log('[v0] World terrain not available, using default ellipsoid')
-    })
+    // Add tile layer - Using OpenStreetMap with darker style
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map)
 
-    // Set initial camera position (New York area as default)
-    viewer.camera.setView({
-      destination: Cesium.Cartesian3.fromDegrees(-74.0393, 40.6901, 15000000),
-    })
-
-    viewerRef.current = viewer
+    mapRef.current = map
     setIsLoaded(true)
 
     return () => {
-      if (viewerRef.current && !viewerRef.current.isDestroyed()) {
-        viewerRef.current.destroy()
-        viewerRef.current = null
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
       }
     }
-  }, [cesiumReady])
+  }, [])
 
-  // Handle click to add pin
+  // Handle map click for adding pins
   useEffect(() => {
-    if (!viewerRef.current || !isLoaded) return
+    if (!mapRef.current) return
 
-    const viewer = viewerRef.current
-    const Cesium = window.Cesium
-    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas)
+    const map = mapRef.current
 
-    handler.setInputAction((click: any) => {
+    const handleClick = (e: L.LeafletMouseEvent) => {
       if (isAddingPin) {
-        const cartesian = viewer.camera.pickEllipsoid(
-          click.position,
-          viewer.scene.globe.ellipsoid
-        )
-        
-        if (cartesian) {
-          const cartographic = Cesium.Cartographic.fromCartesian(cartesian)
-          const latitude = Cesium.Math.toDegrees(cartographic.latitude)
-          const longitude = Cesium.Math.toDegrees(cartographic.longitude)
-          const altitude = 50 // Default altitude
-
-          setPendingPinLocation({ latitude, longitude, altitude })
-        }
-      } else {
-        // Check if we clicked on a pin
-        const pickedObject = viewer.scene.pick(click.position)
-        if (Cesium.defined(pickedObject) && pickedObject.id && pickedObject.id.pinData) {
-          const pin = pickedObject.id.pinData
-          setSelectedPin(pin)
-          setIsPinViewerOpen(true)
-        }
+        const { lat, lng } = e.latlng
+        setPendingPinLocation({
+          latitude: lat,
+          longitude: lng,
+          altitude: 50,
+        })
       }
-    }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
+    }
+
+    map.on('click', handleClick)
 
     return () => {
-      handler.destroy()
+      map.off('click', handleClick)
     }
-  }, [isLoaded, isAddingPin, setPendingPinLocation, setSelectedPin, setIsPinViewerOpen])
+  }, [isAddingPin, setPendingPinLocation])
+
+  // Update cursor style when adding pin
+  useEffect(() => {
+    if (!mapContainerRef.current) return
+    
+    if (isAddingPin) {
+      mapContainerRef.current.style.cursor = 'crosshair'
+    } else {
+      mapContainerRef.current.style.cursor = ''
+    }
+  }, [isAddingPin])
 
   // Update pins on the map
   useEffect(() => {
-    if (!viewerRef.current || !isLoaded) return
+    if (!mapRef.current || !isLoaded) return
 
-    const viewer = viewerRef.current
-    const Cesium = window.Cesium
+    const map = mapRef.current
 
-    // Remove existing pin entities
-    const entitiesToRemove = viewer.entities.values.filter(
-      (entity: any) => entity.pinData
-    )
-    entitiesToRemove.forEach((entity: any) => viewer.entities.remove(entity))
-
-    // Add pins
-    pins.forEach((pin) => {
-      const entity = viewer.entities.add({
-        position: Cesium.Cartesian3.fromDegrees(
-          pin.longitude,
-          pin.latitude,
-          pin.altitude
-        ),
-        billboard: {
-          image: createPinImage(pin.iconColor),
-          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-          scale: pin.iconSize / 40,
-        },
-        label: {
-          text: pin.name,
-          font: `${pin.labelSize}px sans-serif`,
-          fillColor: Cesium.Color.WHITE,
-          outlineColor: Cesium.Color.BLACK,
-          outlineWidth: 2,
-          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          verticalOrigin: Cesium.VerticalOrigin.TOP,
-          pixelOffset: new Cesium.Cartesian2(0, 10),
-        },
-        pinData: pin,
-      })
+    // Remove markers that no longer exist
+    markersRef.current.forEach((marker, pinId) => {
+      if (!pins.find(p => p.id === pinId)) {
+        marker.remove()
+        markersRef.current.delete(pinId)
+      }
     })
-  }, [pins, isLoaded])
 
-  // Create pin image dynamically
-  const createPinImage = (color: string) => {
-    const canvas = document.createElement('canvas')
-    canvas.width = 48
-    canvas.height = 64
-    const ctx = canvas.getContext('2d')
-    
-    if (ctx) {
-      // Draw pin shape
-      ctx.beginPath()
-      ctx.moveTo(24, 64)
-      ctx.bezierCurveTo(24, 64, 4, 40, 4, 24)
-      ctx.arc(24, 24, 20, Math.PI, 0, false)
-      ctx.bezierCurveTo(44, 40, 24, 64, 24, 64)
-      ctx.closePath()
-      
-      ctx.fillStyle = color
-      ctx.fill()
-      ctx.strokeStyle = '#ffffff'
-      ctx.lineWidth = 2
-      ctx.stroke()
-      
-      // Draw inner circle
-      ctx.beginPath()
-      ctx.arc(24, 24, 8, 0, Math.PI * 2)
-      ctx.fillStyle = '#ffffff'
-      ctx.fill()
-    }
-    
-    return canvas.toDataURL()
-  }
+    // Add or update markers
+    pins.forEach((pin) => {
+      let marker = markersRef.current.get(pin.id)
+
+      if (marker) {
+        // Update existing marker position
+        marker.setLatLng([pin.latitude, pin.longitude])
+        marker.setIcon(createPinIcon(pin.iconColor))
+      } else {
+        // Create new marker
+        marker = L.marker([pin.latitude, pin.longitude], {
+          icon: createPinIcon(pin.iconColor),
+        })
+
+        // Add tooltip with pin name
+        marker.bindTooltip(pin.name, {
+          permanent: true,
+          direction: 'bottom',
+          offset: [0, 10],
+          className: 'pin-label-tooltip',
+        })
+
+        // Handle click
+        marker.on('click', () => {
+          setSelectedPin(pin)
+          setIsPinViewerOpen(true)
+        })
+
+        marker.addTo(map)
+        markersRef.current.set(pin.id, marker)
+      }
+    })
+  }, [pins, isLoaded, setSelectedPin, setIsPinViewerOpen])
 
   return (
     <div className="relative size-full">
-      {/* Cesium Container */}
-      <div ref={containerRef} className="size-full" />
+      {/* Map Container */}
+      <div ref={mapContainerRef} className="size-full" />
 
       {/* Loading Overlay */}
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-background">
           <div className="flex flex-col items-center gap-4">
             <div className="size-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            <p className="text-muted-foreground">Loading 3D Globe...</p>
+            <p className="text-muted-foreground">Loading Map...</p>
           </div>
         </div>
       )}
 
       {/* Add Pin Mode Indicator */}
       {isAddingPin && isLoaded && (
-        <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-primary bg-primary/10 px-4 py-2 backdrop-blur-sm">
+        <div className="absolute bottom-4 left-1/2 z-[1000] -translate-x-1/2 rounded-lg border border-primary bg-primary/10 px-4 py-2 backdrop-blur-sm">
           <p className="flex items-center gap-2 text-sm text-primary">
             <MapPin className="size-4" />
             Click anywhere on the map to place a camera pin
@@ -244,16 +177,28 @@ export function CesiumGlobe() {
         </div>
       )}
 
-      {/* Cursor style when adding pin */}
+      {/* Custom styles */}
       <style jsx global>{`
-        ${isAddingPin ? `
-          .cesium-viewer canvas {
-            cursor: crosshair !important;
-          }
-        ` : ''}
+        .custom-pin-icon {
+          background: transparent !important;
+          border: none !important;
+        }
         
-        .cesium-viewer .cesium-widget-credits {
-          display: none !important;
+        .pin-label-tooltip {
+          background: rgba(0, 0, 0, 0.8) !important;
+          border: 1px solid rgba(255, 255, 255, 0.2) !important;
+          border-radius: 4px !important;
+          color: white !important;
+          font-size: 12px !important;
+          padding: 4px 8px !important;
+        }
+        
+        .pin-label-tooltip::before {
+          border-bottom-color: rgba(0, 0, 0, 0.8) !important;
+        }
+
+        .leaflet-container {
+          background: #1a1a2e !important;
         }
       `}</style>
     </div>
