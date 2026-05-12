@@ -13,20 +13,20 @@ export function EarthToolbar() {
     { icon: Search, label: 'Search', onClick: () => console.log('[v0] Search clicked') },
     { icon: Home, label: 'Home', onClick: () => console.log('[v0] Home clicked') },
     { icon: MapPin, label: 'Add Location Pin', onClick: () => console.log('[v0] Add Location Pin clicked') },
-    { 
-      icon: Camera, 
-      label: 'Add Camera Placemark', 
+    {
+      icon: Camera,
+      label: 'Add Camera Placemarkdddd',
       onClick: () => {
         console.log('[v0] Camera button clicked, isAddingPin:', !isAddingPin)
         setIsAddingPin(!isAddingPin)
       },
-      active: isAddingPin 
+      active: isAddingPin
     },
   ]
 
   return (
     <TooltipProvider>
-      <div 
+      <div
         className="absolute left-4 top-4 z-[1000] flex flex-col gap-1 rounded-lg border border-border/60 bg-card p-1.5 shadow-xl"
         style={{ pointerEvents: 'auto' }}
       >
