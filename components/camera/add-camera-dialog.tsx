@@ -71,7 +71,7 @@ export function AddCameraDialog() {
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="sm"
               onClick={handleClose}
               className="text-muted-foreground"
             >
