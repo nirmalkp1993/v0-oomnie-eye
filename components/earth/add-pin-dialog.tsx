@@ -27,13 +27,13 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
-import { 
-  MapPin, 
-  Camera, 
-  Info, 
+import {
+  MapPin,
+  Camera,
+  Info,
   Image as ImageIcon,
-  X, 
-  Save, 
+  X,
+  Save,
   Settings,
   Trash2,
   LayoutGrid,
@@ -50,9 +50,10 @@ type EditorTab = 'camera' | 'general' | 'position' | 'style'
 export function AddPinDialog() {
   const {
     pendingPinLocation,
-    setPendingPinLocation,
+    placemarkDraft,
+    isPlacemarkStepComplete,
     addPin,
-    setIsAddingPin,
+    resetPinPlacement,
     checkPinNameExists,
   } = usePinStore()
 
@@ -66,44 +67,44 @@ export function AddPinDialog() {
   const [longitude, setLongitude] = useState('')
   const [altitude, setAltitude] = useState('50')
   const [groundingMode, setGroundingMode] = useState<'relative' | 'absolute' | 'clampToGround'>('relative')
-  const [iconType, setIconType] = useState<'pin' | 'camera' | 'marker'>('pin')
+  const [iconType, setIconType] = useState<'pin' | 'camera' | 'marker'>('camera')
   const [iconColor, setIconColor] = useState('#2196F3')
   const [iconSize, setIconSize] = useState(40)
   const [labelSize, setLabelSize] = useState(14)
   const [placesAutoOpen, setPlacesAutoOpen] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
-  const [selectedCameraIds, setSelectedCameraIds] = useState<string[]>([])
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null)
   const [nameError, setNameError] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  
+
   // Stream modal state
   const [streamingCamera, setStreamingCamera] = useState<CameraType | null>(null)
 
   useEffect(() => {
-    if (pendingPinLocation) {
-      setLatitude(pendingPinLocation.latitude.toFixed(10))
-      setLongitude(pendingPinLocation.longitude.toFixed(10))
-      setAltitude(pendingPinLocation.altitude.toString())
-      // Generate default name
-      const defaultName = `Pin ${Date.now().toString().slice(-4)}`
-      setName(defaultName)
-    }
-  }, [pendingPinLocation])
+    if (!pendingPinLocation || !placemarkDraft) return
 
-  if (!pendingPinLocation) return null
+    setLatitude(pendingPinLocation.latitude.toFixed(10))
+    setLongitude(pendingPinLocation.longitude.toFixed(10))
+    setAltitude(pendingPinLocation.altitude.toString())
+    setDescription(placemarkDraft.description)
+    setGroundingMode(placemarkDraft.groundingMode)
+    setPlacesAutoOpen(placemarkDraft.placesAutoOpen)
+    setIconType('camera')
+    const defaultName = `Pin ${Date.now().toString().slice(-4)}`
+    setName(defaultName)
+  }, [pendingPinLocation, placemarkDraft])
 
-  const linkedCameras = cameras.filter((c) => selectedCameraIds.includes(c.id))
-  const availableCameras = cameras.filter((c) => !selectedCameraIds.includes(c.id))
-  const filteredCameras = availableCameras.filter((c) =>
+  if (!pendingPinLocation || !isPlacemarkStepComplete || !placemarkDraft) return null
+
+  const filteredCameras = cameras.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.ip.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   const handleClose = () => {
-    setPendingPinLocation(null)
-    setIsAddingPin(false)
-    setSelectedCameraIds([])
+    resetPinPlacement()
+    setSelectedCameraId(null)
     setName('')
     setNameError('')
   }
@@ -114,13 +115,13 @@ export function AddPinDialog() {
       setActiveTab('general')
       return
     }
-    
+
     if (checkPinNameExists(name)) {
       setNameError(`A pin named "${name}" already exists. Choose a different name.`)
       setActiveTab('general')
       return
     }
-    
+
     addPin({
       name,
       description,
@@ -133,19 +134,19 @@ export function AddPinDialog() {
       iconColor,
       iconSize,
       labelSize,
-      linkedCameraIds: selectedCameraIds,
+      linkedCameraIds: selectedCameraId ? [selectedCameraId] : [],
       placesAutoOpen,
     })
     handleClose()
   }
 
   const handleLinkCamera = (camera: CameraType) => {
-    setSelectedCameraIds(prev => [...prev, camera.id])
+    setSelectedCameraId((current) => (current === camera.id ? null : camera.id))
     setHasUnsavedChanges(true)
   }
 
-  const handleUnlinkCamera = (cameraId: string) => {
-    setSelectedCameraIds(prev => prev.filter(id => id !== cameraId))
+  const handleUnlinkCamera = () => {
+    setSelectedCameraId(null)
     setHasUnsavedChanges(true)
   }
 
@@ -234,8 +235,8 @@ export function AddPinDialog() {
                         <Camera className="size-4" />
                         Cameras
                       </CardTitle>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="bg-primary text-primary-foreground"
                         onClick={() => setIsAddDialogOpen(true)}
                       >
@@ -291,83 +292,65 @@ export function AddPinDialog() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {/* Linked cameras first */}
-                          {linkedCameras.map((camera) => (
-                            <TableRow key={camera.id} className="border-border bg-primary/5">
-                              <TableCell>
-                                <div className="flex size-5 items-center justify-center rounded-full border-2 border-primary bg-primary">
-                                  <div className="size-2 rounded-full bg-white" />
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <button 
-                                  onClick={() => handleCameraNameClick(camera)}
-                                  className="font-medium text-foreground hover:text-primary hover:underline cursor-pointer text-left"
-                                >
-                                  {camera.name}
-                                </button>
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">{camera.ip}</TableCell>
-                              <TableCell className="text-muted-foreground">{camera.type}</TableCell>
-                              <TableCell className="text-muted-foreground">{camera.cameraId}</TableCell>
-                              <TableCell className="text-muted-foreground">{camera.port}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{camera.apiBaseUrl}</TableCell>
-                              <TableCell className="text-muted-foreground">{camera.telnetUsername}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary">
-                                    <Edit className="size-4" />
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-7 w-7 p-0 text-destructive"
-                                    onClick={() => handleUnlinkCamera(camera.id)}
+                          {filteredCameras.map((camera) => {
+                            const isLinked = selectedCameraId === camera.id
+
+                            return (
+                              <TableRow
+                                key={camera.id}
+                                className={cn('border-border', isLinked && 'bg-primary/5')}
+                              >
+                                <TableCell>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleLinkCamera(camera)}
+                                    className={cn(
+                                      'flex size-5 items-center justify-center rounded-full border-2',
+                                      isLinked
+                                        ? 'border-primary bg-primary'
+                                        : 'border-muted-foreground hover:border-primary'
+                                    )}
+                                    aria-pressed={isLinked}
                                   >
-                                    <Trash2 className="size-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          {/* Available cameras */}
-                          {filteredCameras.map((camera) => (
-                            <TableRow key={camera.id} className="border-border">
-                              <TableCell>
-                                <button
-                                  onClick={() => handleLinkCamera(camera)}
-                                  className="flex size-5 items-center justify-center rounded-full border-2 border-muted-foreground hover:border-primary"
-                                />
-                              </TableCell>
-                              <TableCell>
-                                <button 
-                                  onClick={() => handleCameraNameClick(camera)}
-                                  className="font-medium text-foreground hover:text-primary hover:underline cursor-pointer text-left"
-                                >
-                                  {camera.name}
-                                </button>
-                              </TableCell>
-                              <TableCell className="text-muted-foreground">{camera.ip}</TableCell>
-                              <TableCell className="text-muted-foreground">{camera.type}</TableCell>
-                              <TableCell className="text-muted-foreground">{camera.cameraId}</TableCell>
-                              <TableCell className="text-muted-foreground">{camera.port}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{camera.apiBaseUrl}</TableCell>
-                              <TableCell className="text-muted-foreground">{camera.telnetUsername}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary">
-                                    <Edit className="size-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive">
-                                    <Trash2 className="size-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          {filteredCameras.length === 0 && linkedCameras.length === 0 && (
+                                    {isLinked && <div className="size-2 rounded-full bg-white" />}
+                                  </button>
+                                </TableCell>
+                                <TableCell>
+                                  <button
+                                    onClick={() => handleCameraNameClick(camera)}
+                                    className="cursor-pointer text-left font-medium text-foreground hover:text-primary hover:underline"
+                                  >
+                                    {camera.name}
+                                  </button>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">{camera.ip}</TableCell>
+                                <TableCell className="text-muted-foreground">{camera.type}</TableCell>
+                                <TableCell className="text-muted-foreground">{camera.cameraId}</TableCell>
+                                <TableCell className="text-muted-foreground">{camera.port}</TableCell>
+                                <TableCell className="text-xs text-muted-foreground">{camera.apiBaseUrl}</TableCell>
+                                <TableCell className="text-muted-foreground">{camera.telnetUsername}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-1">
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-primary">
+                                      <Edit className="size-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 w-7 p-0 text-destructive"
+                                      onClick={handleUnlinkCamera}
+                                      disabled={!isLinked}
+                                    >
+                                      <Trash2 className="size-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                          {filteredCameras.length === 0 && (
                             <TableRow>
-                              <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                              <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
                                 No cameras available. Click &quot;ADD CAMERA&quot; to create one.
                               </TableCell>
                             </TableRow>
@@ -465,8 +448,8 @@ export function AddPinDialog() {
                 </div>
                 <div>
                   <Label className="text-sm text-muted-foreground">Grounding</Label>
-                  <Select 
-                    value={groundingMode} 
+                  <Select
+                    value={groundingMode}
                     onValueChange={(v) => {
                       setGroundingMode(v as typeof groundingMode)
                       setHasUnsavedChanges(true)
@@ -488,8 +471,8 @@ export function AddPinDialog() {
               <TabsContent value="style" className="mt-0 space-y-4">
                 <div>
                   <Label className="text-sm text-muted-foreground">Icon Type</Label>
-                  <Select 
-                    value={iconType} 
+                  <Select
+                    value={iconType}
                     onValueChange={(v) => {
                       setIconType(v as typeof iconType)
                       setHasUnsavedChanges(true)
@@ -561,8 +544,8 @@ export function AddPinDialog() {
 
           {/* Footer */}
           <div className="flex items-center justify-between gap-2 border-t border-border p-4">
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleClose}
               className="gap-1"
             >

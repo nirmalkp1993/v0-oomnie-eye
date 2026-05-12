@@ -3,6 +3,15 @@
 import { create } from 'zustand'
 import type { CameraPin, PinRecording, PinEditorTab, PinViewerTab } from '@/types/pin'
 
+export interface PinPlacemarkDraft {
+  description: string
+  latitude: number
+  longitude: number
+  altitude: number
+  groundingMode: CameraPin['groundingMode']
+  placesAutoOpen: boolean
+}
+
 interface PinStore {
   pins: CameraPin[]
   pinRecordings: PinRecording[]
@@ -13,12 +22,16 @@ interface PinStore {
   editorTab: PinEditorTab
   viewerTab: PinViewerTab
   pendingPinLocation: { latitude: number; longitude: number; altitude: number } | null
+  placemarkDraft: PinPlacemarkDraft | null
+  isPlacemarkStepComplete: boolean
   hasUnsavedChanges: boolean
   editingPin: CameraPin | null
-  
+
   // Actions
   setIsAddingPin: (adding: boolean) => void
   setPendingPinLocation: (location: { latitude: number; longitude: number; altitude: number } | null) => void
+  confirmPlacemarkStep: (draft: PinPlacemarkDraft) => void
+  resetPinPlacement: () => void
   setIsPinEditorOpen: (open: boolean) => void
   setIsPinViewerOpen: (open: boolean) => void
   setSelectedPin: (pin: CameraPin | null) => void
@@ -26,14 +39,14 @@ interface PinStore {
   setViewerTab: (tab: PinViewerTab) => void
   setEditingPin: (pin: CameraPin | null) => void
   setHasUnsavedChanges: (hasChanges: boolean) => void
-  
+
   addPin: (pin: Omit<CameraPin, 'id' | 'createdAt' | 'updatedAt'>) => CameraPin
   updatePin: (id: string, data: Partial<CameraPin>) => void
   deletePin: (id: string) => void
-  
+
   linkCameraToPin: (pinId: string, cameraId: string) => void
   unlinkCameraFromPin: (pinId: string, cameraId: string) => void
-  
+
   getPinRecordings: (pinId: string) => PinRecording[]
   checkPinNameExists: (name: string, excludeId?: string) => boolean
 }
@@ -99,19 +112,45 @@ export const usePinStore = create<PinStore>((set, get) => ({
   editorTab: 'camera',
   viewerTab: 'preview',
   pendingPinLocation: null,
+  placemarkDraft: null,
+  isPlacemarkStepComplete: false,
   hasUnsavedChanges: false,
   editingPin: null,
-  
+
   setIsAddingPin: (adding) => set({ isAddingPin: adding }),
-  setPendingPinLocation: (location) => set({ pendingPinLocation: location }),
+  setPendingPinLocation: (location) => set({
+    pendingPinLocation: location,
+    placemarkDraft: null,
+    isPlacemarkStepComplete: false,
+  }),
+  confirmPlacemarkStep: (draft) => set({
+    placemarkDraft: draft,
+    pendingPinLocation: {
+      latitude: draft.latitude,
+      longitude: draft.longitude,
+      altitude: draft.altitude,
+    },
+    isPlacemarkStepComplete: true,
+  }),
+  resetPinPlacement: () => set({
+    pendingPinLocation: null,
+    placemarkDraft: null,
+    isPlacemarkStepComplete: false,
+    isAddingPin: false,
+  }),
   setIsPinEditorOpen: (open) => set({ isPinEditorOpen: open }),
   setIsPinViewerOpen: (open) => set({ isPinViewerOpen: open }),
   setSelectedPin: (pin) => set({ selectedPin: pin }),
   setEditorTab: (tab) => set({ editorTab: tab }),
   setViewerTab: (tab) => set({ viewerTab: tab }),
-  setEditingPin: (pin) => set({ editingPin: pin, hasUnsavedChanges: false }),
+  setEditingPin: (pin) => set({
+    editingPin: pin
+      ? { ...pin, linkedCameraIds: pin.linkedCameraIds.slice(0, 1) }
+      : null,
+    hasUnsavedChanges: false,
+  }),
   setHasUnsavedChanges: (hasChanges) => set({ hasUnsavedChanges: hasChanges }),
-  
+
   addPin: (pinData) => {
     const newPin: CameraPin = {
       ...pinData,
@@ -122,12 +161,15 @@ export const usePinStore = create<PinStore>((set, get) => ({
     set((state) => ({
       pins: [...state.pins, newPin],
       pendingPinLocation: null,
+      placemarkDraft: null,
+      isPlacemarkStepComplete: false,
+      isAddingPin: false,
       isPinEditorOpen: false,
       selectedPin: newPin,
     }))
     return newPin
   },
-  
+
   updatePin: (id, data) => {
     set((state) => ({
       pins: state.pins.map((p) =>
@@ -142,7 +184,7 @@ export const usePinStore = create<PinStore>((set, get) => ({
       hasUnsavedChanges: false,
     }))
   },
-  
+
   deletePin: (id) => {
     set((state) => ({
       pins: state.pins.filter((p) => p.id !== id),
@@ -152,39 +194,50 @@ export const usePinStore = create<PinStore>((set, get) => ({
       editingPin: state.editingPin?.id === id ? null : state.editingPin,
     }))
   },
-  
+
   linkCameraToPin: (pinId, cameraId) => {
     set((state) => ({
       pins: state.pins.map((p) =>
         p.id === pinId
-          ? { ...p, linkedCameraIds: [...p.linkedCameraIds, cameraId], updatedAt: new Date() }
+          ? { ...p, linkedCameraIds: [cameraId], updatedAt: new Date() }
           : p
       ),
+      selectedPin: state.selectedPin?.id === pinId
+        ? { ...state.selectedPin, linkedCameraIds: [cameraId] }
+        : state.selectedPin,
       editingPin: state.editingPin?.id === pinId
-        ? { ...state.editingPin, linkedCameraIds: [...state.editingPin.linkedCameraIds, cameraId] }
+        ? { ...state.editingPin, linkedCameraIds: [cameraId] }
         : state.editingPin,
       hasUnsavedChanges: true,
     }))
   },
-  
+
   unlinkCameraFromPin: (pinId, cameraId) => {
-    set((state) => ({
-      pins: state.pins.map((p) =>
-        p.id === pinId
-          ? { ...p, linkedCameraIds: p.linkedCameraIds.filter((id) => id !== cameraId), updatedAt: new Date() }
-          : p
-      ),
-      editingPin: state.editingPin?.id === pinId
-        ? { ...state.editingPin, linkedCameraIds: state.editingPin.linkedCameraIds.filter((id) => id !== cameraId) }
-        : state.editingPin,
-      hasUnsavedChanges: true,
-    }))
+    set((state) => {
+      const removeLinkedCamera = (linkedCameraIds: string[]) =>
+        linkedCameraIds.filter((id) => id !== cameraId)
+
+      return {
+        pins: state.pins.map((p) =>
+          p.id === pinId
+            ? { ...p, linkedCameraIds: removeLinkedCamera(p.linkedCameraIds), updatedAt: new Date() }
+            : p
+        ),
+        selectedPin: state.selectedPin?.id === pinId
+          ? { ...state.selectedPin, linkedCameraIds: removeLinkedCamera(state.selectedPin.linkedCameraIds) }
+          : state.selectedPin,
+        editingPin: state.editingPin?.id === pinId
+          ? { ...state.editingPin, linkedCameraIds: removeLinkedCamera(state.editingPin.linkedCameraIds) }
+          : state.editingPin,
+        hasUnsavedChanges: true,
+      }
+    })
   },
-  
+
   getPinRecordings: (pinId) => {
     return get().pinRecordings.filter((r) => r.pinId === pinId)
   },
-  
+
   checkPinNameExists: (name, excludeId) => {
     const { pins } = get()
     return pins.some((p) => p.name.toLowerCase() === name.toLowerCase() && p.id !== excludeId)
