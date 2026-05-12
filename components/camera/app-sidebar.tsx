@@ -18,18 +18,25 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
-const menuItems = [
-  { icon: Globe, label: 'Earth', active: false },
-  { icon: LayoutDashboard, label: 'Dashboard', active: false },
-  { icon: FileText, label: 'Reports', active: false },
-  { icon: AlertTriangle, label: 'Alerts', active: false },
-  { icon: HelpCircle, label: 'Help', active: false },
-  { icon: Users, label: 'Admin', active: false },
-  { icon: Camera, label: 'Camera', active: true },
-  { icon: Settings, label: 'Settings', active: false },
+export type AppTab = 'earth' | 'dashboard' | 'reports' | 'alerts' | 'help' | 'admin' | 'camera' | 'settings'
+
+interface AppSidebarProps {
+  activeTab?: AppTab
+  onTabChange?: (tab: AppTab) => void
+}
+
+const menuItems: { icon: React.ElementType; label: string; tab: AppTab }[] = [
+  { icon: Globe, label: 'Earth', tab: 'earth' },
+  { icon: LayoutDashboard, label: 'Dashboard', tab: 'dashboard' },
+  { icon: FileText, label: 'Reports', tab: 'reports' },
+  { icon: AlertTriangle, label: 'Alerts', tab: 'alerts' },
+  { icon: HelpCircle, label: 'Help', tab: 'help' },
+  { icon: Users, label: 'Admin', tab: 'admin' },
+  { icon: Camera, label: 'Camera', tab: 'camera' },
+  { icon: Settings, label: 'Settings', tab: 'settings' },
 ]
 
-export function AppSidebar() {
+export function AppSidebar({ activeTab = 'camera', onTabChange }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -75,17 +82,19 @@ export function AppSidebar() {
         <nav className="flex flex-1 flex-col gap-1 px-2 py-2">
           {menuItems.map((item) => {
             const Icon = item.icon
+            const isActive = activeTab === item.tab
             const button = (
               <button
                 key={item.label}
+                onClick={() => onTabChange?.(item.tab)}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                  item.active
+                  isActive
                     ? 'bg-primary/10 text-primary border border-primary/30'
                     : 'text-sidebar-foreground hover:bg-sidebar-accent/10 hover:text-sidebar-accent'
                 )}
               >
-                <Icon className={cn('size-5 shrink-0', item.active && 'text-primary')} />
+                <Icon className={cn('size-5 shrink-0', isActive && 'text-primary')} />
                 {!collapsed && <span>{item.label}</span>}
               </button>
             )
