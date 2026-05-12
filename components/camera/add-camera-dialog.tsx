@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -81,6 +82,9 @@ export function AddCameraDialog() {
               Add Camera
             </DialogTitle>
           </div>
+          <DialogDescription className="sr-only">
+            Add a new camera to the surveillance system
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -36,7 +36,7 @@ export function AppSidebar() {
     <TooltipProvider>
       <aside
         className={cn(
-          'flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300',
+          'flex h-screen flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 dark-scrollbar',
           collapsed ? 'w-16' : 'w-56'
         )}
       >
@@ -48,7 +48,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="flex flex-col">
               <span className="text-lg font-bold text-primary">OomniEye</span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] uppercase tracking-wider text-sidebar-muted">
                 Next-Gen Command & Control
               </span>
             </div>
@@ -61,7 +61,7 @@ export function AppSidebar() {
             variant="ghost"
             size="icon-sm"
             onClick={() => setCollapsed(!collapsed)}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50"
           >
             {collapsed ? (
               <ChevronRight className="size-4" />
@@ -106,7 +106,7 @@ export function AppSidebar() {
         {/* Footer */}
         {!collapsed && (
           <div className="border-t border-sidebar-border px-4 py-3">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-sidebar-muted">
               Press Ctrl+B to toggle
             </p>
           </div>
