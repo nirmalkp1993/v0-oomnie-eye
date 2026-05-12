@@ -179,7 +179,7 @@ export function CesiumGlobe() {
 
   return (
     <div className="relative size-full">
-      <div ref={mapContainerRef} className="size-full" />
+      <div ref={mapContainerRef} className="absolute inset-0 z-0 size-full" />
 
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
@@ -192,7 +192,7 @@ export function CesiumGlobe() {
 
       {/* Pin Placement Indicator */}
       {isAddingPin && (
-        <div className="absolute bottom-20 left-1/2 z-20 -translate-x-1/2 rounded-lg bg-orange-500 px-4 py-2 text-white shadow-lg">
+        <div className="fixed bottom-20 left-1/2 z-[9998] -translate-x-1/2 rounded-lg bg-orange-500 px-4 py-2 text-white shadow-lg">
           <div className="flex items-center gap-2">
             <Camera className="size-4" />
             <span className="text-sm font-medium">Click anywhere on the map to place a camera pin</span>
@@ -203,6 +203,13 @@ export function CesiumGlobe() {
       <style jsx global>{`
         .leaflet-container {
           background: #0f172a !important;
+          z-index: 1 !important;
+        }
+        .leaflet-pane {
+          z-index: 1 !important;
+        }
+        .leaflet-top, .leaflet-bottom {
+          z-index: 10 !important;
         }
         .leaflet-control-zoom {
           border: none !important;

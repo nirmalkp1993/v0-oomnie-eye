@@ -23,7 +23,7 @@ export function EarthToolbar() {
 
   return (
     <TooltipProvider>
-      <div className="absolute left-3 top-3 z-20 flex flex-col gap-1 rounded-lg border border-border/50 bg-card/95 p-1.5 shadow-lg backdrop-blur-sm">
+      <div className="fixed left-[88px] top-4 z-[9999] flex flex-col gap-1 rounded-lg border border-border/50 bg-card p-1.5 shadow-xl">
         {tools.map((tool) => {
           const Icon = tool.icon
           return (
