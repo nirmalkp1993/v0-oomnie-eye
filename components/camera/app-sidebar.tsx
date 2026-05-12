@@ -66,9 +66,9 @@ export function AppSidebar({ activeTab = 'camera', onTabChange }: AppSidebarProp
         <div className="flex justify-end px-2 py-2">
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             onClick={() => setCollapsed(!collapsed)}
-            className="text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50"
+            className="size-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50"
           >
             {collapsed ? (
               <ChevronRight className="size-4" />

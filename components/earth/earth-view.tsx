@@ -9,9 +9,14 @@ import { AddCameraDialog } from '@/components/camera/add-camera-dialog'
 
 export function EarthView() {
   return (
-    <div className="relative size-full">
+    <div className="relative size-full overflow-hidden">
+      {/* Map Background */}
       <CesiumGlobe />
+      
+      {/* Left Toolbar - Always visible */}
       <EarthToolbar />
+      
+      {/* Dialogs */}
       <AddPinDialog />
       <PinEditorDialog />
       <PinViewerDialog />

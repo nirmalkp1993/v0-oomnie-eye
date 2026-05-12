@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePinStore } from '@/lib/pin-store'
-import { MapPin, Camera } from 'lucide-react'
+import { Camera } from 'lucide-react'
 
 // Statue of Liberty coordinates
 const STATUE_OF_LIBERTY = {
@@ -23,8 +23,6 @@ export function CesiumGlobe() {
     setPendingPinLocation, 
     setSelectedPin,
     setIsPinViewerOpen,
-    setIsPinEditorOpen,
-    setEditingPin 
   } = usePinStore()
 
   // Dynamically import Leaflet (client-side only)
@@ -80,8 +78,10 @@ export function CesiumGlobe() {
     if (!mapRef.current || !L) return
 
     const handleClick = (e: any) => {
+      console.log('[v0] Map clicked, isAddingPin:', isAddingPin)
       if (isAddingPin) {
         const { lat, lng } = e.latlng
+        console.log('[v0] Setting pending pin location:', lat, lng)
         setPendingPinLocation({
           latitude: lat,
           longitude: lng,
@@ -178,11 +178,13 @@ export function CesiumGlobe() {
   }, [pins, L, isLoaded, setSelectedPin, setIsPinViewerOpen])
 
   return (
-    <div className="relative size-full">
-      <div ref={mapContainerRef} className="absolute inset-0 z-0 size-full" />
+    <div className="absolute inset-0">
+      {/* Map container with lower z-index */}
+      <div ref={mapContainerRef} className="absolute inset-0" style={{ zIndex: 1 }} />
 
+      {/* Loading indicator */}
       {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900" style={{ zIndex: 2 }}>
           <div className="flex flex-col items-center gap-4">
             <div className="size-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
             <p className="text-slate-300">Loading Map...</p>
@@ -192,7 +194,10 @@ export function CesiumGlobe() {
 
       {/* Pin Placement Indicator */}
       {isAddingPin && (
-        <div className="fixed bottom-20 left-1/2 z-[9998] -translate-x-1/2 rounded-lg bg-orange-500 px-4 py-2 text-white shadow-lg">
+        <div 
+          className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-lg bg-orange-500 px-4 py-2 text-white shadow-lg"
+          style={{ zIndex: 999 }}
+        >
           <div className="flex items-center gap-2">
             <Camera className="size-4" />
             <span className="text-sm font-medium">Click anywhere on the map to place a camera pin</span>
@@ -209,7 +214,7 @@ export function CesiumGlobe() {
           z-index: 1 !important;
         }
         .leaflet-top, .leaflet-bottom {
-          z-index: 10 !important;
+          z-index: 500 !important;
         }
         .leaflet-control-zoom {
           border: none !important;
