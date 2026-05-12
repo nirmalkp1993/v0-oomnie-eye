@@ -66,7 +66,6 @@ export function CesiumGlobe() {
     Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1OWUxNy1mMWZiLTQzYjYtYTQ0OS1kMWFjYmFkNjc5YzciLCJpZCI6NTc2NjMsInNjb3BlcyI6WyJhc3IiLCJnYyJdLCJpYXQiOjE2MjI1NDgwMjB9.LGPCkXPR5l0sQQlkI_2GS5c5wz5rHNjEO9hL1pYZ6yU'
 
     const viewer = new Cesium.Viewer(containerRef.current, {
-      terrainProvider: Cesium.createWorldTerrain(),
       animation: false,
       timeline: false,
       baseLayerPicker: false,
@@ -80,6 +79,16 @@ export function CesiumGlobe() {
       navigationHelpButton: false,
       navigationInstructionsInitiallyVisible: false,
       scene3DOnly: true,
+    })
+
+    // Add world terrain asynchronously
+    Cesium.createWorldTerrainAsync().then((terrainProvider: any) => {
+      if (viewerRef.current && !viewerRef.current.isDestroyed()) {
+        viewerRef.current.terrainProvider = terrainProvider
+      }
+    }).catch(() => {
+      // Terrain loading failed, continue without terrain
+      console.log('[v0] World terrain not available, using default ellipsoid')
     })
 
     // Set initial camera position (New York area as default)
