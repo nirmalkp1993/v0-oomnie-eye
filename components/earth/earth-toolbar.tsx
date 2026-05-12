@@ -23,7 +23,7 @@ export function EarthToolbar() {
 
   return (
     <TooltipProvider>
-      <div className="absolute left-4 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-2 rounded-lg border border-border bg-card/95 p-2 shadow-lg backdrop-blur-sm">
+      <div className="absolute left-3 top-3 z-20 flex flex-col gap-1 rounded-lg border border-border/50 bg-card/95 p-1.5 shadow-lg backdrop-blur-sm">
         {tools.map((tool) => {
           const Icon = tool.icon
           return (
@@ -34,11 +34,11 @@ export function EarthToolbar() {
                   size="icon"
                   onClick={tool.onClick}
                   className={cn(
-                    'size-10 text-muted-foreground hover:bg-muted hover:text-foreground',
+                    'size-9 text-muted-foreground hover:bg-muted hover:text-foreground',
                     tool.active && 'bg-primary/10 text-primary border border-primary/30'
                   )}
                 >
-                  <Icon className="size-5" />
+                  <Icon className="size-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right">
