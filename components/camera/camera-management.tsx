@@ -6,7 +6,9 @@ import { CameraCardView } from './camera-card-view'
 import { CameraListView } from './camera-list-view'
 import { CameraDetailView } from './camera-detail-view'
 import { AddCameraDialog } from './add-camera-dialog'
-import { CreateGroupDialog } from './create-group-dialog'
+import { NewRootGroupDialog } from './new-root-group-dialog'
+import { SubgroupDialog } from './subgroup-dialog'
+import { AddCamerasToGroupDialog } from './add-cameras-to-group-dialog'
 import { DeleteCameraDialog } from './delete-camera-dialog'
 import { DeleteGroupDialog } from './delete-group-dialog'
 
@@ -35,7 +37,9 @@ export function CameraManagement() {
       )}
 
       <AddCameraDialog />
-      <CreateGroupDialog />
+      <NewRootGroupDialog />
+      <SubgroupDialog />
+      <AddCamerasToGroupDialog />
       <DeleteCameraDialog />
       <DeleteGroupDialog />
     </>

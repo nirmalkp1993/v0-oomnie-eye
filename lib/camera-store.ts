@@ -35,32 +35,6 @@ function addUniqueId(ids: string[], id: string): string[] {
   return [...ids, id]
 }
 
-/** Strict descendants: groups that transitively list `ancestorId` in their parent chain */
-export function collectDescendantGroupIds(ancestorId: string, groups: CameraGroup[]): Set<string> {
-  const descendants = new Set<string>()
-  let frontier: string[] = [ancestorId]
-  while (frontier.length > 0) {
-    const next: string[] = []
-    for (const g of groups) {
-      if (descendants.has(g.id)) continue
-      const parents = groupParentIds(g)
-      if (parents.some((p) => frontier.includes(p))) {
-        descendants.add(g.id)
-        next.push(g.id)
-      }
-    }
-    if (next.length === 0) break
-    frontier = next
-  }
-  descendants.delete(ancestorId)
-  return descendants
-}
-
-export function wouldNestCreateCycle(movingGroupId: string, newParentId: string, groups: CameraGroup[]): boolean {
-  if (movingGroupId === newParentId) return true
-  return collectDescendantGroupIds(movingGroupId, groups).has(newParentId)
-}
-
 function subtreeHasSearchMatch(
   group: CameraGroup,
   cameras: Camera[],
@@ -169,7 +143,9 @@ interface CameraStore {
   selectedCamera: Camera | null
   activeTab: CameraTab
   isAddDialogOpen: boolean
-  isCreateGroupDialogOpen: boolean
+  isNewRootGroupModalOpen: boolean
+  subgroupModalParentId: string | null
+  addCamerasModalGroupId: string | null
   isDeleteDialogOpen: boolean
   isDeleteGroupDialogOpen: boolean
   cameraToDelete: Camera | null
@@ -185,7 +161,9 @@ interface CameraStore {
   setSelectedCamera: (camera: Camera | null) => void
   setActiveTab: (tab: CameraTab) => void
   setIsAddDialogOpen: (open: boolean) => void
-  setIsCreateGroupDialogOpen: (open: boolean) => void
+  setIsNewRootGroupModalOpen: (open: boolean) => void
+  setSubgroupModalParentId: (parentId: string | null) => void
+  setAddCamerasModalGroupId: (groupId: string | null) => void
   setIsDeleteDialogOpen: (open: boolean) => void
   setIsDeleteGroupDialogOpen: (open: boolean) => void
   setCameraToDelete: (camera: Camera | null) => void
@@ -195,8 +173,9 @@ interface CameraStore {
   updateCamera: (id: string, data: Partial<Camera>) => void
   deleteCamera: (id: string) => void
 
-  createGroupWithCameras: (name: string, cameraIds: string[], nestedGroupIds: string[]) => void
-  addCamerasToGroup: (groupId: string, cameraIds: string[], nestedGroupIds: string[]) => void
+  createRootGroup: (name: string) => void
+  createSubgroupUnder: (parentId: string, name: string) => void
+  addCamerasToParentGroup: (parentId: string, cameraIds: string[]) => void
   deleteGroup: (groupId: string) => void
 
   addSchedule: (schedule: Omit<Schedule, 'id' | 'createdAt'>) => void
@@ -224,7 +203,9 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
   selectedCamera: null,
   activeTab: 'details',
   isAddDialogOpen: false,
-  isCreateGroupDialogOpen: false,
+  isNewRootGroupModalOpen: false,
+  subgroupModalParentId: null,
+  addCamerasModalGroupId: null,
   isDeleteDialogOpen: false,
   isDeleteGroupDialogOpen: false,
   cameraToDelete: null,
@@ -241,7 +222,9 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
   setSelectedCamera: (camera) => set({ selectedCamera: camera, activeTab: 'stream' }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setIsAddDialogOpen: (open) => set({ isAddDialogOpen: open }),
-  setIsCreateGroupDialogOpen: (open) => set({ isCreateGroupDialogOpen: open }),
+  setIsNewRootGroupModalOpen: (open) => set({ isNewRootGroupModalOpen: open }),
+  setSubgroupModalParentId: (parentId) => set({ subgroupModalParentId: parentId }),
+  setAddCamerasModalGroupId: (groupId) => set({ addCamerasModalGroupId: groupId }),
   setIsDeleteDialogOpen: (open) => set({ isDeleteDialogOpen: open }),
   setIsDeleteGroupDialogOpen: (open) => set({ isDeleteGroupDialogOpen: open }),
   setCameraToDelete: (camera) => set({ cameraToDelete: camera }),
@@ -305,65 +288,47 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
     }))
   },
 
-  createGroupWithCameras: (name, cameraIds, nestedGroupIds) => {
+  createRootGroup: (name) => {
     const trimmed = name.trim()
-    if (!trimmed || (cameraIds.length === 0 && nestedGroupIds.length === 0)) return
+    if (!trimmed) return
     const now = new Date()
-    const newGroup: CameraGroup = {
+    const g: CameraGroup = {
       id: crypto.randomUUID(),
       name: trimmed,
       parentGroupIds: [],
       createdAt: now,
       updatedAt: now,
     }
-    const camSet = new Set(cameraIds)
-    const grpSet = new Set(nestedGroupIds)
     set((state) => ({
-      cameraGroups: [
-        ...state.cameraGroups.map((g) =>
-          grpSet.has(g.id)
-            ? {
-              ...g,
-              parentGroupIds: addUniqueId(groupParentIds(g), newGroup.id),
-              updatedAt: now,
-            }
-            : g,
-        ),
-        newGroup,
-      ],
-      cameras: state.cameras.map((c) =>
-        camSet.has(c.id)
-          ? {
-            ...c,
-            groupIds: addUniqueId(cameraGroupIds(c), newGroup.id),
-            updatedAt: now,
-          }
-          : c,
-      ),
-      isCreateGroupDialogOpen: false,
+      cameraGroups: [...state.cameraGroups, g],
+      isNewRootGroupModalOpen: false,
     }))
   },
 
-  addCamerasToGroup: (parentId, cameraIds, nestedGroupIds) => {
-    const groups = get().cameraGroups
+  createSubgroupUnder: (parentId, name) => {
+    const trimmed = name.trim()
+    if (!trimmed || !parentId) return
     const now = new Date()
-    const camSet = new Set(cameraIds)
-    const grpSet = new Set(
-      nestedGroupIds.filter((gid) => !wouldNestCreateCycle(gid, parentId, groups)),
-    )
-    if (camSet.size === 0 && grpSet.size === 0) return
+    const g: CameraGroup = {
+      id: crypto.randomUUID(),
+      name: trimmed,
+      parentGroupIds: [parentId],
+      createdAt: now,
+      updatedAt: now,
+    }
     set((state) => ({
-      cameraGroups: state.cameraGroups.map((g) =>
-        grpSet.has(g.id)
-          ? {
-            ...g,
-            parentGroupIds: addUniqueId(groupParentIds(g), parentId),
-            updatedAt: now,
-          }
-          : g,
-      ),
+      cameraGroups: [...state.cameraGroups, g],
+      subgroupModalParentId: null,
+    }))
+  },
+
+  addCamerasToParentGroup: (parentId, cameraIds) => {
+    if (!parentId || cameraIds.length === 0) return
+    const now = new Date()
+    const idSet = new Set(cameraIds)
+    set((state) => ({
       cameras: state.cameras.map((c) =>
-        camSet.has(c.id)
+        idSet.has(c.id)
           ? {
             ...c,
             groupIds: addUniqueId(cameraGroupIds(c), parentId),
@@ -371,7 +336,7 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
           }
           : c,
       ),
-      isCreateGroupDialogOpen: false,
+      addCamerasModalGroupId: null,
     }))
   },
 

@@ -15,6 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -26,6 +32,8 @@ import {
   ChevronDown,
   Folder,
   Video,
+  FolderPlus,
+  Camera as CameraIcon,
 } from 'lucide-react'
 
 const CELL_DASH = '-'
@@ -56,6 +64,8 @@ export function CameraListView() {
   const setIsDeleteDialogOpen = useCameraStore((s) => s.setIsDeleteDialogOpen)
   const setGroupToDelete = useCameraStore((s) => s.setGroupToDelete)
   const setIsDeleteGroupDialogOpen = useCameraStore((s) => s.setIsDeleteGroupDialogOpen)
+  const setSubgroupModalParentId = useCameraStore((s) => s.setSubgroupModalParentId)
+  const setAddCamerasModalGroupId = useCameraStore((s) => s.setAddCamerasModalGroupId)
   const updateCamera = useCameraStore((s) => s.updateCamera)
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
@@ -181,54 +191,74 @@ export function CameraListView() {
 
     return (
       <Fragment key={rowKey}>
-        <TableRow
-          className="cursor-pointer border-border bg-muted/30 hover:bg-muted/50"
-          onClick={() => toggleGroup(node.group.id)}
-        >
-          <TableCell className="font-medium text-foreground">
-            <div
-              className={
-                depth > 0
-                  ? 'flex items-center gap-2 border-l border-border pl-3'
-                  : 'flex items-center gap-2 pl-1'
-              }
-              style={depth > 0 ? { marginLeft: 8 + depth * 16 } : undefined}
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <TableRow
+              className="cursor-pointer border-border bg-muted/30 hover:bg-muted/50"
+              onClick={() => toggleGroup(node.group.id)}
             >
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  toggleGroup(node.group.id)
-                }}
-              >
-                {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-              </Button>
-              <Folder className="size-4 shrink-0 text-primary" />
-              <span>{node.group.name}</span>
-            </div>
-          </TableCell>
-          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-          <TableCell className="text-muted-foreground text-center">{count}</TableCell>
-          <TableCell className="text-muted-foreground">group</TableCell>
-          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={(e) => handleDeleteGroup(node.group, e)}
-              className="text-muted-foreground hover:text-destructive"
+              <TableCell className="font-medium text-foreground">
+                <div
+                  className={
+                    depth > 0
+                      ? 'flex items-center gap-2 border-l border-border pl-3'
+                      : 'flex items-center gap-2 pl-1'
+                  }
+                  style={depth > 0 ? { marginLeft: 8 + depth * 16 } : undefined}
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleGroup(node.group.id)
+                    }}
+                  >
+                    {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                  </Button>
+                  <Folder className="size-4 shrink-0 text-primary" />
+                  <span>{node.group.name}</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+              <TableCell className="text-muted-foreground text-center">{count}</TableCell>
+              <TableCell className="text-muted-foreground">group</TableCell>
+              <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+              <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+              <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+              <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+              <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={(e) => handleDeleteGroup(node.group, e)}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          </ContextMenuTrigger>
+          <ContextMenuContent className="min-w-[11rem] border-border bg-popover">
+            <ContextMenuItem
+              className="gap-2 cursor-pointer"
+              onSelect={() => setSubgroupModalParentId(node.group.id)}
             >
-              <Trash2 className="size-4" />
-            </Button>
-          </TableCell>
-        </TableRow>
+              <FolderPlus className="size-4" />
+              Create subgroup
+            </ContextMenuItem>
+            <ContextMenuItem
+              className="gap-2 cursor-pointer"
+              onSelect={() => setAddCamerasModalGroupId(node.group.id)}
+            >
+              <CameraIcon className="size-4" />
+              Add camera
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
         {isOpen && (
           <>
             {node.children.map((ch) => renderGroupNode(ch, depth + 1, rowKey))}

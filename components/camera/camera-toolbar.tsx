@@ -27,10 +27,10 @@ export function CameraToolbar() {
     searchQuery,
     setSearchQuery,
     setIsAddDialogOpen,
-    setIsCreateGroupDialogOpen,
+    setIsNewRootGroupModalOpen,
     getFilteredCameras,
   } = useCameraStore()
-  
+
   const filteredCount = getFilteredCameras().length
 
   return (
@@ -58,7 +58,7 @@ export function CameraToolbar() {
         >
           <SlidersHorizontal className="size-4" />
         </Button>
-        
+
         <div className="flex rounded-lg border border-border bg-muted p-1">
           <Button
             variant={viewMode === 'card' ? 'default' : 'ghost'}
@@ -96,10 +96,10 @@ export function CameraToolbar() {
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 cursor-pointer"
-              onSelect={() => setIsCreateGroupDialogOpen(true)}
+              onSelect={() => setIsNewRootGroupModalOpen(true)}
             >
               <FolderPlus className="size-4" />
-              Create Group
+              New group
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
