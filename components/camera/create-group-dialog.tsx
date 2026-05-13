@@ -154,9 +154,11 @@ export function CreateGroupDialog() {
             onValueChange={(v) => setMode(v as Mode)}
             className="grid gap-3"
           >
-            <div className="flex items-start gap-3 rounded-lg border border-border p-3">
-              <RadioGroupItem value="new" id="mode-new" className="mt-1" />
-              <div className="flex-1 space-y-2">
+            <div className="flex gap-3 rounded-lg border border-border bg-muted/20 p-3">
+              <div className="flex shrink-0 items-center pt-0.5">
+                <RadioGroupItem value="new" id="mode-new" aria-label="New group" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
                 <Label htmlFor="mode-new" className="cursor-pointer font-medium text-foreground">
                   New group
                 </Label>
@@ -169,9 +171,11 @@ export function CreateGroupDialog() {
                 />
               </div>
             </div>
-            <div className="flex items-start gap-3 rounded-lg border border-border p-3">
-              <RadioGroupItem value="existing" id="mode-existing" className="mt-1" />
-              <div className="flex-1 space-y-2">
+            <div className="flex gap-3 rounded-lg border border-border bg-muted/20 p-3">
+              <div className="flex shrink-0 items-center pt-0.5">
+                <RadioGroupItem value="existing" id="mode-existing" aria-label="Add to existing group" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
                 <Label htmlFor="mode-existing" className="cursor-pointer font-medium text-foreground">
                   Add to existing group
                 </Label>
