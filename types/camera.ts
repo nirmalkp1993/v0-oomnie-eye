@@ -1,6 +1,8 @@
 export interface CameraGroup {
   id: string
   name: string
+  /** Parent folder groups — a group may appear under several parents. Empty = root only */
+  parentGroupIds?: string[]
   createdAt: Date
   updatedAt: Date
 }
@@ -10,8 +12,8 @@ export interface Camera {
   name: string
   ip: string
   type: 'RTSP' | 'ONVIF' | 'USB' | 'HTTP'
-  /** When set, camera is listed under this group in the table tree */
-  groupId?: string | null
+  /** Groups this camera is listed under (may be several). Empty/omit = root table rows only */
+  groupIds?: string[]
   cameraId: string
   port: number
   apiBaseUrl: string

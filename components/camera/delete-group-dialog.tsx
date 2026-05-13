@@ -35,9 +35,10 @@ export function DeleteGroupDialog() {
             Delete group?
           </AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground">
-            This removes group{' '}
-            <span className="font-semibold text-foreground">{groupToDelete?.name}</span>. Cameras
-            in the group stay on the list and move back to the root level.
+            This deletes group{' '}
+            <span className="font-semibold text-foreground">{groupToDelete?.name}</span> and removes
+            only that group&apos;s memberships. Cameras and subgroups can still appear elsewhere if
+            they belonged to other groups too; otherwise they move to the root list.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

@@ -22,10 +22,140 @@ function cameraMatchesSearch(c: Camera, query: string): boolean {
   )
 }
 
-export interface CameraTableGroupBlock {
+function cameraGroupIds(c: Camera): string[] {
+  return c.groupIds ?? []
+}
+
+function groupParentIds(g: CameraGroup): string[] {
+  return g.parentGroupIds ?? []
+}
+
+function addUniqueId(ids: string[], id: string): string[] {
+  if (ids.includes(id)) return ids
+  return [...ids, id]
+}
+
+/** Strict descendants: groups that transitively list `ancestorId` in their parent chain */
+export function collectDescendantGroupIds(ancestorId: string, groups: CameraGroup[]): Set<string> {
+  const descendants = new Set<string>()
+  let frontier: string[] = [ancestorId]
+  while (frontier.length > 0) {
+    const next: string[] = []
+    for (const g of groups) {
+      if (descendants.has(g.id)) continue
+      const parents = groupParentIds(g)
+      if (parents.some((p) => frontier.includes(p))) {
+        descendants.add(g.id)
+        next.push(g.id)
+      }
+    }
+    if (next.length === 0) break
+    frontier = next
+  }
+  descendants.delete(ancestorId)
+  return descendants
+}
+
+export function wouldNestCreateCycle(movingGroupId: string, newParentId: string, groups: CameraGroup[]): boolean {
+  if (movingGroupId === newParentId) return true
+  return collectDescendantGroupIds(movingGroupId, groups).has(newParentId)
+}
+
+function subtreeHasSearchMatch(
+  group: CameraGroup,
+  cameras: Camera[],
+  allGroups: CameraGroup[],
+  q: string,
+  visited: Set<string>,
+): boolean {
+  if (visited.has(group.id)) return false
+  visited.add(group.id)
+  const ql = q.toLowerCase()
+  if (group.name.toLowerCase().includes(ql)) return true
+  if (cameras.some((c) => cameraGroupIds(c).includes(group.id) && cameraMatchesSearch(c, q))) {
+    return true
+  }
+  return allGroups
+    .filter((g) => groupParentIds(g).includes(group.id))
+    .some((cg) => subtreeHasSearchMatch(cg, cameras, allGroups, q, visited))
+}
+
+export interface CameraTableGroupNode {
   group: CameraGroup
-  /** Cameras shown under this group (respects search) */
   cameras: Camera[]
+  children: CameraTableGroupNode[]
+}
+
+function buildGroupTreeNode(
+  group: CameraGroup,
+  cameras: Camera[],
+  allGroups: CameraGroup[],
+  qTrim: string,
+  ancestorPath: Set<string>,
+): CameraTableGroupNode | null {
+  if (ancestorPath.has(group.id)) {
+    return null
+  }
+
+  const hasSearch = qTrim.length > 0
+
+  if (hasSearch && !subtreeHasSearchMatch(group, cameras, allGroups, qTrim, new Set())) {
+    return null
+  }
+
+  const childGroups = allGroups
+    .filter((g) => groupParentIds(g).includes(group.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  const nextPath = new Set(ancestorPath).add(group.id)
+
+  const childNodes = childGroups
+    .map((cg) => buildGroupTreeNode(cg, cameras, allGroups, qTrim, nextPath))
+    .filter((n): n is CameraTableGroupNode => n !== null)
+
+  const directCams = cameras.filter((c) => cameraGroupIds(c).includes(group.id))
+  const groupNameMatch = hasSearch && group.name.toLowerCase().includes(qTrim.toLowerCase())
+
+  let displayCameras: Camera[]
+  if (!hasSearch) {
+    displayCameras = directCams
+  } else if (groupNameMatch) {
+    displayCameras = directCams
+  } else {
+    displayCameras = directCams.filter((c) => cameraMatchesSearch(c, qTrim))
+  }
+
+  displayCameras = [...displayCameras].sort((a, b) => a.name.localeCompare(b.name))
+
+  return { group, cameras: displayCameras, children: childNodes }
+}
+
+/** Unique cameras listed under this group or any nested subgroup */
+export function collectCameraIdsInGroupSubtree(
+  groupId: string,
+  cameras: Camera[],
+  groups: CameraGroup[],
+): Set<string> {
+  const ids = new Set<string>()
+  for (const c of cameras) {
+    if (cameraGroupIds(c).includes(groupId)) ids.add(c.id)
+  }
+  for (const g of groups) {
+    if (groupParentIds(g).includes(groupId)) {
+      for (const id of collectCameraIdsInGroupSubtree(g.id, cameras, groups)) {
+        ids.add(id)
+      }
+    }
+  }
+  return ids
+}
+
+export function countCamerasInGroupSubtree(
+  groupId: string,
+  cameras: Camera[],
+  groups: CameraGroup[],
+): number {
+  return collectCameraIdsInGroupSubtree(groupId, cameras, groups).size
 }
 
 interface CameraStore {
@@ -45,6 +175,11 @@ interface CameraStore {
   cameraToDelete: Camera | null
   groupToDelete: CameraGroup | null
 
+  /** Grid explorer: folder ids from root → current (empty = root) */
+  cardExplorerStack: string[]
+  pushCardExplorerFolder: (groupId: string) => void
+  navigateCardExplorerToSegmentIndex: (segmentIndex: number) => void
+
   setViewMode: (mode: ViewMode) => void
   setSearchQuery: (query: string) => void
   setSelectedCamera: (camera: Camera | null) => void
@@ -56,12 +191,12 @@ interface CameraStore {
   setCameraToDelete: (camera: Camera | null) => void
   setGroupToDelete: (group: CameraGroup | null) => void
 
-  addCamera: (camera: Omit<Camera, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'groupId'>) => void
+  addCamera: (camera: Omit<Camera, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'groupIds'>) => void
   updateCamera: (id: string, data: Partial<Camera>) => void
   deleteCamera: (id: string) => void
 
-  createGroupWithCameras: (name: string, cameraIds: string[]) => void
-  addCamerasToGroup: (groupId: string, cameraIds: string[]) => void
+  createGroupWithCameras: (name: string, cameraIds: string[], nestedGroupIds: string[]) => void
+  addCamerasToGroup: (groupId: string, cameraIds: string[], nestedGroupIds: string[]) => void
   deleteGroup: (groupId: string) => void
 
   addSchedule: (schedule: Omit<Schedule, 'id' | 'createdAt'>) => void
@@ -72,7 +207,7 @@ interface CameraStore {
   clearLogs: () => void
 
   getFilteredCameras: () => Camera[]
-  getCameraTableTree: () => { groupBlocks: CameraTableGroupBlock[]; rootCameras: Camera[] }
+  getCameraTableTree: () => { rootTrees: CameraTableGroupNode[]; rootCameras: Camera[] }
   getCameraSchedules: (cameraId: string) => Schedule[]
   getCameraRecordings: (cameraId: string) => Recording[]
   getCameraLogs: (cameraId: string) => LogEntry[]
@@ -95,7 +230,13 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
   cameraToDelete: null,
   groupToDelete: null,
 
-  setViewMode: (mode) => set({ viewMode: mode }),
+  cardExplorerStack: [],
+
+  setViewMode: (mode) =>
+    set((state) => ({
+      viewMode: mode,
+      ...(mode === 'table' ? { cardExplorerStack: [] } : {}),
+    })),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSelectedCamera: (camera) => set({ selectedCamera: camera, activeTab: 'stream' }),
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -105,6 +246,15 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
   setIsDeleteGroupDialogOpen: (open) => set({ isDeleteGroupDialogOpen: open }),
   setCameraToDelete: (camera) => set({ cameraToDelete: camera }),
   setGroupToDelete: (group) => set({ groupToDelete: group }),
+
+  pushCardExplorerFolder: (groupId) =>
+    set((state) => ({ cardExplorerStack: [...state.cardExplorerStack, groupId] })),
+
+  navigateCardExplorerToSegmentIndex: (segmentIndex) =>
+    set((state) => ({
+      cardExplorerStack:
+        segmentIndex <= 0 ? [] : state.cardExplorerStack.slice(0, segmentIndex),
+    })),
 
   addCamera: (cameraData) => {
     const newCamera: Camera = {
@@ -155,32 +305,71 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
     }))
   },
 
-  createGroupWithCameras: (name, cameraIds) => {
+  createGroupWithCameras: (name, cameraIds, nestedGroupIds) => {
     const trimmed = name.trim()
-    if (!trimmed || cameraIds.length === 0) return
+    if (!trimmed || (cameraIds.length === 0 && nestedGroupIds.length === 0)) return
     const now = new Date()
-    const group: CameraGroup = {
+    const newGroup: CameraGroup = {
       id: crypto.randomUUID(),
       name: trimmed,
+      parentGroupIds: [],
       createdAt: now,
       updatedAt: now,
     }
-    const idSet = new Set(cameraIds)
+    const camSet = new Set(cameraIds)
+    const grpSet = new Set(nestedGroupIds)
     set((state) => ({
-      cameraGroups: [...state.cameraGroups, group],
+      cameraGroups: [
+        ...state.cameraGroups.map((g) =>
+          grpSet.has(g.id)
+            ? {
+              ...g,
+              parentGroupIds: addUniqueId(groupParentIds(g), newGroup.id),
+              updatedAt: now,
+            }
+            : g,
+        ),
+        newGroup,
+      ],
       cameras: state.cameras.map((c) =>
-        idSet.has(c.id) ? { ...c, groupId: group.id, updatedAt: new Date() } : c,
+        camSet.has(c.id)
+          ? {
+            ...c,
+            groupIds: addUniqueId(cameraGroupIds(c), newGroup.id),
+            updatedAt: now,
+          }
+          : c,
       ),
       isCreateGroupDialogOpen: false,
     }))
   },
 
-  addCamerasToGroup: (groupId, cameraIds) => {
-    if (!cameraIds.length) return
-    const idSet = new Set(cameraIds)
+  addCamerasToGroup: (parentId, cameraIds, nestedGroupIds) => {
+    const groups = get().cameraGroups
+    const now = new Date()
+    const camSet = new Set(cameraIds)
+    const grpSet = new Set(
+      nestedGroupIds.filter((gid) => !wouldNestCreateCycle(gid, parentId, groups)),
+    )
+    if (camSet.size === 0 && grpSet.size === 0) return
     set((state) => ({
+      cameraGroups: state.cameraGroups.map((g) =>
+        grpSet.has(g.id)
+          ? {
+            ...g,
+            parentGroupIds: addUniqueId(groupParentIds(g), parentId),
+            updatedAt: now,
+          }
+          : g,
+      ),
       cameras: state.cameras.map((c) =>
-        idSet.has(c.id) ? { ...c, groupId, updatedAt: new Date() } : c,
+        camSet.has(c.id)
+          ? {
+            ...c,
+            groupIds: addUniqueId(cameraGroupIds(c), parentId),
+            updatedAt: now,
+          }
+          : c,
       ),
       isCreateGroupDialogOpen: false,
     }))
@@ -188,10 +377,18 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
 
   deleteGroup: (groupId) => {
     set((state) => ({
-      cameraGroups: state.cameraGroups.filter((g) => g.id !== groupId),
-      cameras: state.cameras.map((c) =>
-        c.groupId === groupId ? { ...c, groupId: null, updatedAt: new Date() } : c,
-      ),
+      cameraGroups: state.cameraGroups
+        .filter((g) => g.id !== groupId)
+        .map((g) => {
+          const pg = groupParentIds(g).filter((id) => id !== groupId)
+          if (pg.length === groupParentIds(g).length) return g
+          return { ...g, parentGroupIds: pg, updatedAt: new Date() }
+        }),
+      cameras: state.cameras.map((c) => {
+        const next = cameraGroupIds(c).filter((id) => id !== groupId)
+        if (next.length === cameraGroupIds(c).length) return c
+        return { ...c, groupIds: next, updatedAt: new Date() }
+      }),
       isDeleteGroupDialogOpen: false,
       groupToDelete: null,
     }))
@@ -238,37 +435,22 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
 
   getCameraTableTree: () => {
     const { cameras, cameraGroups, searchQuery } = get()
-    const q = searchQuery.trim()
+    const qTrim = searchQuery.trim()
 
-    const sortedGroups = [...cameraGroups].sort((a, b) => a.name.localeCompare(b.name))
-    const groupBlocks: CameraTableGroupBlock[] = []
-
-    for (const group of sortedGroups) {
-      const inGroup = cameras.filter((c) => c.groupId === group.id)
-      const groupNameMatch = q && group.name.toLowerCase().includes(q.toLowerCase())
-      let visibleCameras: Camera[]
-      if (!q) {
-        visibleCameras = inGroup
-      } else if (groupNameMatch) {
-        visibleCameras = inGroup
-      } else {
-        visibleCameras = inGroup.filter((c) => cameraMatchesSearch(c, q))
-      }
-      const showGroup = !q || groupNameMatch || visibleCameras.length > 0
-      if (showGroup) {
-        groupBlocks.push({
-          group,
-          cameras: !q || groupNameMatch ? inGroup : visibleCameras,
-        })
-      }
-    }
-
-    const rootCameras = cameras
-      .filter((c) => !c.groupId)
-      .filter((c) => cameraMatchesSearch(c, q))
+    const roots = cameraGroups
+      .filter((g) => groupParentIds(g).length === 0)
       .sort((a, b) => a.name.localeCompare(b.name))
 
-    return { groupBlocks, rootCameras }
+    const rootTrees: CameraTableGroupNode[] = roots
+      .map((g) => buildGroupTreeNode(g, cameras, cameraGroups, qTrim, new Set()))
+      .filter((n): n is CameraTableGroupNode => n !== null)
+
+    const rootCameras = cameras
+      .filter((c) => cameraGroupIds(c).length === 0)
+      .filter((c) => cameraMatchesSearch(c, qTrim))
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    return { rootTrees, rootCameras }
   },
 
   getCameraSchedules: (cameraId) => {

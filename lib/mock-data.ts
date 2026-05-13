@@ -4,8 +4,16 @@ export const mockCameraGroups: CameraGroup[] = [
   {
     id: 'grp-demo-1',
     name: 'Warehouse floor',
+    parentGroupIds: [],
     createdAt: new Date('2024-01-15'),
     updatedAt: new Date('2024-01-15'),
+  },
+  {
+    id: 'grp-demo-2',
+    name: 'North aisle',
+    parentGroupIds: ['grp-demo-1'],
+    createdAt: new Date('2024-01-16'),
+    updatedAt: new Date('2024-01-16'),
   },
 ]
 
@@ -13,7 +21,7 @@ export const mockCameras: Camera[] = [
   {
     id: '1',
     name: 'CAM-01',
-    groupId: 'grp-demo-1',
+    groupIds: ['grp-demo-1', 'grp-demo-2'],
     ip: '192.168.0.01',
     type: 'RTSP',
     cameraId: 'admin',
@@ -32,7 +40,7 @@ export const mockCameras: Camera[] = [
   {
     id: '2',
     name: 'CAM-02',
-    groupId: 'grp-demo-1',
+    groupIds: ['grp-demo-2'],
     ip: '192.168.0.02',
     type: 'ONVIF',
     cameraId: 'admin',

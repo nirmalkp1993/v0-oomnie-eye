@@ -1,7 +1,11 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useState } from 'react'
-import { useCameraStore } from '@/lib/camera-store'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  useCameraStore,
+  countCamerasInGroupSubtree,
+  type CameraTableGroupNode,
+} from '@/lib/camera-store'
 import type { Camera, CameraGroup } from '@/types/camera'
 import {
   Table,
@@ -26,13 +30,23 @@ import {
 
 const CELL_DASH = '-'
 
+function collectAllGroupIds(nodes: CameraTableGroupNode[]): string[] {
+  const ids: string[] = []
+  const walk = (n: CameraTableGroupNode) => {
+    ids.push(n.group.id)
+    n.children.forEach(walk)
+  }
+  nodes.forEach(walk)
+  return ids
+}
+
 export function CameraListView() {
   const cameras = useCameraStore((s) => s.cameras)
   const cameraGroups = useCameraStore((s) => s.cameraGroups)
   const searchQuery = useCameraStore((s) => s.searchQuery)
   const getCameraTableTree = useCameraStore((s) => s.getCameraTableTree)
 
-  const { groupBlocks, rootCameras } = useMemo(
+  const { rootTrees, rootCameras } = useMemo(
     () => getCameraTableTree(),
     [getCameraTableTree, cameras, cameraGroups, searchQuery],
   )
@@ -50,16 +64,16 @@ export function CameraListView() {
     if (!searchQuery.trim()) return
     setExpanded((prev) => {
       const next = { ...prev }
-      for (const { group } of groupBlocks) {
-        next[group.id] = true
+      for (const id of collectAllGroupIds(rootTrees)) {
+        next[id] = true
       }
       return next
     })
-  }, [searchQuery, groupBlocks])
+  }, [searchQuery, rootTrees])
 
-  const toggleGroup = (groupId: string) => {
+  const toggleGroup = useCallback((groupId: string) => {
     setExpanded((prev) => ({ ...prev, [groupId]: !prev[groupId] }))
-  }
+  }, [])
 
   const handleDeleteCamera = (camera: Camera, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -80,11 +94,9 @@ export function CameraListView() {
     })
   }
 
-  const memberCount = (groupId: string) => cameras.filter((c) => c.groupId === groupId).length
-
-  const renderCameraRow = (camera: Camera, depth: number) => (
+  const renderCameraRow = (camera: Camera, depth: number, rowKey: string) => (
     <TableRow
-      key={camera.id}
+      key={rowKey}
       className="cursor-pointer border-border hover:bg-primary/5"
       onClick={() => setSelectedCamera(camera)}
     >
@@ -162,7 +174,76 @@ export function CameraListView() {
     </TableRow>
   )
 
-  const isEmpty = groupBlocks.length === 0 && rootCameras.length === 0
+  const renderGroupNode = (node: CameraTableGroupNode, depth: number, pathKey: string): React.ReactNode => {
+    const rowKey = pathKey ? `${pathKey}>${node.group.id}` : node.group.id
+    const isOpen = expanded[node.group.id] ?? true
+    const count = countCamerasInGroupSubtree(node.group.id, cameras, cameraGroups)
+
+    return (
+      <Fragment key={rowKey}>
+        <TableRow
+          className="cursor-pointer border-border bg-muted/30 hover:bg-muted/50"
+          onClick={() => toggleGroup(node.group.id)}
+        >
+          <TableCell className="font-medium text-foreground">
+            <div
+              className={
+                depth > 0
+                  ? 'flex items-center gap-2 border-l border-border pl-3'
+                  : 'flex items-center gap-2 pl-1'
+              }
+              style={depth > 0 ? { marginLeft: 8 + depth * 16 } : undefined}
+            >
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  toggleGroup(node.group.id)
+                }}
+              >
+                {isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+              </Button>
+              <Folder className="size-4 shrink-0 text-primary" />
+              <span>{node.group.name}</span>
+            </div>
+          </TableCell>
+          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+          <TableCell className="text-muted-foreground text-center">{count}</TableCell>
+          <TableCell className="text-muted-foreground">group</TableCell>
+          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+          <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
+          <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={(e) => handleDeleteGroup(node.group, e)}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </TableCell>
+        </TableRow>
+        {isOpen && (
+          <>
+            {node.children.map((ch) => renderGroupNode(ch, depth + 1, rowKey))}
+            {node.cameras.map((cam) => (
+              <Fragment key={`${cam.id}@${rowKey}`}>
+                {renderCameraRow(cam, depth + 1, `${cam.id}@${rowKey}`)}
+              </Fragment>
+            ))}
+          </>
+        )}
+      </Fragment>
+    )
+  }
+
+  const isEmpty = rootTrees.length === 0 && rootCameras.length === 0
 
   return (
     <div className="rounded-lg border border-border bg-card">
@@ -182,67 +263,10 @@ export function CameraListView() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {groupBlocks.map(({ group, cameras: groupCameras }) => {
-            const count = memberCount(group.id)
-            const isOpen = expanded[group.id] ?? true
-            const sorted = [...groupCameras].sort((a, b) => a.name.localeCompare(b.name))
-            return (
-              <Fragment key={group.id}>
-                <TableRow
-                  className="cursor-pointer border-border bg-muted/30 hover:bg-muted/50"
-                  onClick={() => toggleGroup(group.id)}
-                >
-                  <TableCell className="font-medium text-foreground">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleGroup(group.id)
-                        }}
-                      >
-                        {isOpen ? (
-                          <ChevronDown className="size-4" />
-                        ) : (
-                          <ChevronRight className="size-4" />
-                        )}
-                      </Button>
-                      <Folder className="size-4 shrink-0 text-primary" />
-                      <span>{group.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-                  <TableCell className="text-muted-foreground text-center">{count}</TableCell>
-                  <TableCell className="text-muted-foreground">group</TableCell>
-                  <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-                  <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-                  <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-                  <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-                  <TableCell className="text-muted-foreground">{CELL_DASH}</TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={(e) => handleDeleteGroup(group, e)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-                {isOpen &&
-                  sorted.map((camera) => <Fragment key={camera.id}>{renderCameraRow(camera, 1)}</Fragment>)}
-              </Fragment>
-            )
-          })}
-
+          {rootTrees.map((node) => renderGroupNode(node, 0, ''))}
           {rootCameras.map((camera) => (
-            <Fragment key={camera.id}>{renderCameraRow(camera, 0)}</Fragment>
+            <Fragment key={camera.id}>{renderCameraRow(camera, 0, camera.id)}</Fragment>
           ))}
-
           {isEmpty && (
             <TableRow>
               <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
