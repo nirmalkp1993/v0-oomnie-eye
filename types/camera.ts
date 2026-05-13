@@ -1,8 +1,17 @@
+export interface CameraGroup {
+  id: string
+  name: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface Camera {
   id: string
   name: string
   ip: string
   type: 'RTSP' | 'ONVIF' | 'USB' | 'HTTP'
+  /** When set, camera is listed under this group in the table tree */
+  groupId?: string | null
   cameraId: string
   port: number
   apiBaseUrl: string

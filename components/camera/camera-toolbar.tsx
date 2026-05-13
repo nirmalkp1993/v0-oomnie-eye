@@ -3,16 +3,32 @@
 import { useCameraStore } from '@/lib/camera-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, SlidersHorizontal, LayoutGrid, List, Camera, Plus } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Search,
+  SlidersHorizontal,
+  LayoutGrid,
+  List,
+  Camera,
+  Plus,
+  ChevronDown,
+  FolderPlus,
+} from 'lucide-react'
 
 export function CameraToolbar() {
-  const { 
-    viewMode, 
-    setViewMode, 
-    searchQuery, 
-    setSearchQuery, 
+  const {
+    viewMode,
+    setViewMode,
+    searchQuery,
+    setSearchQuery,
     setIsAddDialogOpen,
-    getFilteredCameras
+    setIsCreateGroupDialogOpen,
+    getFilteredCameras,
   } = useCameraStore()
   
   const filteredCount = getFilteredCameras().length
@@ -62,14 +78,31 @@ export function CameraToolbar() {
           </Button>
         </div>
 
-        <Button
-          onClick={() => setIsAddDialogOpen(true)}
-          className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          <Camera className="size-4" />
-          <Plus className="size-4" />
-          Add Camera
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+              <Plus className="size-4" />
+              New
+              <ChevronDown className="size-4 opacity-80" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[12rem] border-border bg-card">
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer"
+              onSelect={() => setIsAddDialogOpen(true)}
+            >
+              <Camera className="size-4" />
+              Add Camera
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer"
+              onSelect={() => setIsCreateGroupDialogOpen(true)}
+            >
+              <FolderPlus className="size-4" />
+              Create Group
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )

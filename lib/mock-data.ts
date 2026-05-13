@@ -1,9 +1,19 @@
-import type { Camera, Recording, Schedule, LogEntry } from '@/types/camera'
+import type { Camera, CameraGroup, Recording, Schedule, LogEntry } from '@/types/camera'
+
+export const mockCameraGroups: CameraGroup[] = [
+  {
+    id: 'grp-demo-1',
+    name: 'Warehouse floor',
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-01-15'),
+  },
+]
 
 export const mockCameras: Camera[] = [
   {
     id: '1',
     name: 'CAM-01',
+    groupId: 'grp-demo-1',
     ip: '192.168.0.01',
     type: 'RTSP',
     cameraId: 'admin',
@@ -22,6 +32,7 @@ export const mockCameras: Camera[] = [
   {
     id: '2',
     name: 'CAM-02',
+    groupId: 'grp-demo-1',
     ip: '192.168.0.02',
     type: 'ONVIF',
     cameraId: 'admin',

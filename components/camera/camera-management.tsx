@@ -6,7 +6,9 @@ import { CameraCardView } from './camera-card-view'
 import { CameraListView } from './camera-list-view'
 import { CameraDetailView } from './camera-detail-view'
 import { AddCameraDialog } from './add-camera-dialog'
+import { CreateGroupDialog } from './create-group-dialog'
 import { DeleteCameraDialog } from './delete-camera-dialog'
+import { DeleteGroupDialog } from './delete-group-dialog'
 
 export function CameraManagement() {
   const { viewMode, selectedCamera } = useCameraStore()
@@ -23,9 +25,9 @@ export function CameraManagement() {
               Manage and monitor your surveillance cameras
             </p>
           </div>
-          
+
           <CameraToolbar />
-          
+
           <div className="flex-1">
             {viewMode === 'card' ? <CameraCardView /> : <CameraListView />}
           </div>
@@ -33,7 +35,9 @@ export function CameraManagement() {
       )}
 
       <AddCameraDialog />
+      <CreateGroupDialog />
       <DeleteCameraDialog />
+      <DeleteGroupDialog />
     </>
   )
 }
