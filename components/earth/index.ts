@@ -1,4 +1,5 @@
 export { EarthView } from './earth-view'
+export { EarthMacDock } from './earth-mac-dock'
 export { CesiumGlobe } from './cesium-globe'
 export { EarthToolbar } from './earth-toolbar'
 export { AddPinDialog } from './add-pin-dialog'

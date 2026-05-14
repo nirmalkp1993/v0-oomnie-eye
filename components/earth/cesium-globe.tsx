@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePinStore } from '@/lib/pin-store'
+import { useFilteredDemoPins } from '@/hooks/use-dock-pin-filter'
+import { mockEarthDockPinToCameraPin } from '@/lib/mock-earth-dock-pin-to-camera-pin'
+import type { MockEarthDockPin } from '@/lib/mock-earth-dock-pins'
 import { Camera } from 'lucide-react'
 
 // Statue of Liberty coordinates
@@ -10,12 +13,93 @@ const STATUE_OF_LIBERTY = {
   lng: -74.0445,
 }
 
+const DEMO_PIN_COLORS: Record<MockEarthDockPin['type'], string> = {
+  place: '#3b82f6',
+  camera: '#f59e0b',
+  patrol: '#a855f7',
+  assets: '#22c55e',
+  iot: '#06b6d4',
+}
+
+function demoDockPinGlyphSvg(type: MockEarthDockPin['type']): string {
+  const s = (body: string) =>
+    `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`
+  switch (type) {
+    case 'place':
+      return s('<path d="M12 21s7-4.35 7-11a7 7 0 10-14 0c0 6.65 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/>')
+    case 'camera':
+      return s('<path d="M4 7h3l2-2h6l2 2h3a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V9a2 2 0 012-2z"/><circle cx="12" cy="13" r="3.2"/>')
+    case 'patrol':
+      return s('<path d="M12 3l7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V7l7-4z"/>')
+    case 'assets':
+      return s('<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>')
+    case 'iot':
+      return s('<path d="M5 12.55a11 11 0 0114.08 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><path d="M12 20h.01"/>')
+    default:
+      return s('<circle cx="12" cy="12" r="3"/>')
+  }
+}
+
+function buildDemoDockMarkerHtml(pin: MockEarthDockPin, size: number): string {
+  const bg = DEMO_PIN_COLORS[pin.type]
+  const glyph = demoDockPinGlyphSvg(pin.type)
+  const statusDot =
+    pin.status === 'active' ? '#4ade80' : pin.status === 'offline' ? '#f87171' : '#fbbf24'
+  return `
+    <div class="demo-dock-pin pin-marker" style="
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transform: translate(-50%, -100%);
+    ">
+      <div style="
+        position: relative;
+        width: ${size}px;
+        height: ${size}px;
+        background: ${bg};
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+        border: 2px solid rgba(255,255,255,0.95);
+      ">
+        <span style="
+          position: absolute; top: -2px; right: -2px;
+          width: 8px; height: 8px; border-radius: 50%;
+          background: ${statusDot}; border: 1px solid rgba(0,0,0,0.35);
+        "></span>
+        <div style="transform: rotate(45deg); width: ${size * 0.52}px; height: ${size * 0.52}px;">
+          ${glyph}
+        </div>
+      </div>
+      <div style="
+        margin-top: 4px;
+        padding: 2px 8px;
+        background: rgba(0,0,0,0.78);
+        color: white;
+        font-size: 12px;
+        border-radius: 4px;
+        white-space: nowrap;
+        max-width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      ">${pin.name}</div>
+    </div>
+  `
+}
+
 export function CesiumGlobe() {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
-  const markersRef = useRef<any[]>([])
+  const userMarkersRef = useRef<any[]>([])
+  const demoMarkersRef = useRef<any[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
   const [L, setL] = useState<any>(null)
+
+  const filteredDemoPins = useFilteredDemoPins()
 
   const { 
     pins, 
@@ -105,15 +189,13 @@ export function CesiumGlobe() {
     mapContainerRef.current.style.cursor = isAddingPin ? 'crosshair' : 'grab'
   }, [isAddingPin])
 
-  // Render pin markers
+  // User pins from store (unchanged behavior)
   useEffect(() => {
     if (!mapRef.current || !L || !isLoaded) return
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.remove())
-    markersRef.current = []
+    userMarkersRef.current.forEach((marker) => marker.remove())
+    userMarkersRef.current = []
 
-    // Add markers for each pin
     pins.forEach((pin) => {
       const iconHtml = `
         <div class="pin-marker" style="
@@ -173,9 +255,37 @@ export function CesiumGlobe() {
           setIsPinViewerOpen(true)
         })
 
-      markersRef.current.push(marker)
+      userMarkersRef.current.push(marker)
     })
   }, [pins, L, isLoaded, setSelectedPin, setIsPinViewerOpen])
+
+  // Demo-only dock pins: separate layer; filter updates without touching user markers or map view
+  useEffect(() => {
+    if (!mapRef.current || !L || !isLoaded) return
+
+    demoMarkersRef.current.forEach((m) => m.remove())
+    demoMarkersRef.current = []
+
+    const demoSize = 38
+    filteredDemoPins.forEach((pin) => {
+      const iconHtml = buildDemoDockMarkerHtml(pin, demoSize)
+      const customIcon = L.divIcon({
+        html: iconHtml,
+        className: 'custom-pin-icon demo-dock-pin-icon',
+        iconSize: [demoSize, demoSize + 24],
+        iconAnchor: [demoSize / 2, demoSize + 24],
+      })
+
+      const marker = L.marker([pin.latitude, pin.longitude], { icon: customIcon })
+        .addTo(mapRef.current)
+        .on('click', () => {
+          setSelectedPin(mockEarthDockPinToCameraPin(pin))
+          setIsPinViewerOpen(true)
+        })
+
+      demoMarkersRef.current.push(marker)
+    })
+  }, [filteredDemoPins, L, isLoaded, setSelectedPin, setIsPinViewerOpen])
 
   return (
     <div className="absolute inset-0">
@@ -195,8 +305,7 @@ export function CesiumGlobe() {
       {/* Pin Placement Indicator */}
       {isAddingPin && (
         <div 
-          className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-lg bg-orange-500 px-4 py-2 text-white shadow-lg"
-          style={{ zIndex: 999 }}
+          className="absolute bottom-32 left-1/2 z-[1005] -translate-x-1/2 rounded-lg bg-orange-500 px-4 py-2 text-white shadow-lg"
         >
           <div className="flex items-center gap-2">
             <Camera className="size-4" />
@@ -246,6 +355,9 @@ export function CesiumGlobe() {
         .pin-marker:hover {
           transform: translate(-50%, -100%) scale(1.1);
           transition: transform 0.2s ease;
+        }
+        .demo-dock-pin-icon {
+          transition: opacity 0.16s ease-out;
         }
       `}</style>
     </div>
