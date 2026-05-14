@@ -30,7 +30,8 @@ function demoDockPinGlyphSvg(type: MockEarthDockPin['type']): string {
     case 'camera':
       return s('<path d="M4 7h3l2-2h6l2 2h3a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V9a2 2 0 012-2z"/><circle cx="12" cy="13" r="3.2"/>')
     case 'patrol':
-      return s('<path d="M12 3l7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V7l7-4z"/>')
+      // Route-style path + solid waypoint nodes (aligned with Lucide `Route` / patrol corridor metaphor)
+      return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6" cy="19" r="3" fill="white"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" fill="none" stroke="white" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/><circle cx="18" cy="5" r="3" fill="white"/></svg>`
     case 'assets':
       return s('<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>')
     case 'iot':
@@ -101,10 +102,10 @@ export function CesiumGlobe() {
 
   const filteredDemoPins = useFilteredDemoPins()
 
-  const { 
-    pins, 
-    isAddingPin, 
-    setPendingPinLocation, 
+  const {
+    pins,
+    isAddingPin,
+    setPendingPinLocation,
     setSelectedPin,
     setIsPinViewerOpen,
   } = usePinStore()
@@ -223,10 +224,10 @@ export function CesiumGlobe() {
               height: ${(pin.iconSize || 40) * 0.5}px;
               color: white;
             " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              ${pin.iconType === 'camera' 
-                ? '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>'
-                : '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>'
-              }
+              ${pin.iconType === 'camera'
+          ? '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>'
+          : '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>'
+        }
             </svg>
           </div>
           <div style="
@@ -304,7 +305,7 @@ export function CesiumGlobe() {
 
       {/* Pin Placement Indicator */}
       {isAddingPin && (
-        <div 
+        <div
           className="absolute bottom-32 left-1/2 z-[1005] -translate-x-1/2 rounded-lg bg-orange-500 px-4 py-2 text-white shadow-lg"
         >
           <div className="flex items-center gap-2">

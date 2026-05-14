@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { motion } from 'framer-motion'
-import { MapPin, Camera, Shield, Package, Cpu } from 'lucide-react'
+import { MapPin, Camera, Route, Package, Cpu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Tooltip,
@@ -22,7 +22,7 @@ const DOCK_ITEMS: {
 }[] = [
   { type: 'place', label: 'Place', Icon: MapPin },
   { type: 'camera', label: 'Camera', Icon: Camera },
-  { type: 'patrol', label: 'Patrol', Icon: Shield },
+  { type: 'patrol', label: 'Patrol', Icon: Route },
   { type: 'assets', label: 'Assets', Icon: Package },
   { type: 'iot', label: 'IoTs', Icon: Cpu },
 ]
