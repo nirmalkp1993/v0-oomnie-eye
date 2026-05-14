@@ -5,6 +5,7 @@ import { AppSidebar, type AppTab } from '@/components/camera/app-sidebar'
 import { AppHeader } from '@/components/camera/app-header'
 import { CameraManagement } from '@/components/camera/camera-management'
 import { EarthView } from '@/components/earth/earth-view'
+import { ReportManagement } from '@/components/report/report-management'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<AppTab>('earth')
@@ -17,7 +18,8 @@ export default function Home() {
         <main className="flex-1 overflow-auto bg-background">
           {activeTab === 'earth' && <EarthView />}
           {activeTab === 'camera' && <CameraManagement />}
-          {activeTab !== 'earth' && activeTab !== 'camera' && (
+          {activeTab === 'reports' && <ReportManagement />}
+          {activeTab !== 'earth' && activeTab !== 'camera' && activeTab !== 'reports' && (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-accent capitalize">{activeTab}</h2>

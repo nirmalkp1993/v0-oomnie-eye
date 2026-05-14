@@ -330,10 +330,10 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
       cameras: state.cameras.map((c) =>
         idSet.has(c.id)
           ? {
-            ...c,
-            groupIds: addUniqueId(cameraGroupIds(c), parentId),
-            updatedAt: now,
-          }
+              ...c,
+              groupIds: addUniqueId(cameraGroupIds(c), parentId),
+              updatedAt: now,
+            }
           : c,
       ),
       addCamerasModalGroupId: null,
