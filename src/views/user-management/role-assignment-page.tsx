@@ -1,17 +1,40 @@
 'use client'
 
+import { Eye, Pencil } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  RolePermissionsEditDialog,
+  RolePermissionsViewDialog,
+  type AssignmentPermissionOverrides,
+} from '@/src/components/user-management/role-permissions-dialogs'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
+import {
+  clonePermissionMatrix,
+  createEmptyPermissionMatrix,
+  type PermissionMatrix,
+} from '@/src/constants/permissions-matrix'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import { MOCK_GROUPS } from '@/src/mock-data/groups'
-import { MOCK_ROLES } from '@/src/mock-data/roles'
+import { MOCK_ROLE_PERMISSIONS, MOCK_ROLES } from '@/src/mock-data/roles'
 import { MOCK_USERS } from '@/src/mock-data/users'
 import { cn } from '@/lib/utils'
+
+function buildRoleMatrices(): Record<string, PermissionMatrix> {
+  const m: Record<string, PermissionMatrix> = {}
+  for (const r of MOCK_ROLES) {
+    m[r.id] = MOCK_ROLE_PERMISSIONS[r.id]
+      ? clonePermissionMatrix(MOCK_ROLE_PERMISSIONS[r.id])
+      : createEmptyPermissionMatrix()
+  }
+  return m
+}
+
+type DialogRole = { id: string; name: string }
 
 export function RoleAssignmentPage() {
   const { showMessage } = useAdminSnackbar()
@@ -20,6 +43,10 @@ export function RoleAssignmentPage() {
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set())
   const [roleId, setRoleId] = useState<string>(MOCK_ROLES[0]?.id ?? '')
+  const [viewDialogRole, setViewDialogRole] = useState<DialogRole | null>(null)
+  const [editDialogRole, setEditDialogRole] = useState<DialogRole | null>(null)
+  const [roleMatrices] = useState(buildRoleMatrices)
+  const [assignmentOverrides, setAssignmentOverrides] = useState<AssignmentPermissionOverrides>({})
 
   const filteredUsers = useMemo(() => {
     const q = userQ.trim().toLowerCase()
@@ -38,10 +65,25 @@ export function RoleAssignmentPage() {
     return n
   }
 
+  const openViewDialog = (role: DialogRole) => setViewDialogRole(role)
+
+  const openEditDialog = (role: DialogRole) => {
+    if (selectedUsers.size === 0 && selectedGroups.size === 0) {
+      showMessage('Select at least one user or group to edit permissions.', 'info')
+      return
+    }
+    setEditDialogRole(role)
+  }
+
   const assign = () => {
     const r = MOCK_ROLES.find((x) => x.id === roleId)?.roleName ?? 'Role'
+    const overrideCount =
+      [...selectedUsers].filter((id) => assignmentOverrides[`u:${id}`]).length +
+      [...selectedGroups].filter((id) => assignmentOverrides[`g:${id}`]).length
+    const overrideNote =
+      overrideCount > 0 ? ` ${overrideCount} target(s) include custom permission overrides.` : ''
     showMessage(
-      `Assigned “${r}” to ${selectedUsers.size} user(s) and ${selectedGroups.size} group(s) (mock workflow).`,
+      `Assigned “${r}” to ${selectedUsers.size} user(s) and ${selectedGroups.size} group(s) (mock workflow).${overrideNote}`,
       'success'
     )
   }
@@ -60,6 +102,8 @@ export function RoleAssignmentPage() {
       <div className="max-h-[420px] flex-1 overflow-y-auto p-2">{body}</div>
     </div>
   )
+
+  const dialogRoleMatrix = (id: string) => roleMatrices[id]
 
   return (
     <UserManagementPageShell
@@ -139,26 +183,94 @@ export function RoleAssignmentPage() {
             </div>
             <p className="mt-3 text-xs text-muted-foreground">Or select a role card below</p>
             <div className="mt-2 flex max-h-[320px] flex-col gap-2 overflow-y-auto pr-1">
-              {MOCK_ROLES.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setRoleId(r.id)}
-                  className={cn(
-                    'rounded-md border p-3 text-left transition-colors',
-                    roleId === r.id
-                      ? 'border-primary bg-primary/10 shadow-sm'
-                      : 'border-border bg-background hover:border-primary/40 hover:bg-muted/50'
-                  )}
-                >
-                  <p className="text-sm font-semibold text-foreground">{r.roleName}</p>
-                  <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{r.description}</p>
-                </button>
-              ))}
+              {MOCK_ROLES.map((r) => {
+                const isSelected = roleId === r.id
+                const dialogRole = { id: r.id, name: r.roleName }
+                return (
+                  <div
+                    key={r.id}
+                    className={cn(
+                      'overflow-hidden rounded-md border transition-colors',
+                      isSelected
+                        ? 'border-primary bg-primary/10 shadow-sm'
+                        : 'border-border bg-background'
+                    )}
+                  >
+                    <div className="flex items-stretch">
+                      <button
+                        type="button"
+                        onClick={() => setRoleId(r.id)}
+                        className={cn(
+                          'min-w-0 flex-1 p-3 text-left transition-colors',
+                          !isSelected && 'hover:bg-muted/50'
+                        )}
+                      >
+                        <p className="text-sm font-semibold text-foreground">{r.roleName}</p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{r.description}</p>
+                      </button>
+                      <div className="flex shrink-0 border-l border-border/60">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          title="View permissions"
+                          aria-label="View permissions"
+                          onClick={() => openViewDialog(dialogRole)}
+                          className="h-full min-h-[52px] w-10 rounded-none text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                        >
+                          <Eye className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          title="Edit permissions for selection"
+                          aria-label="Edit permissions for selection"
+                          onClick={() => openEditDialog(dialogRole)}
+                          className="h-full min-h-[52px] w-10 rounded-none border-l border-border/60 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
       </div>
+
+      {viewDialogRole && dialogRoleMatrix(viewDialogRole.id) && (
+        <RolePermissionsViewDialog
+          open
+          onOpenChange={(open) => !open && setViewDialogRole(null)}
+          roleName={viewDialogRole.name}
+          roleMatrix={dialogRoleMatrix(viewDialogRole.id)}
+          selectedUserIds={selectedUsers}
+          selectedGroupIds={selectedGroups}
+          overrides={assignmentOverrides}
+          onEditRequest={() => {
+            const role = viewDialogRole
+            setViewDialogRole(null)
+            if (role) setEditDialogRole(role)
+          }}
+        />
+      )}
+
+      {editDialogRole && dialogRoleMatrix(editDialogRole.id) && (
+        <RolePermissionsEditDialog
+          open
+          onOpenChange={(open) => !open && setEditDialogRole(null)}
+          roleName={editDialogRole.name}
+          roleMatrix={dialogRoleMatrix(editDialogRole.id)}
+          selectedUserIds={selectedUsers}
+          selectedGroupIds={selectedGroups}
+          overrides={assignmentOverrides}
+          onOverridesChange={setAssignmentOverrides}
+          onNotify={showMessage}
+        />
+      )}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
         <Button
@@ -168,6 +280,9 @@ export function RoleAssignmentPage() {
             setSelectedUsers(new Set())
             setSelectedGroups(new Set())
             setRoleId(MOCK_ROLES[0]?.id ?? '')
+            setViewDialogRole(null)
+            setEditDialogRole(null)
+            setAssignmentOverrides({})
             showMessage('Selection reset', 'info')
           }}
         >

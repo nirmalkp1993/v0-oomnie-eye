@@ -7,23 +7,13 @@ import MoreVertIcon from '@mui/icons-material/MoreVert'
 import RuleFolderOutlinedIcon from '@mui/icons-material/RuleFolderOutlined'
 import {
   Button as MuiButton,
-  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Menu,
   MenuItem,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-  Typography,
 } from '@mui/material'
-import { alpha, useTheme } from '@mui/material/styles'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
 import { Plus, Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -33,9 +23,8 @@ import { RoleFormModal } from '@/src/components/modals/role-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { EnterpriseDataGridSurface } from '@/src/components/tables/enterprise-data-grid-surface'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
+import { PermissionMatrixReadonly } from '@/src/components/user-management/permission-matrix-readonly'
 import {
-  PERMISSION_COLUMNS,
-  PERMISSION_MODULES,
   clonePermissionMatrix,
   createEmptyPermissionMatrix,
   type PermissionMatrix,
@@ -44,40 +33,6 @@ import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import { MOCK_ROLE_PERMISSIONS, MOCK_ROLES } from '@/src/mock-data/roles'
 import type { RoleRow } from '@/src/types/user-management'
 import type { RoleFormValues } from '@/src/utils/validation'
-
-function PermissionsReadonly({ matrix }: { matrix: PermissionMatrix }) {
-  const theme = useTheme()
-  return (
-    <TableContainer sx={{ maxHeight: 360 }}>
-      <Table size="small" stickyHeader>
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ fontWeight: 700, bgcolor: 'background.paper' }}>Module</TableCell>
-            {PERMISSION_COLUMNS.map((c) => (
-              <TableCell key={c} align="center" sx={{ fontWeight: 700, bgcolor: alpha(theme.palette.primary.main, 0.06) }}>
-                {c}
-              </TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {PERMISSION_MODULES.map((mod) => (
-            <TableRow key={mod}>
-              <TableCell sx={{ fontWeight: 600 }}>{mod}</TableCell>
-              {PERMISSION_COLUMNS.map((col) => (
-                <TableCell key={col} align="center">
-                  <Tooltip title={`${mod} — ${col}`}>
-                    <Checkbox size="small" checked={matrix[mod][col]} disabled />
-                  </Tooltip>
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  )
-}
 
 export function RolesPermissionsPage() {
   const { showMessage } = useAdminSnackbar()
@@ -276,7 +231,7 @@ export function RolesPermissionsPage() {
         <DialogTitle>Permissions — {viewMatrixRole?.roleName}</DialogTitle>
         <DialogContent dividers>
           {viewMatrixRole && matrices[viewMatrixRole.id] ? (
-            <PermissionsReadonly matrix={matrices[viewMatrixRole.id]} />
+            <PermissionMatrixReadonly matrix={matrices[viewMatrixRole.id]} maxHeight={360} />
           ) : null}
         </DialogContent>
         <DialogActions>
