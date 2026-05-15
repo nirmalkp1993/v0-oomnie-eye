@@ -35,6 +35,17 @@ export function useDockFisheyeMouse() {
   const rawX = useMotionValue(DOCK_MOUSE_OFFSCREEN)
   const smoothMouseX = useSpring(rawX, DEFAULT_DOCK_FISHEYE.spring)
 
+  const pauseFisheye = React.useCallback(() => {
+    rawX.set(DOCK_MOUSE_OFFSCREEN)
+  }, [rawX])
+
+  const resumeFisheyeAt = React.useCallback(
+    (clientX: number) => {
+      rawX.set(clientX)
+    },
+    [rawX],
+  )
+
   const bindDock = React.useMemo(
     () => ({
       onPointerEnter: (e: React.PointerEvent) => {
@@ -50,7 +61,7 @@ export function useDockFisheyeMouse() {
     [rawX],
   )
 
-  return { smoothMouseX, bindDock }
+  return { smoothMouseX, bindDock, pauseFisheye, resumeFisheyeAt }
 }
 
 export type DockFisheyeMotionX = MotionValue<number>

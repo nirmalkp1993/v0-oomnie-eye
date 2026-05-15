@@ -102,10 +102,10 @@ export function CesiumGlobe() {
 
   const filteredDemoPins = useFilteredDemoPins()
 
-  const {
-    pins,
-    isAddingPin,
-    setPendingPinLocation,
+  const { 
+    pins, 
+    isAddingPin, 
+    setPendingPinLocation, 
     setSelectedPin,
     setIsPinViewerOpen,
   } = usePinStore()
@@ -224,10 +224,10 @@ export function CesiumGlobe() {
               height: ${(pin.iconSize || 40) * 0.5}px;
               color: white;
             " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              ${pin.iconType === 'camera'
-          ? '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>'
-          : '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>'
-        }
+              ${pin.iconType === 'camera' 
+                ? '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>'
+                : '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>'
+              }
             </svg>
           </div>
           <div style="
@@ -305,7 +305,7 @@ export function CesiumGlobe() {
 
       {/* Pin Placement Indicator */}
       {isAddingPin && (
-        <div
+        <div 
           className="absolute bottom-32 left-1/2 z-[1005] -translate-x-1/2 rounded-lg bg-orange-500 px-4 py-2 text-white shadow-lg"
         >
           <div className="flex items-center gap-2">

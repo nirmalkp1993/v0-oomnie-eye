@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { motion } from 'framer-motion'
+import { Reorder, motion } from 'framer-motion'
 import { MapPin, Camera, Route, Package, Cpu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -27,15 +27,54 @@ const DOCK_ITEMS: {
   { type: 'iot', label: 'IoTs', Icon: Cpu },
 ]
 
+type DockItemDef = (typeof DOCK_ITEMS)[number]
+
+const STORAGE_KEY = 'earth-mac-dock-order-v1'
+
+const LAYOUT_SPRING = { type: 'spring' as const, stiffness: 520, damping: 38, mass: 0.52 }
+
+function loadOrderedItems(): DockItemDef[] {
+  const fallback = [...DOCK_ITEMS]
+  const byType = new Map(DOCK_ITEMS.map((d) => [d.type, d] as const))
+  if (typeof window === 'undefined') return fallback
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return fallback
+    const types = JSON.parse(raw) as unknown
+    if (!Array.isArray(types) || types.length !== DOCK_ITEMS.length) return fallback
+    const next: DockItemDef[] = []
+    for (const t of types) {
+      const def = byType.get(t as MockEarthDockPinType)
+      if (!def) return fallback
+      next.push(def)
+    }
+    return next
+  } catch {
+    return fallback
+  }
+}
+
 /**
- * macOS-style dock overlay for Earth: glass pill, fish-eye magnification (Framer Motion + cursor distance),
- * filter toggles for demo pins (see `useEarthDockFilter` / Leaflet demo layer).
+ * macOS-style dock overlay for Earth: glass pill, fish-eye magnification, draggable icon reorder
+ * (Framer `Reorder` + layout springs, persisted order in localStorage).
  */
 export function EarthMacDock() {
   const { activeFilter, toggleFilter } = useEarthDockFilter()
-  const { smoothMouseX, bindDock } = useDockFisheyeMouse()
+  const { smoothMouseX, bindDock, pauseFisheye, resumeFisheyeAt } = useDockFisheyeMouse()
+  const [items, setItems] = React.useState<DockItemDef[]>(loadOrderedItems)
+
   const centersRef = React.useRef<number[]>([0, 0, 0, 0, 0])
   const slotRefs = React.useRef<(HTMLDivElement | null)[]>([null, null, null, null, null])
+  const lastPointerXRef = React.useRef(0)
+
+  const persistOrder = React.useCallback((next: DockItemDef[]) => {
+    setItems(next)
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next.map((i) => i.type)))
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }, [])
 
   const measureCenters = React.useCallback(() => {
     slotRefs.current.forEach((el, i) => {
@@ -57,6 +96,9 @@ export function EarthMacDock() {
 
   React.useLayoutEffect(() => {
     measureCenters()
+  }, [items, measureCenters])
+
+  React.useEffect(() => {
     const onResize = () => measureCenters()
     window.addEventListener('resize', onResize)
     return () => {
@@ -71,10 +113,12 @@ export function EarthMacDock() {
   const handleDockPointer = React.useMemo(
     () => ({
       onPointerEnter: (e: React.PointerEvent<HTMLDivElement>) => {
+        lastPointerXRef.current = e.clientX
         bindDock.onPointerEnter(e)
         requestAnimationFrame(measureCenters)
       },
       onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+        lastPointerXRef.current = e.clientX
         bindDock.onPointerMove(e)
         scheduleMeasureCenters()
       },
@@ -85,33 +129,53 @@ export function EarthMacDock() {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-[1100] flex justify-center pb-5 pt-10"
-      >
-        <div
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1100] flex justify-center pb-5 pt-10">
+        <Reorder.Group
+          axis="x"
+          values={items}
+          onReorder={persistOrder}
+          as="div"
           role="toolbar"
-          aria-label="Earth pin filters"
-          className="pointer-events-auto"
+          aria-label="Earth pin filters — drag icons to reorder"
+          className={cn(
+            'pointer-events-auto flex items-end gap-1 rounded-full border border-white/12 px-3 py-2',
+            'shadow-[0_12px_40px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.06)_inset]',
+            'bg-gradient-to-b from-white/14 to-white/[0.06] backdrop-blur-xl',
+          )}
+          transition={{ layout: LAYOUT_SPRING }}
           onPointerEnter={handleDockPointer.onPointerEnter}
           onPointerMove={handleDockPointer.onPointerMove}
           onPointerLeave={handleDockPointer.onPointerLeave}
         >
-          <motion.div
-            className={cn(
-              'flex items-end gap-1 rounded-full border border-white/12 px-3 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.06)_inset]',
-              'bg-gradient-to-b from-white/14 to-white/[0.06] backdrop-blur-xl',
-            )}
-          >
-            {DOCK_ITEMS.map((item, index) => {
-              const Icon = item.Icon
-              const isActive = activeFilter === item.type
-              return (
-                <DockFisheyeSlot
-                  key={item.type}
-                  smoothMouseX={smoothMouseX}
-                  centersRef={centersRef}
-                  iconIndex={index}
-                >
+          {items.map((item, index) => {
+            const Icon = item.Icon
+            const isActive = activeFilter === item.type
+            return (
+              <Reorder.Item
+                key={item.type}
+                value={item}
+                as="div"
+                layout="position"
+                className={cn(
+                  'relative touch-none select-none list-none',
+                  'cursor-grab active:cursor-grabbing',
+                )}
+                whileDrag={{
+                  scale: 1.08,
+                  zIndex: 30,
+                  boxShadow: '0 18px 44px rgba(0,0,0,0.55)',
+                  transition: { type: 'spring', stiffness: 440, damping: 28 },
+                }}
+                transition={{ layout: LAYOUT_SPRING }}
+                onDragStart={() => {
+                  pauseFisheye()
+                }}
+                onDragEnd={() => {
+                  resumeFisheyeAt(lastPointerXRef.current)
+                  requestAnimationFrame(measureCenters)
+                }}
+              >
+                <DockFisheyeSlot smoothMouseX={smoothMouseX} centersRef={centersRef} iconIndex={index}>
                   <div className="flex flex-col items-center gap-1 px-1.5">
                     <div
                       ref={(el) => {
@@ -119,40 +183,42 @@ export function EarthMacDock() {
                       }}
                       className="flex flex-col items-center"
                     >
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <motion.button
-                          type="button"
-                          whileTap={{ scale: 0.9 }}
-                          transition={{ type: 'spring', stiffness: 520, damping: 28 }}
-                          onClick={() => toggleFilter(item.type)}
-                          className={cn(
-                            'relative flex size-12 items-center justify-center rounded-xl text-white/90',
-                            'bg-white/5 transition-colors hover:bg-white/12',
-                            isActive && 'bg-sky-500/25 text-sky-100 ring-1 ring-sky-400/50',
-                          )}
-                        >
-                          <Icon className="size-6 shrink-0" strokeWidth={1.75} />
-                        </motion.button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="border-border/80 bg-popover text-popover-foreground">
-                        {item.label}
-                      </TooltipContent>
-                    </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.9 }}
+                            transition={{ type: 'spring', stiffness: 520, damping: 28 }}
+                            onTap={() => toggleFilter(item.type)}
+                            className={cn(
+                              'relative flex size-12 items-center justify-center rounded-xl text-white/90',
+                              'bg-white/5 transition-colors hover:bg-white/12',
+                              isActive && 'bg-sky-500/25 text-sky-100 ring-1 ring-sky-400/50',
+                            )}
+                          >
+                            <Icon className="pointer-events-none size-6 shrink-0" strokeWidth={1.75} />
+                          </motion.button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="border-border/80 bg-popover text-popover-foreground">
+                          {item.label}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                     <span
                       className={cn(
                         'h-1.5 w-1.5 rounded-full transition-all duration-200',
-                        isActive ? 'scale-100 bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.85)]' : 'scale-75 bg-white/25 opacity-60',
+                        isActive
+                          ? 'scale-100 bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.85)]'
+                          : 'scale-75 bg-white/25 opacity-60',
                       )}
                       aria-hidden
                     />
                   </div>
                 </DockFisheyeSlot>
-              )
-            })}
-          </motion.div>
-        </div>
+              </Reorder.Item>
+            )
+          })}
+        </Reorder.Group>
       </div>
     </TooltipProvider>
   )
