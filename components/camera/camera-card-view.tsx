@@ -233,12 +233,13 @@ export function CameraCardView() {
                 </div>
               )}
               <Badge
-                className={`absolute right-2 top-2 z-10 px-1.5 py-0 text-[9px] font-bold uppercase leading-tight ${camera.status === 'live'
+                className={`absolute right-2 top-2 z-10 px-1.5 py-0 text-[9px] font-bold uppercase leading-tight ${
+                  camera.status === 'live'
                     ? 'bg-live text-white'
                     : camera.status === 'connecting'
                       ? 'bg-warning text-warning-foreground'
                       : 'bg-stopped text-white'
-                  }`}
+                }`}
               >
                 {camera.status === 'live'
                   ? 'LIVE'

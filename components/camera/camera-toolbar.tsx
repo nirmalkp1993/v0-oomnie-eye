@@ -88,14 +88,14 @@ export function CameraToolbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[12rem] border-border bg-card">
             <DropdownMenuItem
-              className="gap-2 cursor-pointer"
+              className="cursor-pointer gap-2"
               onSelect={() => setIsAddDialogOpen(true)}
             >
               <Camera className="size-4" />
               Add Camera
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="gap-2 cursor-pointer"
+              className="cursor-pointer gap-2"
               onSelect={() => setIsNewRootGroupModalOpen(true)}
             >
               <FolderPlus className="size-4" />

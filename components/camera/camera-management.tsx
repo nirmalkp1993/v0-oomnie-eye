@@ -27,9 +27,9 @@ export function CameraManagement() {
               Manage and monitor your surveillance cameras
             </p>
           </div>
-
+          
           <CameraToolbar />
-
+          
           <div className="flex-1">
             {viewMode === 'card' ? <CameraCardView /> : <CameraListView />}
           </div>

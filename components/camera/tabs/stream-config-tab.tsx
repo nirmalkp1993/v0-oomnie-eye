@@ -1,102 +1,262 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useCameraStore } from '@/lib/camera-store'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Play, 
-  Square, 
-  Maximize2, 
-  Volume2, 
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { cn } from '@/lib/utils'
+import {
+  Play,
+  Square,
+  Maximize2,
+  Minimize2,
+  Volume2,
   VolumeX,
   Settings,
-  Camera,
+  Camera as CameraIcon,
   Wifi,
-  Signal
+  Signal,
+  ChevronDown,
+  Info,
 } from 'lucide-react'
-import Image from 'next/image'
+import type { Camera } from '@/types/camera'
+
+/** Progressive MP4 sample used when `mediaMtxUrl` is absent (mock cameras). */
+const DEMO_STREAM_SRC =
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+
+function streamSource(camera: Camera): string {
+  const u = camera.mediaMtxUrl?.trim()
+  if (u && /^https?:\/\//i.test(u)) return u
+  return DEMO_STREAM_SRC
+}
+
+function formatClock(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
 
 export function StreamConfigTab() {
   const { selectedCamera } = useCameraStore()
   const [isPlaying, setIsPlaying] = useState(true)
   const [isMuted, setIsMuted] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(true)
+  const [timeLabel, setTimeLabel] = useState('0:00 / 0:00')
+
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const preferredSrc = useMemo(
+    () => (selectedCamera ? streamSource(selectedCamera) : ''),
+    [selectedCamera],
+  )
+  const [activeSrc, setActiveSrc] = useState(preferredSrc)
+
+  useEffect(() => {
+    setActiveSrc(preferredSrc)
+  }, [preferredSrc])
+
+  const updateTimeLabel = useCallback(() => {
+    const v = videoRef.current
+    if (!v) return
+    setTimeLabel(`${formatClock(v.currentTime)} / ${formatClock(v.duration || 0)}`)
+  }, [])
+
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    if (isPlaying) {
+      void v.play().catch(() => setIsPlaying(false))
+    } else {
+      v.pause()
+    }
+  }, [isPlaying])
+
+  useEffect(() => {
+    const v = videoRef.current
+    if (v) v.muted = isMuted
+  }, [isMuted])
+
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFs)
+    return () => document.removeEventListener('fullscreenchange', onFs)
+  }, [])
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = containerRef.current
+    if (!el) return
+    try {
+      if (!document.fullscreenElement) {
+        await el.requestFullscreen()
+      } else {
+        await document.exitFullscreen()
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   if (!selectedCamera) return null
 
   return (
-    <div className="space-y-6">
-      {/* Main Stream Viewer */}
-      <Card className="overflow-hidden border-border bg-card">
-        <CardHeader className="border-b border-border pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <Camera className="size-5" />
-              360 Stream Viewer
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              {selectedCamera.status === 'live' && (
-                <Badge className="bg-live text-white">
-                  <span className="mr-1.5 size-2 animate-pulse rounded-full bg-white" />
-                  LIVE
-                </Badge>
-              )}
-              <Badge variant="outline" className="border-primary/30 text-primary">
-                {selectedCamera.type}
-              </Badge>
-            </div>
+    <div className="min-h-0 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="flex flex-col gap-4 border-b border-border bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <CameraIcon className="size-5" />
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {/* Video Player */}
-          <div className="relative aspect-video bg-black">
-            {selectedCamera.thumbnail ? (
-              <Image
-                src={selectedCamera.thumbnail}
-                alt={selectedCamera.name}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <div className="text-center">
-                  <Camera className="mx-auto size-16 text-muted-foreground/30" />
-                  <p className="mt-2 text-muted-foreground">No stream available</p>
-                </div>
-              </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-accent">360 Stream Viewer</h2>
+            <p className="text-sm text-muted-foreground">
+              Live preview and playback for this camera stream.
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {selectedCamera.status === 'live' && (
+            <Badge className="bg-live text-white">
+              <span className="mr-1.5 size-2 animate-pulse rounded-full bg-white" />
+              LIVE
+            </Badge>
+          )}
+          <Badge variant="outline" className="border-border text-muted-foreground">
+            {selectedCamera.type}
+          </Badge>
+        </div>
+      </div>
+      <div className="p-0">
+          <div
+            ref={containerRef}
+            className={cn(
+              'relative aspect-video w-full max-w-full overflow-hidden bg-black',
+              'max-h-[calc(100dvh-12rem)]',
             )}
+          >
+            <video
+              ref={videoRef}
+              className="absolute inset-0 size-full object-cover"
+              src={activeSrc}
+              poster={selectedCamera.thumbnail}
+              playsInline
+              loop
+              preload="metadata"
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onTimeUpdate={updateTimeLabel}
+              onLoadedMetadata={updateTimeLabel}
+              onError={() => {
+                if (activeSrc !== DEMO_STREAM_SRC) setActiveSrc(DEMO_STREAM_SRC)
+              }}
+              onVolumeChange={() => {
+                const v = videoRef.current
+                if (v) setIsMuted(v.muted)
+              }}
+            />
 
-            {/* Stream Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
+            <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/70 via-transparent to-black/40" />
 
-            {/* Top Info Bar */}
-            <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4">
-              <div className="flex items-center gap-4 text-white/80">
-                <div className="flex items-center gap-1.5">
-                  <Signal className="size-4" />
-                  <span className="text-sm">1080p</span>
+            {/* Collapsible stream info — top-left */}
+            <Collapsible
+              open={infoOpen}
+              onOpenChange={setInfoOpen}
+              className="absolute left-3 top-3 z-20 w-[min(100%-1.5rem,20rem)] max-w-[calc(100%-1.5rem)]"
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 border-border bg-card/95 text-foreground shadow-sm backdrop-blur-sm hover:bg-card hover:text-foreground"
+                >
+                  <Info className="mr-1.5 size-3.5 opacity-90" />
+                  Camera info
+                  <ChevronDown
+                    className={cn(
+                      'ml-1 size-4 shrink-0 opacity-80 transition-transform duration-200',
+                      infoOpen && 'rotate-180',
+                    )}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
+                <div className="mt-2 space-y-2 rounded-lg border border-white/12 bg-black/45 p-3 text-white shadow-lg backdrop-blur-md">
+                  <StreamInfoRow
+                    icon={<CameraIcon className="size-4 text-primary" />}
+                    label="Camera Name"
+                    value={selectedCamera.name}
+                    iconWrapClassName="bg-primary/15"
+                  />
+                  <StreamInfoRow
+                    icon={<Wifi className="size-4 text-primary" />}
+                    label="IP Address"
+                    value={selectedCamera.ip}
+                    mono
+                    iconWrapClassName="bg-primary/15"
+                  />
+                  <StreamInfoRow
+                    icon={<Signal className="size-4 text-primary" />}
+                    label="Port"
+                    value={String(selectedCamera.port)}
+                    mono
+                    iconWrapClassName="bg-primary/15"
+                  />
+                  <div className="flex items-center gap-3 border-t border-white/10 pt-2">
+                    <div
+                      className={cn(
+                        'flex size-9 shrink-0 items-center justify-center rounded-lg',
+                        selectedCamera.status === 'live' ? 'bg-live/20' : 'bg-stopped/20',
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'size-2.5 rounded-full',
+                          selectedCamera.status === 'live'
+                            ? 'bg-live animate-pulse'
+                            : 'bg-stopped',
+                        )}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs text-white/60">Status</p>
+                      <p
+                        className={cn(
+                          'truncate font-semibold',
+                          selectedCamera.status === 'live' ? 'text-live' : 'text-stopped',
+                        )}
+                      >
+                        {selectedCamera.status === 'live' ? 'Live' : 'Stopped'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Wifi className="size-4" />
-                  <span className="text-sm">30 fps</span>
-                </div>
-              </div>
-              <div className="text-sm text-white/60">
-                {new Date().toLocaleTimeString()}
-              </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Top-right: playback clock */}
+            <div className="absolute right-3 top-3 z-20 rounded-md border border-white/15 bg-black/50 px-2.5 py-1 font-mono text-xs text-white/85 tabular-nums backdrop-blur-sm">
+              {timeLabel}
             </div>
 
-            {/* Bottom Controls */}
-            <div className="absolute bottom-0 left-0 right-0 p-4">
+            {/* Bottom controls */}
+            <div className="absolute bottom-0 left-0 right-0 z-20 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => setIsPlaying(!isPlaying)}
                     className="text-white hover:bg-white/20"
+                    aria-label={isPlaying ? 'Pause' : 'Play'}
                   >
                     {isPlaying ? (
                       <Square className="size-5" />
@@ -105,10 +265,12 @@ export function StreamConfigTab() {
                     )}
                   </Button>
                   <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     onClick={() => setIsMuted(!isMuted)}
                     className="text-white hover:bg-white/20"
+                    aria-label={isMuted ? 'Unmute' : 'Mute'}
                   >
                     {isMuted ? (
                       <VolumeX className="size-5" />
@@ -117,92 +279,70 @@ export function StreamConfigTab() {
                     )}
                   </Button>
                   <Button
+                    type="button"
                     variant="ghost"
                     size="icon"
                     className="text-white hover:bg-white/20"
+                    aria-label="Stream settings"
                   >
                     <Settings className="size-5" />
                   </Button>
                 </div>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="icon"
-                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  onClick={toggleFullscreen}
                   className="text-white hover:bg-white/20"
+                  aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
                 >
-                  <Maximize2 className="size-5" />
+                  {isFullscreen ? (
+                    <Minimize2 className="size-5" />
+                  ) : (
+                    <Maximize2 className="size-5" />
+                  )}
                 </Button>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </div>
+    </div>
+  )
+}
 
-      {/* Stream Info Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-border bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                <Camera className="size-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Camera Name</p>
-                <p className="font-semibold text-foreground">{selectedCamera.name}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                <Wifi className="size-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">IP Address</p>
-                <p className="font-mono font-semibold text-foreground">{selectedCamera.ip}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                <Signal className="size-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Port</p>
-                <p className="font-mono font-semibold text-foreground">{selectedCamera.port}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border bg-card">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className={`flex size-10 items-center justify-center rounded-lg ${
-                selectedCamera.status === 'live' ? 'bg-live/10' : 'bg-stopped/10'
-              }`}>
-                <div className={`size-3 rounded-full ${
-                  selectedCamera.status === 'live' ? 'bg-live animate-pulse' : 'bg-stopped'
-                }`} />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <p className={`font-semibold ${
-                  selectedCamera.status === 'live' ? 'text-live' : 'text-stopped'
-                }`}>
-                  {selectedCamera.status === 'live' ? 'Live' : 'Stopped'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+function StreamInfoRow({
+  icon,
+  label,
+  value,
+  mono,
+  iconWrapClassName,
+}: {
+  icon: ReactNode
+  label: string
+  value: string
+  mono?: boolean
+  iconWrapClassName?: string
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className={cn(
+          'flex size-9 shrink-0 items-center justify-center rounded-lg',
+          iconWrapClassName,
+        )}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-white/60">{label}</p>
+        <p
+          className={cn(
+            'truncate font-semibold text-white',
+            mono && 'font-mono text-sm',
+          )}
+        >
+          {value}
+        </p>
       </div>
     </div>
   )
