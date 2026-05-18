@@ -1,6 +1,6 @@
 'use client'
 
-import { Eye, Pencil } from 'lucide-react'
+import { Shield } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   RolePermissionsEditDialog,
-  RolePermissionsViewDialog,
   type AssignmentPermissionOverrides,
 } from '@/src/components/user-management/role-permissions-dialogs'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
@@ -43,8 +42,7 @@ export function RoleAssignmentPage() {
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set())
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set())
   const [roleId, setRoleId] = useState<string>(MOCK_ROLES[0]?.id ?? '')
-  const [viewDialogRole, setViewDialogRole] = useState<DialogRole | null>(null)
-  const [editDialogRole, setEditDialogRole] = useState<DialogRole | null>(null)
+  const [permissionsDialogRole, setPermissionsDialogRole] = useState<DialogRole | null>(null)
   const [roleMatrices] = useState(buildRoleMatrices)
   const [assignmentOverrides, setAssignmentOverrides] = useState<AssignmentPermissionOverrides>({})
 
@@ -65,15 +63,7 @@ export function RoleAssignmentPage() {
     return n
   }
 
-  const openViewDialog = (role: DialogRole) => setViewDialogRole(role)
-
-  const openEditDialog = (role: DialogRole) => {
-    if (selectedUsers.size === 0 && selectedGroups.size === 0) {
-      showMessage('Select at least one user or group to edit permissions.', 'info')
-      return
-    }
-    setEditDialogRole(role)
-  }
+  const openPermissionsDialog = (role: DialogRole) => setPermissionsDialogRole(role)
 
   const assign = () => {
     const r = MOCK_ROLES.find((x) => x.id === roleId)?.roleName ?? 'Role'
@@ -213,23 +203,12 @@ export function RoleAssignmentPage() {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          title="View permissions"
-                          aria-label="View permissions"
-                          onClick={() => openViewDialog(dialogRole)}
+                          title="View and edit permissions"
+                          aria-label="View and edit permissions"
+                          onClick={() => openPermissionsDialog(dialogRole)}
                           className="h-full min-h-[52px] w-10 rounded-none text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                         >
-                          <Eye className="size-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          title="Edit permissions for selection"
-                          aria-label="Edit permissions for selection"
-                          onClick={() => openEditDialog(dialogRole)}
-                          className="h-full min-h-[52px] w-10 rounded-none border-l border-border/60 text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                        >
-                          <Pencil className="size-4" />
+                          <Shield className="size-4" />
                         </Button>
                       </div>
                     </div>
@@ -241,29 +220,12 @@ export function RoleAssignmentPage() {
         </div>
       </div>
 
-      {viewDialogRole && dialogRoleMatrix(viewDialogRole.id) && (
-        <RolePermissionsViewDialog
-          open
-          onOpenChange={(open) => !open && setViewDialogRole(null)}
-          roleName={viewDialogRole.name}
-          roleMatrix={dialogRoleMatrix(viewDialogRole.id)}
-          selectedUserIds={selectedUsers}
-          selectedGroupIds={selectedGroups}
-          overrides={assignmentOverrides}
-          onEditRequest={() => {
-            const role = viewDialogRole
-            setViewDialogRole(null)
-            if (role) setEditDialogRole(role)
-          }}
-        />
-      )}
-
-      {editDialogRole && dialogRoleMatrix(editDialogRole.id) && (
+      {permissionsDialogRole && dialogRoleMatrix(permissionsDialogRole.id) && (
         <RolePermissionsEditDialog
           open
-          onOpenChange={(open) => !open && setEditDialogRole(null)}
-          roleName={editDialogRole.name}
-          roleMatrix={dialogRoleMatrix(editDialogRole.id)}
+          onOpenChange={(open) => !open && setPermissionsDialogRole(null)}
+          roleName={permissionsDialogRole.name}
+          roleMatrix={dialogRoleMatrix(permissionsDialogRole.id)}
           selectedUserIds={selectedUsers}
           selectedGroupIds={selectedGroups}
           overrides={assignmentOverrides}
@@ -280,8 +242,7 @@ export function RoleAssignmentPage() {
             setSelectedUsers(new Set())
             setSelectedGroups(new Set())
             setRoleId(MOCK_ROLES[0]?.id ?? '')
-            setViewDialogRole(null)
-            setEditDialogRole(null)
+            setPermissionsDialogRole(null)
             setAssignmentOverrides({})
             showMessage('Selection reset', 'info')
           }}

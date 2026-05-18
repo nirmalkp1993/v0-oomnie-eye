@@ -13,7 +13,6 @@ import {
   ListItemIcon,
   ListItemText,
   TextField,
-  Typography,
 } from '@mui/material'
 import { alpha, useTheme } from '@mui/material/styles'
 import { useCallback, useMemo, useState } from 'react'
@@ -120,9 +119,7 @@ export function DualTransferList({
         }}
       >
         <Box sx={{ p: 1.5, pb: 1 }}>
-          <Typography variant="subtitle2" fontWeight={700}>
-            {title}
-          </Typography>
+          <p className="text-sm font-medium text-accent">{title}</p>
           <TextField
             size="small"
             fullWidth

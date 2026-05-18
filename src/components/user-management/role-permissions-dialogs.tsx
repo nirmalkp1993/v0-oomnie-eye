@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useClientMounted } from '@/src/hooks/use-client-mounted'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
@@ -105,6 +106,8 @@ export function RolePermissionsViewDialog({
     overrides
   )
 
+  const mounted = useClientMounted()
+
   const subtitle =
     selectionCount > 0 && hasCustomOverrides
       ? `Showing effective permissions for ${selectionCount} selected target(s) where customized.`
@@ -112,8 +115,10 @@ export function RolePermissionsViewDialog({
         ? `Default permissions for role “${roleName}” (applies to ${selectionCount} selected target(s)).`
         : `Default permissions defined for role “${roleName}”.`
 
+  if (!mounted || !open) return null
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="border-b border-border px-6 py-4 text-left">
           <DialogTitle>View permissions — {roleName}</DialogTitle>
@@ -203,24 +208,26 @@ export function RolePermissionsEditDialog({
     onOpenChange(false)
   }
 
+  const mounted = useClientMounted()
+
+  if (!mounted || !open) return null
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="border-b border-border px-6 py-4 text-left">
-          <DialogTitle>Edit permissions — {roleName}</DialogTitle>
+          <DialogTitle>Permissions — {roleName}</DialogTitle>
           <DialogDescription>
             {selectionCount > 0
-              ? `Customize permissions for ${selectionCount} selected user(s) and/or group(s). Changes apply on save.`
-              : 'Select at least one user or group on the assignment page to enable editing.'}
+              ? `View and customize permissions for ${selectionCount} selected user(s) and/or group(s). Changes apply on save.`
+              : `Default permissions for role “${roleName}”. Select users or groups on the assignment page to customize overrides.`}
           </DialogDescription>
         </DialogHeader>
         <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
           {selectionCount > 0 ? (
             <PermissionMatrixEditor value={draft} onChange={setDraft} />
           ) : (
-            <p className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
-              Select users or groups in the left panels, then open this dialog again to edit their permission overrides.
-            </p>
+            <PermissionMatrixReadonly matrix={displayMatrix} maxHeight={420} />
           )}
         </div>
         <DialogFooter className="border-t border-border px-6 py-4">

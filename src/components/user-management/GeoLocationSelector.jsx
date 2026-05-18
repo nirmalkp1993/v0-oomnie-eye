@@ -98,7 +98,7 @@ const GeoTreeBranch = memo(function GeoTreeBranch({ node, selectedIds, highlight
  * Hierarchical, searchable, multi-select geo location picker for user access assignment.
  */
 /**
- * @param {{ selectedIds: Set<string>, onChange: (updater: Set<string> | ((prev: Set<string>) => Set<string>)) => void, root?: import('@/src/mock-data/mockGeoData').GeoTreeNode, onLocationFocus?: (location: { id: string, name: string }) => void, showHeader?: boolean }} props
+ * @param {{ selectedIds: Set<string>, onChange: (updater: Set<string> | ((prev: Set<string>) => Set<string>)) => void, root?: import('@/src/mock-data/mockGeoData').GeoTreeNode, onLocationFocus?: (location: { id: string, name: string }) => void, showHeader?: boolean, titleClassName?: string }} props
  */
 export function GeoLocationSelector({
   selectedIds,
@@ -106,6 +106,7 @@ export function GeoLocationSelector({
   root = MOCK_GEO_DATA,
   onLocationFocus,
   showHeader = true,
+  titleClassName = 'text-accent',
 }) {
   const [searchInput, setSearchInput] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
@@ -181,9 +182,7 @@ export function GeoLocationSelector({
       {showHeader ? (
         <>
           <Stack direction="row" alignItems="center" flexWrap="wrap" gap={0.75} useFlexGap>
-            <Typography variant="subtitle2" fontWeight={700} component="span" sx={{ mr: 0.25 }}>
-              Location access
-            </Typography>
+            <span className={`shrink-0 text-sm font-medium ${titleClassName}`}>Location access</span>
             {[...selectedIds].map((id) => {
               const label = labelById.get(id)
               if (!label) return null
@@ -206,7 +205,7 @@ export function GeoLocationSelector({
             })}
           </Stack>
 
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" className="text-muted-foreground" sx={{ color: 'inherit' }}>
             Search globally or browse the tree. Select countries, regions, or cities; choices appear as tags above.
           </Typography>
         </>

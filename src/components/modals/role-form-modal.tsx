@@ -1,21 +1,13 @@
 'use client'
 
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Tab,
-  Tabs,
-  TextField,
-  Typography,
-} from '@mui/material'
+import { Shield } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS } from '@/src/components/modals/app-dialog'
 import { PermissionMatrixEditor } from '@/src/components/user-management/permission-matrix-editor'
 import {
   clonePermissionMatrix,
@@ -36,7 +28,7 @@ interface RoleFormModalProps {
 }
 
 export function RoleFormModal({ open, mode, roleId, initial, initialMatrix, onClose, onSubmit }: RoleFormModalProps) {
-  const [tab, setTab] = useState(0)
+  const [tab, setTab] = useState('details')
   const [matrix, setMatrix] = useState<PermissionMatrix>(() => createEmptyPermissionMatrix())
 
   const {
@@ -51,7 +43,7 @@ export function RoleFormModal({ open, mode, roleId, initial, initialMatrix, onCl
 
   useEffect(() => {
     if (!open) return
-    setTab(0)
+    setTab('details')
     if (initial) {
       reset({ roleName: initial.roleName, description: initial.description ?? '' })
       if (initialMatrix) {
@@ -68,70 +60,60 @@ export function RoleFormModal({ open, mode, roleId, initial, initialMatrix, onCl
   }, [open, initial, initialMatrix, roleId, reset])
 
   const title = useMemo(() => (mode === 'create' ? 'Add role' : 'Edit role'), [mode])
-
   const submit = handleSubmit((vals) => onSubmit(vals, matrix))
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth scroll="paper">
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
-        <AdminPanelSettingsIcon color="primary" sx={{ fontSize: 30 }} aria-hidden />
-        <Typography component="span" variant="h6" fontWeight={700}>
-          {title}
-        </Typography>
-      </DialogTitle>
-      <DialogContent dividers sx={{ pt: 1 }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-          <Tab label="Role details" />
-          <Tab label="Permission matrix" />
-        </Tabs>
-        {tab === 0 ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-            <Controller
-              name="roleName"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Role Name"
-                  fullWidth
-                  error={Boolean(errors.roleName)}
-                  helperText={errors.roleName?.message}
-                />
-              )}
-            />
-            <Controller
-              name="description"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Description"
-                  fullWidth
-                  multiline
-                  minRows={3}
-                  error={Boolean(errors.description)}
-                  helperText={errors.description?.message}
-                />
-              )}
-            />
-          </Box>
-        ) : (
-          <Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Fine-grained RBAC across platform modules. Sticky headers help scan wide matrices on smaller displays.
-            </Typography>
-            <PermissionMatrixEditor value={matrix} onChange={setMatrix} />
-          </Box>
-        )}
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} color="inherit">
-          Cancel
-        </Button>
-        <Button variant="contained" onClick={submit}>
-          Save
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <AppDialog
+      open={open}
+      onClose={onClose}
+      title={title}
+      icon={Shield}
+      maxWidth="4xl"
+      confirmLabel="Save"
+      onConfirm={submit}
+    >
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="mb-4 h-auto w-full justify-start gap-0 rounded-none border-b border-border bg-transparent p-0">
+          <TabsTrigger
+            value="details"
+            className="relative rounded-none border-b-2 border-transparent px-4 py-2 text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
+          >
+            Role details
+          </TabsTrigger>
+          <TabsTrigger
+            value="matrix"
+            className="relative rounded-none border-b-2 border-transparent px-4 py-2 text-muted-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
+          >
+            Permission matrix
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="details" className="mt-0 space-y-4">
+          <Controller
+            name="roleName"
+            control={control}
+            render={({ field }) => (
+              <DialogFormField label="Role Name" htmlFor="roleName" error={errors.roleName?.message} required>
+                <Input id="roleName" {...field} className={DIALOG_INPUT_CLASS} />
+              </DialogFormField>
+            )}
+          />
+          <Controller
+            name="description"
+            control={control}
+            render={({ field }) => (
+              <DialogFormField label="Description" htmlFor="roleDescription" error={errors.description?.message}>
+                <Textarea id="roleDescription" {...field} rows={3} className={DIALOG_INPUT_CLASS} />
+              </DialogFormField>
+            )}
+          />
+        </TabsContent>
+        <TabsContent value="matrix" className="mt-0">
+          <p className="mb-4 text-sm text-muted-foreground">
+            Fine-grained RBAC across platform modules. Sticky headers help scan wide matrices on smaller displays.
+          </p>
+          <PermissionMatrixEditor value={matrix} onChange={setMatrix} />
+        </TabsContent>
+      </Tabs>
+    </AppDialog>
   )
 }

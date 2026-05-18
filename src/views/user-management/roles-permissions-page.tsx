@@ -3,22 +3,21 @@
 import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
 import RuleFolderOutlinedIcon from '@mui/icons-material/RuleFolderOutlined'
-import {
-  Button as MuiButton,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Menu,
-  MenuItem,
-} from '@mui/material'
-import { DataGrid, type GridColDef } from '@mui/x-data-grid'
-import { Plus, Search } from 'lucide-react'
+import { Menu, MenuItem } from '@mui/material'
+import { DataGrid, useGridApiRef, type GridColDef } from '@mui/x-data-grid'
+import { MoreVertical, Plus, Shield } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import {
+  UM_GRID_CELL_MUTED,
+  UM_GRID_CELL_PRIMARY,
+  userManagementDataGridDefaults,
+  userManagementDataGridSx,
+} from '@/src/components/user-management/user-management-data-grid-defaults'
+import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
+import { gridColDefsToFilterColumns } from '@/src/lib/user-management/grid-filter-columns'
+import { AppDialog } from '@/src/components/modals/app-dialog'
 import { RoleFormModal } from '@/src/components/modals/role-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { EnterpriseDataGridSurface } from '@/src/components/tables/enterprise-data-grid-surface'
@@ -36,6 +35,7 @@ import type { RoleFormValues } from '@/src/utils/validation'
 
 export function RolesPermissionsPage() {
   const { showMessage } = useAdminSnackbar()
+  const apiRef = useGridApiRef()
   const [rows, setRows] = useState<RoleRow[]>([])
   const [matrices, setMatrices] = useState<Record<string, PermissionMatrix>>({})
   const [loading, setLoading] = useState(true)
@@ -108,31 +108,57 @@ export function RolesPermissionsPage() {
 
   const columns: GridColDef<RoleRow>[] = useMemo(
     () => [
-      { field: 'roleName', headerName: 'Role Name', flex: 1, minWidth: 160 },
-      { field: 'description', headerName: 'Description', flex: 1.5, minWidth: 220 },
-      { field: 'userCount', headerName: 'User Count', type: 'number', width: 120 },
-      { field: 'createdDate', headerName: 'Created Date', width: 130 },
+      {
+        field: 'roleName',
+        headerName: 'Role Name',
+        flex: 1,
+        minWidth: 160,
+        cellClassName: UM_GRID_CELL_PRIMARY,
+      },
+      {
+        field: 'description',
+        headerName: 'Description',
+        flex: 1.5,
+        minWidth: 220,
+        cellClassName: UM_GRID_CELL_MUTED,
+      },
+      {
+        field: 'userCount',
+        headerName: 'User Count',
+        type: 'number',
+        width: 120,
+        cellClassName: UM_GRID_CELL_MUTED,
+      },
+      { field: 'createdDate', headerName: 'Created Date', width: 130, cellClassName: UM_GRID_CELL_MUTED },
       {
         field: 'actions',
         headerName: 'Actions',
         sortable: false,
+        filterable: false,
+        hideable: false,
         width: 88,
+        align: 'right',
+        headerAlign: 'right',
         renderCell: (p) => (
-          <MuiButton
-            size="small"
-            color="inherit"
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-primary"
             onClick={(e) => {
               setMenuRow(p.row)
               setMenuAnchor(e.currentTarget)
             }}
           >
-            <MoreVertIcon fontSize="small" />
-          </MuiButton>
+            <MoreVertical className="size-4" />
+          </Button>
         ),
       },
     ],
     []
   )
+
+  const filterableColumns = useMemo(() => gridColDefsToFilterColumns(columns), [columns])
 
   return (
     <UserManagementPageShell
@@ -145,25 +171,28 @@ export function RolesPermissionsPage() {
         </Button>
       }
     >
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search roles…"
-          className="border-border bg-input pl-9 text-foreground placeholder:text-muted-foreground focus-visible:border-primary"
-        />
-      </div>
+      <UserManagementTableToolbar
+        apiRef={apiRef}
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search roles…"
+        resultCount={filtered.length}
+        resultLabel="role"
+        filterStorageKey="user-management:roles"
+        filterableColumns={filterableColumns}
+      />
 
       <EnterpriseDataGridSurface className="min-h-[480px]">
         <DataGrid
+          apiRef={apiRef}
           rows={filtered}
           columns={columns}
           loading={loading}
           getRowId={(r) => r.id}
+          {...userManagementDataGridDefaults}
           pageSizeOptions={[5, 10]}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-          sx={{ border: 'none', minHeight: 400 }}
+          sx={{ ...userManagementDataGridSx, minHeight: 400 }}
         />
       </EnterpriseDataGridSurface>
 
@@ -227,19 +256,22 @@ export function RolesPermissionsPage() {
         onSubmit={(vals, matrix) => saveRole(vals, matrix, modal.row?.id)}
       />
 
-      <Dialog open={Boolean(viewMatrixRole)} onClose={() => setViewMatrixRole(null)} maxWidth="lg" fullWidth>
-        <DialogTitle>Permissions — {viewMatrixRole?.roleName}</DialogTitle>
-        <DialogContent dividers>
-          {viewMatrixRole && matrices[viewMatrixRole.id] ? (
-            <PermissionMatrixReadonly matrix={matrices[viewMatrixRole.id]} maxHeight={360} />
-          ) : null}
-        </DialogContent>
-        <DialogActions>
-          <MuiButton onClick={() => setViewMatrixRole(null)} variant="outlined" color="inherit">
+      <AppDialog
+        open={Boolean(viewMatrixRole)}
+        onClose={() => setViewMatrixRole(null)}
+        title={`Permissions — ${viewMatrixRole?.roleName ?? ''}`}
+        icon={Shield}
+        maxWidth="4xl"
+        footer={
+          <Button type="button" variant="outline" className="border-border" onClick={() => setViewMatrixRole(null)}>
             Close
-          </MuiButton>
-        </DialogActions>
-      </Dialog>
+          </Button>
+        }
+      >
+        {viewMatrixRole && matrices[viewMatrixRole.id] ? (
+          <PermissionMatrixReadonly matrix={matrices[viewMatrixRole.id]} maxHeight={360} />
+        ) : null}
+      </AppDialog>
 
       <ConfirmDialog
         open={Boolean(confirmDelete)}

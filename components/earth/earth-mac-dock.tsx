@@ -61,7 +61,11 @@ function loadOrderedItems(): DockItemDef[] {
 export function EarthMacDock() {
   const { activeFilter, toggleFilter } = useEarthDockFilter()
   const { smoothMouseX, bindDock, pauseFisheye, resumeFisheyeAt } = useDockFisheyeMouse()
-  const [items, setItems] = React.useState<DockItemDef[]>(loadOrderedItems)
+  const [items, setItems] = React.useState<DockItemDef[]>(DOCK_ITEMS)
+
+  React.useEffect(() => {
+    setItems(loadOrderedItems())
+  }, [])
 
   const centersRef = React.useRef<number[]>([0, 0, 0, 0, 0])
   const slotRefs = React.useRef<(HTMLDivElement | null)[]>([null, null, null, null, null])

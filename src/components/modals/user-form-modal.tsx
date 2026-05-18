@@ -1,31 +1,31 @@
 'use client'
 
-import PersonIcon from '@mui/icons-material/Person'
-import Visibility from '@mui/icons-material/Visibility'
-import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  Autocomplete,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  FormControl,
-  FormHelperText,
-  Grid,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material'
+import { ChevronDown, Eye, EyeOff, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
+import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS, DIALOG_LABEL_CLASS } from '@/src/components/modals/app-dialog'
+
+const DIALOG_SELECT_CLASS = cn('w-full', DIALOG_INPUT_CLASS)
 import { GeoLocationSelector } from '@/src/components/user-management/GeoLocationSelector'
 import {
   GeoLocationPreviewMap,
@@ -69,11 +69,53 @@ interface UserFormModalProps {
 
 const groupOptions = MOCK_GROUPS.map((g) => ({ id: g.id, label: g.groupName }))
 
+function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+  error,
+  show,
+  onToggleShow,
+}: {
+  id: string
+  label: string
+  value: string
+  onChange: (v: string) => void
+  error?: string
+  show: boolean
+  onToggleShow: () => void
+}) {
+  return (
+    <DialogFormField label={label} htmlFor={id} error={error}>
+      <InputGroup className={cn('border-border bg-input', error && 'border-destructive')}>
+        <InputGroupInput
+          id={id}
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="text-foreground"
+        />
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton
+            type="button"
+            aria-label={show ? 'Hide password' : 'Show password'}
+            onClick={onToggleShow}
+          >
+            {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
+    </DialogFormField>
+  )
+}
+
 export function UserFormModal({ open, mode, initial, onClose, onSubmit }: UserFormModalProps) {
   const [geoSelected, setGeoSelected] = useState<Set<string>>(new Set())
   const [geoMapFocus, setGeoMapFocus] = useState<{ id: string; name: string } | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [groupsOpen, setGroupsOpen] = useState(false)
   const labelsByGeoId = useMemo(() => geoLabelMap(GEO_TREE_ROOT), [])
 
   const geoMapPins = useMemo((): GeoMapPin[] => {
@@ -172,6 +214,7 @@ export function UserFormModal({ open, mode, initial, onClose, onSubmit }: UserFo
     if (!open) {
       setShowPassword(false)
       setShowConfirmPassword(false)
+      setGroupsOpen(false)
     }
   }, [open])
 
@@ -194,279 +237,239 @@ export function UserFormModal({ open, mode, initial, onClose, onSubmit }: UserFo
     })
   })
 
+  const passwordErrors = errors as {
+    password?: { message?: string }
+    confirmPassword?: { message?: string }
+  }
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth scroll="paper">
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
-        <PersonIcon color="primary" sx={{ fontSize: 30 }} aria-hidden />
-        <Typography component="span" variant="h6" fontWeight={700}>
-          {isCreate ? 'Add user' : 'Edit user'}
-        </Typography>
-      </DialogTitle>
-      <DialogContent dividers sx={{ pt: 2 }}>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Controller
-              name="userName"
-              control={control}
-              render={({ field }) => (
-                <TextField {...field} label="User Name" fullWidth error={Boolean(errors.userName)} helperText={errors.userName?.message} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Controller
-              name="email"
-              control={control}
-              render={({ field }) => (
-                <TextField {...field} label="Email" fullWidth error={Boolean(errors.email)} helperText={errors.email?.message} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Controller
-              name="age"
-              control={control}
-              render={({ field }) => (
-                <TextField {...field} label="Age" type="number" fullWidth error={Boolean(errors.age)} helperText={errors.age?.message} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Controller
-              name="mobileNumber"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Mobile Number"
-                  fullWidth
-                  error={Boolean(errors.mobileNumber)}
-                  helperText={errors.mobileNumber?.message}
-                />
-              )}
-            />
-          </Grid>
-          {isCreate ? (
-            <>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Controller
-                  name="password"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      type={showPassword ? 'text' : 'password'}
-                      label="Password"
-                      fullWidth
-                      error={Boolean((errors as Record<string, { message?: string }>).password)}
-                      helperText={(errors as { password?: { message?: string } }).password?.message}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                type="button"
-                                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                edge="end"
-                                size="small"
-                                onClick={() => setShowPassword((v) => !v)}
-                              >
-                                {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                              </IconButton>
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Controller
-                  name="confirmPassword"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      label="Confirm Password"
-                      fullWidth
-                      error={Boolean((errors as { confirmPassword?: unknown }).confirmPassword)}
-                      helperText={(errors as { confirmPassword?: { message?: string } }).confirmPassword?.message}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                type="button"
-                                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                                edge="end"
-                                size="small"
-                                onClick={() => setShowConfirmPassword((v) => !v)}
-                              >
-                                {showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                              </IconButton>
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-            </>
-          ) : (
-            <>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Controller
-                  name="password"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      type={showPassword ? 'text' : 'password'}
-                      label="New password (optional)"
-                      fullWidth
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                type="button"
-                                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                edge="end"
-                                size="small"
-                                onClick={() => setShowPassword((v) => !v)}
-                              >
-                                {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                              </IconButton>
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <Controller
-                  name="confirmPassword"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      label="Confirm new password"
-                      fullWidth
-                      error={Boolean((errors as { confirmPassword?: unknown }).confirmPassword)}
-                      helperText={(errors as { confirmPassword?: { message?: string } }).confirmPassword?.message}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                type="button"
-                                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                                edge="end"
-                                size="small"
-                                onClick={() => setShowConfirmPassword((v) => !v)}
-                              >
-                                {showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
-                              </IconButton>
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-            </>
+    <AppDialog
+      open={open}
+      onClose={onClose}
+      title={isCreate ? 'Add user' : 'Edit user'}
+      icon={UserRound}
+      maxWidth="4xl"
+      confirmLabel="Save"
+      onConfirm={submit}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Controller
+          name="userName"
+          control={control}
+          render={({ field }) => (
+            <DialogFormField label="User Name" htmlFor="userName" error={errors.userName?.message} required>
+              <Input id="userName" {...field} className={DIALOG_INPUT_CLASS} />
+            </DialogFormField>
           )}
-          <Grid size={{ xs: 12, sm: 6 }}>
+        />
+        <Controller
+          name="email"
+          control={control}
+          render={({ field }) => (
+            <DialogFormField label="Email" htmlFor="email" error={errors.email?.message} required>
+              <Input id="email" type="email" {...field} className={DIALOG_INPUT_CLASS} />
+            </DialogFormField>
+          )}
+        />
+        <Controller
+          name="age"
+          control={control}
+          render={({ field }) => (
+            <DialogFormField label="Age" htmlFor="age" error={errors.age?.message}>
+              <Input
+                id="age"
+                type="number"
+                {...field}
+                onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                className={DIALOG_INPUT_CLASS}
+              />
+            </DialogFormField>
+          )}
+        />
+        <Controller
+          name="mobileNumber"
+          control={control}
+          render={({ field }) => (
+            <DialogFormField label="Mobile Number" htmlFor="mobileNumber" error={errors.mobileNumber?.message}>
+              <Input id="mobileNumber" {...field} className={DIALOG_INPUT_CLASS} />
+            </DialogFormField>
+          )}
+        />
+        {isCreate ? (
+          <>
             <Controller
-              name="role"
+              name="password"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth error={Boolean(errors.role)}>
-                  <InputLabel id="role-label">Select Role</InputLabel>
-                  <Select labelId="role-label" label="Select Role" {...field}>
-                    {MOCK_ROLE_OPTIONS.map((r) => (
-                      <MenuItem key={r} value={r}>
-                        {r}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.role ? <FormHelperText>{errors.role.message}</FormHelperText> : null}
-                </FormControl>
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Controller
-              name="groupIds"
-              control={control}
-              render={({ field }) => (
-                <Autocomplete
-                  multiple
-                  options={groupOptions}
-                  getOptionLabel={(o) => o.label}
-                  value={groupOptions.filter((g) => field.value.includes(g.id))}
-                  onChange={(_, v) => field.onChange(v.map((x) => x.id))}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Select Groups"
-                      error={Boolean(errors.groupIds)}
-                      helperText={(errors.groupIds as { message?: string } | undefined)?.message}
-                    />
-                  )}
+                <PasswordField
+                  id="password"
+                  label="Password"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  error={passwordErrors.password?.message}
+                  show={showPassword}
+                  onToggleShow={() => setShowPassword((v) => !v)}
                 />
               )}
             />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
             <Controller
-              name="status"
+              name="confirmPassword"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth>
-                  <InputLabel id="status-label">Account status</InputLabel>
-                  <Select labelId="status-label" label="Account status" {...field}>
-                    <MenuItem value="Active">Active</MenuItem>
-                    <MenuItem value="Inactive">Inactive</MenuItem>
-                    <MenuItem value="Pending">Pending</MenuItem>
-                  </Select>
-                </FormControl>
+                <PasswordField
+                  id="confirmPassword"
+                  label="Confirm Password"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  error={passwordErrors.confirmPassword?.message}
+                  show={showConfirmPassword}
+                  onToggleShow={() => setShowConfirmPassword((v) => !v)}
+                />
               )}
             />
-          </Grid>
-          <Grid size={{ xs: 12 }}>
-            <Divider sx={{ my: 1 }} />
-            <Grid container spacing={2} alignItems="stretch">
-              <Grid size={{ xs: 12, md: 6 }}>
-                <GeoLocationSelector
-                  root={GEO_TREE_ROOT}
-                  selectedIds={geoSelected}
-                  onChange={setGeoSelected}
-                  onLocationFocus={setGeoMapFocus}
+          </>
+        ) : (
+          <>
+            <Controller
+              name="password"
+              control={control}
+              render={({ field }) => (
+                <PasswordField
+                  id="editPassword"
+                  label="New password (optional)"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  show={showPassword}
+                  onToggleShow={() => setShowPassword((v) => !v)}
                 />
-              </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <GeoLocationPreviewMap focusTarget={geoMapFocusTarget} pins={geoMapPins} />
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} color="inherit">
-          Cancel
-        </Button>
-        <Button variant="contained" onClick={submit}>
-          Save
-        </Button>
-      </DialogActions>
-    </Dialog>
+              )}
+            />
+            <Controller
+              name="confirmPassword"
+              control={control}
+              render={({ field }) => (
+                <PasswordField
+                  id="editConfirmPassword"
+                  label="Confirm new password"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  error={passwordErrors.confirmPassword?.message}
+                  show={showConfirmPassword}
+                  onToggleShow={() => setShowConfirmPassword((v) => !v)}
+                />
+              )}
+            />
+          </>
+        )}
+        <Controller
+          name="role"
+          control={control}
+          render={({ field }) => (
+            <DialogFormField label="Select Role" error={errors.role?.message} required>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className={DIALOG_SELECT_CLASS}>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-card">
+                  {MOCK_ROLE_OPTIONS.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DialogFormField>
+          )}
+        />
+        <Controller
+          name="groupIds"
+          control={control}
+          render={({ field }) => {
+            const selected = groupOptions.filter((g) => field.value.includes(g.id))
+            const label =
+              selected.length === 0
+                ? 'Select groups'
+                : selected.length <= 2
+                  ? selected.map((g) => g.label).join(', ')
+                  : `${selected.length} groups selected`
+
+            return (
+              <DialogFormField
+                label="Select Groups"
+                error={(errors.groupIds as { message?: string } | undefined)?.message}
+              >
+                <Popover open={groupsOpen} onOpenChange={setGroupsOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn('w-full justify-between border-border font-normal', DIALOG_INPUT_CLASS)}
+                    >
+                      <span className="truncate text-left">{label}</span>
+                      <ChevronDown className="size-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] border-border bg-card p-2" align="start">
+                    <div className="max-h-48 space-y-1 overflow-y-auto">
+                      {groupOptions.map((g) => {
+                        const checked = field.value.includes(g.id)
+                        return (
+                          <label
+                            key={g.id}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                const next = v
+                                  ? [...field.value, g.id]
+                                  : field.value.filter((id) => id !== g.id)
+                                field.onChange(next)
+                              }}
+                            />
+                            {g.label}
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </DialogFormField>
+            )
+          }}
+        />
+        <Controller
+          name="status"
+          control={control}
+          render={({ field }) => (
+            <DialogFormField label="Account status">
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className={DIALOG_SELECT_CLASS}>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-card">
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </DialogFormField>
+          )}
+        />
+        <div className="sm:col-span-2">
+          <Separator className="my-2" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <GeoLocationSelector
+              root={GEO_TREE_ROOT}
+              selectedIds={geoSelected}
+              onChange={setGeoSelected}
+              onLocationFocus={setGeoMapFocus}
+              titleClassName={DIALOG_LABEL_CLASS}
+            />
+            <GeoLocationPreviewMap focusTarget={geoMapFocusTarget} pins={geoMapPins} />
+          </div>
+        </div>
+      </div>
+    </AppDialog>
   )
 }

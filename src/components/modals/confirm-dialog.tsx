@@ -1,13 +1,17 @@
 'use client'
 
 import {
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-} from '@mui/material'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { cn } from '@/lib/utils'
+import { useClientMounted } from '@/src/hooks/use-client-mounted'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -30,20 +34,34 @@ export function ConfirmDialog({
   onClose,
   onConfirm,
 }: ConfirmDialogProps) {
+  const mounted = useClientMounted()
+
+  if (!mounted || !open) return null
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{title}</DialogTitle>
-      <DialogContent>
-        <DialogContentText>{description}</DialogContentText>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} variant="outlined" color="inherit" sx={{ borderColor: 'divider' }}>
-          {cancelLabel}
-        </Button>
-        <Button onClick={onConfirm} color={destructive ? 'error' : 'primary'} variant="contained">
-          {confirmLabel}
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <AlertDialog
+      open
+      onOpenChange={(v) => {
+        if (!v) onClose()
+      }}
+    >
+      <AlertDialogContent className="border-border bg-card">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="border-border" onClick={onClose}>
+            {cancelLabel}
+          </AlertDialogCancel>
+          <AlertDialogAction
+            className={cn(destructive && 'bg-destructive text-destructive-foreground hover:bg-destructive/90')}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }

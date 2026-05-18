@@ -1,20 +1,14 @@
 'use client'
 
-import GroupsIcon from '@mui/icons-material/Groups'
 import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  TextField,
-  Typography,
-} from '@mui/material'
+import { UsersRound } from 'lucide-react'
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS, DIALOG_LABEL_CLASS } from '@/src/components/modals/app-dialog'
+import { Label } from '@/components/ui/label'
 import { DualTransferList, type TransferUserItem } from '@/src/components/user-management/dual-transfer-list'
 import { groupFormSchema, type GroupFormValues } from '@/src/utils/validation'
 
@@ -60,47 +54,43 @@ export function GroupFormModal({ open, mode, initial, allUsers, onClose, onSubmi
   const submit = handleSubmit((vals) => onSubmit(vals))
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth scroll="paper">
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
-        <GroupsIcon color="primary" sx={{ fontSize: 30 }} aria-hidden />
-        <Typography component="span" variant="h6" fontWeight={700}>
-          {mode === 'create' ? 'Add group' : 'Edit group'}
-        </Typography>
-      </DialogTitle>
-      <DialogContent dividers sx={{ pt: 2 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Controller
-            name="groupName"
-            control={control}
-            render={({ field }) => (
-              <TextField {...field} label="Group Name" fullWidth error={Boolean(errors.groupName)} helperText={errors.groupName?.message} />
-            )}
-          />
-          <Controller
-            name="description"
-            control={control}
-            render={({ field }) => (
-              <TextField {...field} label="Description" fullWidth multiline minRows={2} error={Boolean(errors.description)} helperText={errors.description?.message} />
-            )}
-          />
-          <Typography variant="subtitle2" fontWeight={700}>
-            User assignment
-          </Typography>
+    <AppDialog
+      open={open}
+      onClose={onClose}
+      title={mode === 'create' ? 'Add group' : 'Edit group'}
+      icon={UsersRound}
+      maxWidth="2xl"
+      confirmLabel="Save"
+      onConfirm={submit}
+    >
+      <div className="flex flex-col gap-4">
+        <Controller
+          name="groupName"
+          control={control}
+          render={({ field }) => (
+            <DialogFormField label="Group Name" htmlFor="groupName" error={errors.groupName?.message} required>
+              <Input id="groupName" {...field} className={DIALOG_INPUT_CLASS} />
+            </DialogFormField>
+          )}
+        />
+        <Controller
+          name="description"
+          control={control}
+          render={({ field }) => (
+            <DialogFormField label="Description" htmlFor="groupDescription" error={errors.description?.message}>
+              <Textarea id="groupDescription" {...field} rows={2} className={DIALOG_INPUT_CLASS} />
+            </DialogFormField>
+          )}
+        />
+        <div className="space-y-2">
+          <Label className={DIALOG_LABEL_CLASS}>User assignment</Label>
           <DualTransferList
             available={allUsers}
             selectedIds={memberUserIds}
             onChange={(ids) => setValue('memberUserIds', ids, { shouldValidate: true })}
           />
-        </Box>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} color="inherit">
-          Cancel
-        </Button>
-        <Button variant="contained" onClick={submit}>
-          Save
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </div>
+      </div>
+    </AppDialog>
   )
 }

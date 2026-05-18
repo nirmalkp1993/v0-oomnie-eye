@@ -2,27 +2,21 @@
 
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline'
-import {
-  Button as MuiButton,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  List,
-  ListItem,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Stack,
-  Typography,
-} from '@mui/material'
-import { DataGrid, type GridColDef } from '@mui/x-data-grid'
-import { Plus, Search } from 'lucide-react'
+import { Menu, MenuItem } from '@mui/material'
+import { DataGrid, useGridApiRef, type GridColDef } from '@mui/x-data-grid'
+import { MoreVertical, Plus, UsersRound } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import {
+  UM_GRID_CELL_MUTED,
+  UM_GRID_CELL_PRIMARY,
+  userManagementDataGridDefaults,
+  userManagementDataGridSx,
+} from '@/src/components/user-management/user-management-data-grid-defaults'
+import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
+import { gridColDefsToFilterColumns } from '@/src/lib/user-management/grid-filter-columns'
+import { AppDialog } from '@/src/components/modals/app-dialog'
 import { GroupFormModal } from '@/src/components/modals/group-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { EnterpriseDataGridSurface } from '@/src/components/tables/enterprise-data-grid-surface'
@@ -50,6 +44,7 @@ const initialMembers: Record<string, string[]> = {
 
 export function GroupsPage() {
   const { showMessage } = useAdminSnackbar()
+  const apiRef = useGridApiRef()
   const [rows, setRows] = useState<GroupRow[]>([])
   const [membersByGroup, setMembersByGroup] = useState<Record<string, string[]>>({ ...initialMembers })
   const [loading, setLoading] = useState(true)
@@ -129,32 +124,58 @@ export function GroupsPage() {
 
   const columns: GridColDef<GroupRow>[] = useMemo(
     () => [
-      { field: 'groupId', headerName: 'Group ID', flex: 0.8, minWidth: 120 },
-      { field: 'groupName', headerName: 'Group Name', flex: 1, minWidth: 160 },
-      { field: 'description', headerName: 'Description', flex: 1.4, minWidth: 220 },
-      { field: 'assignedUsersCount', headerName: 'Assigned Users Count', type: 'number', width: 200 },
-      { field: 'createdDate', headerName: 'Created Date', width: 130 },
+      { field: 'groupId', headerName: 'Group ID', flex: 0.8, minWidth: 120, cellClassName: UM_GRID_CELL_MUTED },
+      {
+        field: 'groupName',
+        headerName: 'Group Name',
+        flex: 1,
+        minWidth: 160,
+        cellClassName: UM_GRID_CELL_PRIMARY,
+      },
+      {
+        field: 'description',
+        headerName: 'Description',
+        flex: 1.4,
+        minWidth: 220,
+        cellClassName: UM_GRID_CELL_MUTED,
+      },
+      {
+        field: 'assignedUsersCount',
+        headerName: 'Assigned Users Count',
+        type: 'number',
+        width: 200,
+        cellClassName: UM_GRID_CELL_MUTED,
+      },
+      { field: 'createdDate', headerName: 'Created Date', width: 130, cellClassName: UM_GRID_CELL_MUTED },
       {
         field: 'actions',
         headerName: 'Actions',
         sortable: false,
+        filterable: false,
+        hideable: false,
         width: 88,
+        align: 'right',
+        headerAlign: 'right',
         renderCell: (p) => (
-          <MuiButton
-            size="small"
-            color="inherit"
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-primary"
             onClick={(e) => {
               setMenuRow(p.row)
               setMenuAnchor(e.currentTarget)
             }}
           >
-            <MoreVertIcon fontSize="small" />
-          </MuiButton>
+            <MoreVertical className="size-4" />
+          </Button>
         ),
       },
     ],
     []
   )
+
+  const filterableColumns = useMemo(() => gridColDefsToFilterColumns(columns), [columns])
 
   return (
     <UserManagementPageShell
@@ -167,25 +188,28 @@ export function GroupsPage() {
         </Button>
       }
     >
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search groups…"
-          className="border-border bg-input pl-9 text-foreground placeholder:text-muted-foreground focus-visible:border-primary"
-        />
-      </div>
+      <UserManagementTableToolbar
+        apiRef={apiRef}
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search groups…"
+        resultCount={filtered.length}
+        resultLabel="group"
+        filterStorageKey="user-management:groups"
+        filterableColumns={filterableColumns}
+      />
 
       <EnterpriseDataGridSurface className="min-h-[480px]">
         <DataGrid
+          apiRef={apiRef}
           rows={filtered}
           columns={columns}
           loading={loading}
           getRowId={(r) => r.id}
+          {...userManagementDataGridDefaults}
           pageSizeOptions={[5, 10]}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-          sx={{ border: 'none', minHeight: 400 }}
+          sx={{ ...userManagementDataGridSx, minHeight: 400 }}
         />
       </EnterpriseDataGridSurface>
 
@@ -233,31 +257,33 @@ export function GroupsPage() {
         onSubmit={(vals) => saveGroup(vals, modal.row?.id)}
       />
 
-      <Dialog open={Boolean(viewUsersGroup)} onClose={() => setViewUsersGroup(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Users in {viewUsersGroup?.groupName}</DialogTitle>
-        <DialogContent dividers>
-          <List dense>
-            {(viewUsersGroup ? membersByGroup[viewUsersGroup.id] ?? [] : []).map((uid) => {
-              const u = MOCK_USERS.find((x) => x.id === uid)
-              return (
-                <ListItem key={uid} disablePadding>
-                  <ListItemText primary={u?.userName ?? uid} secondary={u?.email} />
-                </ListItem>
-              )
-            })}
-            {viewUsersGroup && (membersByGroup[viewUsersGroup.id]?.length ?? 0) === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                No members assigned.
-              </Typography>
-            ) : null}
-          </List>
-        </DialogContent>
-        <DialogActions>
-          <MuiButton onClick={() => setViewUsersGroup(null)} variant="outlined" color="inherit">
+      <AppDialog
+        open={Boolean(viewUsersGroup)}
+        onClose={() => setViewUsersGroup(null)}
+        title={`Users in ${viewUsersGroup?.groupName ?? ''}`}
+        icon={UsersRound}
+        maxWidth="md"
+        footer={
+          <Button type="button" variant="outline" className="border-border" onClick={() => setViewUsersGroup(null)}>
             Close
-          </MuiButton>
-        </DialogActions>
-      </Dialog>
+          </Button>
+        }
+      >
+        <ul className="space-y-3">
+          {(viewUsersGroup ? membersByGroup[viewUsersGroup.id] ?? [] : []).map((uid) => {
+            const u = MOCK_USERS.find((x) => x.id === uid)
+            return (
+              <li key={uid} className="border-b border-border pb-2 last:border-0 last:pb-0">
+                <p className="text-sm font-medium text-foreground">{u?.userName ?? uid}</p>
+                {u?.email ? <p className="text-xs text-muted-foreground">{u.email}</p> : null}
+              </li>
+            )
+          })}
+        </ul>
+        {viewUsersGroup && (membersByGroup[viewUsersGroup.id]?.length ?? 0) === 0 ? (
+          <p className="text-sm text-muted-foreground">No members assigned.</p>
+        ) : null}
+      </AppDialog>
 
       <ConfirmDialog
         open={Boolean(confirmDelete)}

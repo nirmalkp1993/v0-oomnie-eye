@@ -252,16 +252,32 @@ export const muiAdminTheme = createTheme({
           fontSize: '0.875rem',
           fontFamily: "'Geist', 'Geist Fallback', ui-sans-serif, system-ui, sans-serif",
           color: fg,
+          backgroundColor: paper,
           '--DataGrid-rowBorderColor': border,
         },
         columnHeaders: {
-          backgroundColor: mutedBg,
-          color: fg,
-          fontSize: '0.75rem',
-          fontWeight: 700,
+          backgroundColor: 'transparent',
+          color: primary,
+          fontSize: '0.875rem',
+          fontWeight: 600,
           borderBottom: `1px solid ${border}`,
         },
-        columnHeaderTitle: { fontWeight: 700 },
+        columnHeaderTitle: {
+          fontWeight: 600,
+          color: primary,
+        },
+        columnHeader: {
+          '& .MuiDataGrid-menuIconButton': { display: 'none' },
+        },
+        panel: {
+          borderRadius: radius,
+          border: `1px solid ${border}`,
+          boxShadow: '0 10px 40px rgba(15, 23, 41, 0.1)',
+        },
+        panelHeader: {
+          fontWeight: 600,
+          fontSize: '0.875rem',
+        },
         footerContainer: {
           borderTop: `1px solid ${border}`,
           backgroundColor: paper,
@@ -269,14 +285,15 @@ export const muiAdminTheme = createTheme({
           color: mutedFg,
         },
         row: {
-          '&:hover': { backgroundColor: alpha(primary, 0.04) },
+          '&:hover': { backgroundColor: alpha(primary, 0.05) },
           '&.Mui-selected': {
             backgroundColor: alpha(primary, 0.08),
-            '&:hover': { backgroundColor: alpha(primary, 0.12) },
+            '&:hover': { backgroundColor: alpha(primary, 0.1) },
           },
         },
         cell: {
-          borderColor: alpha(border, 0.8),
+          borderColor: border,
+          color: mutedFg,
         },
         toolbarContainer: {
           backgroundColor: paper,

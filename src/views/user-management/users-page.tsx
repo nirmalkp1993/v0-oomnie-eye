@@ -3,33 +3,31 @@
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
 import SecurityUpdateGoodOutlinedIcon from '@mui/icons-material/SecurityUpdateGoodOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
-import {
-  Button as MuiButton,
-  Chip,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Menu,
-  MenuItem,
-  Stack,
-  Typography,
-} from '@mui/material'
+import { Menu, MenuItem } from '@mui/material'
 import {
   DataGrid,
   GridToolbarContainer,
+  useGridApiRef,
   type GridColDef,
   type GridRowId,
   type GridRowSelectionModel,
 } from '@mui/x-data-grid'
-import { Plus, Search, Trash2, UserRound } from 'lucide-react'
+import { MoreVertical, Plus, Trash2, UserRound } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  UM_GRID_CELL_MUTED,
+  UM_GRID_CELL_PRIMARY,
+  userManagementDataGridDefaults,
+  userManagementDataGridSx,
+} from '@/src/components/user-management/user-management-data-grid-defaults'
+import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
+import { gridColDefsToFilterColumns } from '@/src/lib/user-management/grid-filter-columns'
+import { AppDialog } from '@/src/components/modals/app-dialog'
 import { UserFormModal, type UserFormSubmitPayload } from '@/src/components/modals/user-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { EnterpriseDataGridSurface } from '@/src/components/tables/enterprise-data-grid-surface'
@@ -54,6 +52,7 @@ function NoRowsOverlay({ emptySearch }: { emptySearch: boolean }) {
 
 export function UsersPage() {
   const { showMessage } = useAdminSnackbar()
+  const apiRef = useGridApiRef()
   const [rows, setRows] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -152,26 +151,44 @@ export function UsersPage() {
 
   const columns: GridColDef<UserRow>[] = useMemo(
     () => [
-      { field: 'userName', headerName: 'User Name', flex: 1, minWidth: 160 },
-      { field: 'email', headerName: 'Email', flex: 1.2, minWidth: 200 },
-      { field: 'age', headerName: 'Age', width: 80, type: 'number' },
-      { field: 'mobileNumber', headerName: 'Mobile Number', flex: 1, minWidth: 140 },
-      { field: 'role', headerName: 'Role', flex: 0.9, minWidth: 130 },
-      { field: 'group', headerName: 'Group', flex: 1, minWidth: 140 },
-      { field: 'location', headerName: 'Location', flex: 1, minWidth: 140 },
+      {
+        field: 'userName',
+        headerName: 'User Name',
+        flex: 1,
+        minWidth: 160,
+        cellClassName: UM_GRID_CELL_PRIMARY,
+      },
+      { field: 'email', headerName: 'Email', flex: 1.2, minWidth: 200, cellClassName: UM_GRID_CELL_MUTED },
+      { field: 'age', headerName: 'Age', width: 80, type: 'number', cellClassName: UM_GRID_CELL_MUTED },
+      {
+        field: 'mobileNumber',
+        headerName: 'Mobile Number',
+        flex: 1,
+        minWidth: 140,
+        cellClassName: UM_GRID_CELL_MUTED,
+      },
+      { field: 'role', headerName: 'Role', flex: 0.9, minWidth: 130, cellClassName: UM_GRID_CELL_MUTED },
+      { field: 'group', headerName: 'Group', flex: 1, minWidth: 140, cellClassName: UM_GRID_CELL_MUTED },
+      { field: 'location', headerName: 'Location', flex: 1, minWidth: 140, cellClassName: UM_GRID_CELL_MUTED },
       {
         field: 'status',
         headerName: 'Status',
         width: 120,
         renderCell: (params) => {
-          const color = params.value === 'Active' ? 'success' : params.value === 'Pending' ? 'warning' : 'default'
+          const status = params.value as UserStatus
           return (
-            <Chip
-              size="small"
-              label={params.value}
-              color={color === 'default' ? 'default' : color}
-              variant={color === 'default' ? 'outlined' : 'filled'}
-            />
+            <Badge
+              variant="secondary"
+              className={
+                status === 'Active'
+                  ? 'border-live/30 bg-live/20 text-live'
+                  : status === 'Pending'
+                    ? 'border-warning/30 bg-warning/20 text-warning'
+                    : 'border-border bg-muted/50 text-muted-foreground'
+              }
+            >
+              {status}
+            </Badge>
           )
         },
       },
@@ -180,25 +197,31 @@ export function UsersPage() {
         headerName: 'Actions',
         sortable: false,
         filterable: false,
+        hideable: false,
+        disableColumnMenu: true,
         width: 96,
-        align: 'center',
-        headerAlign: 'center',
+        align: 'right',
+        headerAlign: 'right',
         renderCell: (params) => (
-          <MuiButton
-            size="small"
-            color="inherit"
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-primary"
             onClick={(e) => {
               setMenuUser(params.row)
               setMenuAnchor(e.currentTarget)
             }}
           >
-            <MoreVertIcon fontSize="small" />
-          </MuiButton>
+            <MoreVertical className="size-4" />
+          </Button>
         ),
       },
     ],
     []
   )
+
+  const filterableColumns = useMemo(() => gridColDefsToFilterColumns(columns), [columns])
 
   const bulkDelete = () => {
     const ids = selectionModel as GridRowId[]
@@ -219,38 +242,39 @@ export function UsersPage() {
         </Button>
       }
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <div className="relative max-w-md flex-1">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search users…"
-            className="border-border bg-input pl-9 text-foreground placeholder:text-muted-foreground focus-visible:border-primary"
-          />
-        </div>
-        <Select
-          value={statusFilter}
-          onValueChange={(v) => setStatusFilter(v as 'all' | UserStatus)}
-        >
-          <SelectTrigger size="sm" className="w-full min-w-[180px] border-border sm:w-[200px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="Active">Active</SelectItem>
-            <SelectItem value="Inactive">Inactive</SelectItem>
-            <SelectItem value="Pending">Pending</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <UserManagementTableToolbar
+        apiRef={apiRef}
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search users…"
+        filterStorageKey="user-management:users"
+        filterableColumns={filterableColumns}
+        filtersSlot={
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as 'all' | UserStatus)}
+          >
+            <SelectTrigger size="sm" className="w-full min-w-[180px] border-border sm:w-[200px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Inactive">Inactive</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
 
       <EnterpriseDataGridSurface className="min-h-[520px]">
         <DataGrid
+          apiRef={apiRef}
           rows={filteredRows}
           columns={columns}
           loading={loading}
           getRowId={(r) => r.id}
+          {...userManagementDataGridDefaults}
           checkboxSelection
           disableRowSelectionOnClick
           rowSelectionModel={selectionModel}
@@ -258,6 +282,7 @@ export function UsersPage() {
           pageSizeOptions={[5, 10, 25]}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
           slots={{
+            ...userManagementDataGridDefaults.slots,
             toolbar: () => (
               <GridToolbarContainer sx={{ px: 2, py: 1.5, gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                 {selectedCount > 0 ? (
@@ -277,7 +302,7 @@ export function UsersPage() {
             ),
             noRowsOverlay: () => <NoRowsOverlay emptySearch={Boolean(search) || statusFilter !== 'all'} />,
           }}
-          sx={{ border: 'none', minHeight: 440 }}
+          sx={{ ...userManagementDataGridSx, minHeight: 440 }}
         />
       </EnterpriseDataGridSurface>
 
@@ -334,44 +359,55 @@ export function UsersPage() {
         }}
       />
 
-      <Dialog open={Boolean(detailsUser)} onClose={() => setDetailsUser(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>User details</DialogTitle>
-        <DialogContent dividers>
-          {detailsUser ? (
-            <Stack spacing={1}>
-              <Typography variant="body2">
-                <strong>Name:</strong> {detailsUser.userName}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Email:</strong> {detailsUser.email}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Age:</strong> {detailsUser.age}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Mobile:</strong> {detailsUser.mobileNumber}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Role:</strong> {detailsUser.role}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Group:</strong> {detailsUser.group}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Location:</strong> {detailsUser.location}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Status:</strong> {detailsUser.status}
-              </Typography>
-            </Stack>
-          ) : null}
-        </DialogContent>
-        <DialogActions>
-          <MuiButton onClick={() => setDetailsUser(null)} variant="outlined" color="inherit">
+      <AppDialog
+        open={Boolean(detailsUser)}
+        onClose={() => setDetailsUser(null)}
+        title="User details"
+        icon={UserRound}
+        maxWidth="md"
+        footer={
+          <Button type="button" variant="outline" className="border-border" onClick={() => setDetailsUser(null)}>
             Close
-          </MuiButton>
-        </DialogActions>
-      </Dialog>
+          </Button>
+        }
+      >
+        {detailsUser ? (
+          <dl className="space-y-2 text-sm">
+            <div className="flex gap-2">
+              <dt className="min-w-20 font-medium text-muted-foreground">Name</dt>
+              <dd className="text-foreground">{detailsUser.userName}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="min-w-20 font-medium text-muted-foreground">Email</dt>
+              <dd className="text-foreground">{detailsUser.email}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="min-w-20 font-medium text-muted-foreground">Age</dt>
+              <dd className="text-foreground">{detailsUser.age}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="min-w-20 font-medium text-muted-foreground">Mobile</dt>
+              <dd className="text-foreground">{detailsUser.mobileNumber}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="min-w-20 font-medium text-muted-foreground">Role</dt>
+              <dd className="text-foreground">{detailsUser.role}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="min-w-20 font-medium text-muted-foreground">Group</dt>
+              <dd className="text-foreground">{detailsUser.group}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="min-w-20 font-medium text-muted-foreground">Location</dt>
+              <dd className="text-foreground">{detailsUser.location}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="min-w-20 font-medium text-muted-foreground">Status</dt>
+              <dd className="text-foreground">{detailsUser.status}</dd>
+            </div>
+          </dl>
+        ) : null}
+      </AppDialog>
 
       <ConfirmDialog
         open={confirmBulk}
