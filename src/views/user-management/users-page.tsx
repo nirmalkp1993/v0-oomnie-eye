@@ -134,16 +134,16 @@ export function UsersPage() {
           prev.map((r) =>
             r.id === existingId
               ? {
-                  ...r,
-                  userName: payload.userName,
-                  email: payload.email,
-                  age: payload.age,
-                  mobileNumber: payload.mobileNumber,
-                  role: payload.role,
-                  group: payload.groupLabels.join(', '),
-                  location: payload.locationLabel,
-                  status: payload.status,
-                }
+                ...r,
+                userName: payload.userName,
+                email: payload.email,
+                age: payload.age,
+                mobileNumber: payload.mobileNumber,
+                role: payload.role,
+                group: payload.groupLabels.join(', '),
+                location: payload.locationLabel,
+                status: payload.status,
+              }
               : r
           )
         )
