@@ -85,9 +85,8 @@ function buildCameraPinMarkerHtml(options: {
           <circle cx="12" cy="12" r="3"/>
         </svg>
       </div>
-      ${
-        name
-          ? `<div style="
+      ${name
+      ? `<div style="
         margin-top: 4px;
         padding: 2px 8px;
         background: rgba(0,0,0,0.75);
@@ -96,8 +95,8 @@ function buildCameraPinMarkerHtml(options: {
         border-radius: 4px;
         white-space: nowrap;
       ">${name}</div>`
-          : ''
-      }
+      : ''
+    }
     </div>
   `
 }
@@ -357,10 +356,10 @@ export function CesiumGlobe() {
               height: ${(pin.iconSize || 40) * 0.5}px;
               color: white;
             " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              ${pin.iconType === 'camera' 
-                ? '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>'
-                : '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>'
-              }
+              ${pin.iconType === 'camera'
+          ? '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>'
+          : '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>'
+        }
             </svg>
           </div>
           <div style="
