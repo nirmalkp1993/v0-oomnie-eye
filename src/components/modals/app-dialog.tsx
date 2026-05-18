@@ -32,6 +32,44 @@ export const DIALOG_INPUT_CLASS =
 
 export const DIALOG_LABEL_CLASS = 'text-accent'
 
+export const DIALOG_TITLE_CLASS = 'text-xl font-semibold leading-none text-orange-500'
+
+export const DIALOG_ICON_BOX_CLASS =
+  'flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary'
+
+export const DIALOG_ICON_CLASS = 'size-5 text-primary-foreground'
+
+interface AppDialogHeaderProps {
+  title: string
+  description?: string
+  icon?: LucideIcon
+  srOnlyTitle?: string
+}
+
+export function AppDialogHeader({ title, description, icon: Icon, srOnlyTitle }: AppDialogHeaderProps) {
+  const a11yTitle = srOnlyTitle ?? title
+
+  return (
+    <DialogHeader className="border-b border-border px-6 py-4 text-left">
+      <div className="flex items-center gap-3">
+        {Icon ? (
+          <div className={DIALOG_ICON_BOX_CLASS} aria-hidden>
+            <Icon className={DIALOG_ICON_CLASS} />
+          </div>
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <DialogTitle className={cn('text-left', DIALOG_TITLE_CLASS)}>{title}</DialogTitle>
+          {description ? (
+            <DialogDescription className="mt-1.5">{description}</DialogDescription>
+          ) : (
+            <DialogDescription className="sr-only">{a11yTitle}</DialogDescription>
+          )}
+        </div>
+      </div>
+    </DialogHeader>
+  )
+}
+
 interface AppDialogProps {
   open: boolean
   onClose: () => void
@@ -96,17 +134,7 @@ export function AppDialog({
           maxWidthClass[maxWidth]
         )}
       >
-        <DialogHeader className="border-b border-border px-6 py-4 text-left">
-          <DialogTitle className="flex items-center gap-2 text-foreground">
-            {Icon ? <Icon className="size-5 shrink-0 text-primary" aria-hidden /> : null}
-            {title}
-          </DialogTitle>
-          {description ? (
-            <DialogDescription>{description}</DialogDescription>
-          ) : (
-            <DialogDescription className="sr-only">{title}</DialogDescription>
-          )}
-        </DialogHeader>
+        <AppDialogHeader title={title} description={description} icon={Icon} />
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>
         {!hideFooter && resolvedFooter ? (
           <DialogFooter className="gap-2 border-t border-border px-6 py-4">{resolvedFooter}</DialogFooter>

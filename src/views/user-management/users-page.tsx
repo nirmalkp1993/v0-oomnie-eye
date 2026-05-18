@@ -15,7 +15,7 @@ import {
   type GridRowSelectionModel,
 } from '@mui/x-data-grid'
 import { MoreVertical, Plus, Trash2, UserRound } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -27,7 +27,6 @@ import {
 } from '@/src/components/user-management/user-management-data-grid-defaults'
 import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
 import { gridColDefsToFilterColumns } from '@/src/lib/user-management/grid-filter-columns'
-import { AppDialog } from '@/src/components/modals/app-dialog'
 import { UserFormModal, type UserFormSubmitPayload } from '@/src/components/modals/user-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { EnterpriseDataGridSurface } from '@/src/components/tables/enterprise-data-grid-surface'
@@ -60,11 +59,15 @@ export function UsersPage() {
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [menuUser, setMenuUser] = useState<UserRow | null>(null)
-  const [userModal, setUserModal] = useState<{ open: boolean; mode: 'create' | 'edit'; user?: UserRow | null }>({
+  const [userModal, setUserModal] = useState<{
+    open: boolean
+    mode: 'create' | 'edit'
+    user?: UserRow | null
+    initialFocus?: 'role' | 'groups'
+  }>({
     open: false,
     mode: 'create',
   })
-  const [detailsUser, setDetailsUser] = useState<UserRow | null>(null)
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [confirmSingle, setConfirmSingle] = useState<UserRow | null>(null)
 
@@ -100,10 +103,29 @@ export function UsersPage() {
     setMenuUser(null)
   }
 
-  const openEdit = useCallback((u: UserRow) => {
-    setUserModal({ open: true, mode: 'edit', user: u })
-    closeMenu()
-  }, [])
+  const openEdit = useCallback(
+    (u: UserRow, initialFocus?: 'role' | 'groups') => {
+      setUserModal({ open: true, mode: 'edit', user: u, initialFocus })
+      closeMenu()
+    },
+    []
+  )
+
+  const handleRowClick = useCallback(
+    (user: UserRow, event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (
+        target.closest('[data-field="actions"]') ||
+        target.closest('.MuiDataGrid-cellCheckbox') ||
+        target.closest('.MuiCheckbox-root') ||
+        target.closest('button')
+      ) {
+        return
+      }
+      openEdit(user)
+    },
+    [openEdit]
+  )
 
   const handleSaveUser = useCallback(
     (payload: UserFormSubmitPayload, existingId?: string) => {
@@ -144,7 +166,7 @@ export function UsersPage() {
         ])
         showMessage('User created')
       }
-      setUserModal({ open: false, mode: 'create' })
+      setUserModal({ open: false, mode: 'create', user: null })
     },
     [showMessage]
   )
@@ -209,6 +231,7 @@ export function UsersPage() {
             size="icon-sm"
             className="text-muted-foreground hover:text-primary"
             onClick={(e) => {
+              e.stopPropagation()
               setMenuUser(params.row)
               setMenuAnchor(e.currentTarget)
             }}
@@ -231,12 +254,28 @@ export function UsersPage() {
     showMessage(`${ids.length} user(s) removed`, 'info')
   }
 
+  const requestDeleteUser = useCallback((user: UserRow) => {
+    setUserModal({ open: false, mode: 'create', user: null, initialFocus: undefined })
+    setConfirmSingle(user)
+  }, [])
+
+  const confirmDeleteUser = useCallback(() => {
+    if (!confirmSingle) return
+    setRows((prev) => prev.filter((r) => r.id !== confirmSingle.id))
+    setSelectionModel((prev) => prev.filter((id) => id !== confirmSingle.id))
+    showMessage('User deleted', 'info')
+    setConfirmSingle(null)
+  }, [confirmSingle, showMessage])
+
   return (
     <UserManagementPageShell
       title="Users"
       description="Enterprise directory with RBAC-aware fields and responsive grid tooling."
       actions={
-        <Button onClick={() => setUserModal({ open: true, mode: 'create', user: null })} className="gap-2">
+        <Button
+          onClick={() => setUserModal({ open: true, mode: 'create', user: null, initialFocus: undefined })}
+          className="gap-2"
+        >
           <Plus className="size-4" />
           Add User
         </Button>
@@ -279,6 +318,7 @@ export function UsersPage() {
           disableRowSelectionOnClick
           rowSelectionModel={selectionModel}
           onRowSelectionModelChange={(m) => setSelectionModel([...m])}
+          onRowClick={(params, event) => handleRowClick(params.row, event)}
           pageSizeOptions={[5, 10, 25]}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
           slots={{
@@ -302,7 +342,12 @@ export function UsersPage() {
             ),
             noRowsOverlay: () => <NoRowsOverlay emptySearch={Boolean(search) || statusFilter !== 'all'} />,
           }}
-          sx={{ ...userManagementDataGridSx, minHeight: 440 }}
+          sx={{
+            ...userManagementDataGridSx,
+            minHeight: 440,
+            '& .MuiDataGrid-row': { cursor: 'pointer' },
+            '& .MuiDataGrid-cellCheckbox, & [data-field="actions"]': { cursor: 'default' },
+          }}
         />
       </EnterpriseDataGridSurface>
 
@@ -316,7 +361,7 @@ export function UsersPage() {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuUser) setConfirmSingle(menuUser)
+            if (menuUser) requestDeleteUser(menuUser)
             closeMenu()
           }}
         >
@@ -324,24 +369,21 @@ export function UsersPage() {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuUser) openEdit(menuUser)
-            showMessage('Assign groups via the Groups field in the user form', 'info')
+            if (menuUser) openEdit(menuUser, 'groups')
           }}
         >
           <GroupAddOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Assign Group
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuUser) openEdit(menuUser)
-            showMessage('Assign role via the Role dropdown in the user form', 'info')
+            if (menuUser) openEdit(menuUser, 'role')
           }}
         >
           <SecurityUpdateGoodOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Assign Role
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuUser) setDetailsUser(menuUser)
-            closeMenu()
+            if (menuUser) openEdit(menuUser)
           }}
         >
           <VisibilityOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> View Details
@@ -352,62 +394,19 @@ export function UsersPage() {
         open={userModal.open}
         mode={userModal.mode}
         initial={userModal.user ?? undefined}
-        onClose={() => setUserModal({ open: false, mode: 'create' })}
+        initialFocus={userModal.initialFocus}
+        onClose={() => setUserModal({ open: false, mode: 'create', user: null, initialFocus: undefined })}
         onSubmit={(payload) => {
           if (userModal.mode === 'edit' && userModal.user) handleSaveUser(payload, userModal.user.id)
           else handleSaveUser(payload)
         }}
+        onDeleteRequest={
+          userModal.mode === 'edit' && userModal.user
+            ? () => requestDeleteUser(userModal.user as UserRow)
+            : undefined
+        }
       />
 
-      <AppDialog
-        open={Boolean(detailsUser)}
-        onClose={() => setDetailsUser(null)}
-        title="User details"
-        icon={UserRound}
-        maxWidth="md"
-        footer={
-          <Button type="button" variant="outline" className="border-border" onClick={() => setDetailsUser(null)}>
-            Close
-          </Button>
-        }
-      >
-        {detailsUser ? (
-          <dl className="space-y-2 text-sm">
-            <div className="flex gap-2">
-              <dt className="min-w-20 font-medium text-muted-foreground">Name</dt>
-              <dd className="text-foreground">{detailsUser.userName}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="min-w-20 font-medium text-muted-foreground">Email</dt>
-              <dd className="text-foreground">{detailsUser.email}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="min-w-20 font-medium text-muted-foreground">Age</dt>
-              <dd className="text-foreground">{detailsUser.age}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="min-w-20 font-medium text-muted-foreground">Mobile</dt>
-              <dd className="text-foreground">{detailsUser.mobileNumber}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="min-w-20 font-medium text-muted-foreground">Role</dt>
-              <dd className="text-foreground">{detailsUser.role}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="min-w-20 font-medium text-muted-foreground">Group</dt>
-              <dd className="text-foreground">{detailsUser.group}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="min-w-20 font-medium text-muted-foreground">Location</dt>
-              <dd className="text-foreground">{detailsUser.location}</dd>
-            </div>
-            <div className="flex gap-2">
-              <dt className="min-w-20 font-medium text-muted-foreground">Status</dt>
-              <dd className="text-foreground">{detailsUser.status}</dd>
-            </div>
-          </dl>
-        ) : null}
-      </AppDialog>
 
       <ConfirmDialog
         open={confirmBulk}
@@ -426,13 +425,7 @@ export function UsersPage() {
         confirmLabel="Delete"
         destructive
         onClose={() => setConfirmSingle(null)}
-        onConfirm={() => {
-          if (confirmSingle) {
-            setRows((p) => p.filter((r) => r.id !== confirmSingle.id))
-            showMessage('User deleted', 'info')
-          }
-          setConfirmSingle(null)
-        }}
+        onConfirm={confirmDeleteUser}
       />
     </UserManagementPageShell>
   )

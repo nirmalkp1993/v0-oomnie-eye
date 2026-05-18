@@ -1,17 +1,12 @@
 'use client'
 
+import { Shield } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useClientMounted } from '@/src/hooks/use-client-mounted'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog'
+import { AppDialogHeader } from '@/src/components/modals/app-dialog'
 import { PermissionMatrixEditor } from '@/src/components/user-management/permission-matrix-editor'
 import { PermissionMatrixReadonly } from '@/src/components/user-management/permission-matrix-readonly'
 import {
@@ -119,11 +114,8 @@ export function RolePermissionsViewDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
-        <DialogHeader className="border-b border-border px-6 py-4 text-left">
-          <DialogTitle>View permissions — {roleName}</DialogTitle>
-          <DialogDescription>{subtitle}</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden border-border bg-card p-0 sm:max-w-4xl">
+        <AppDialogHeader title={`View permissions — ${roleName}`} description={subtitle} icon={Shield} />
         <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
           <PermissionMatrixReadonly matrix={displayMatrix} maxHeight={420} />
         </div>
@@ -214,15 +206,16 @@ export function RolePermissionsEditDialog({
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl">
-        <DialogHeader className="border-b border-border px-6 py-4 text-left">
-          <DialogTitle>Permissions — {roleName}</DialogTitle>
-          <DialogDescription>
-            {selectionCount > 0
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden border-border bg-card p-0 sm:max-w-4xl">
+        <AppDialogHeader
+          title={`Permissions — ${roleName}`}
+          description={
+            selectionCount > 0
               ? `View and customize permissions for ${selectionCount} selected user(s) and/or group(s). Changes apply on save.`
-              : `Default permissions for role “${roleName}”. Select users or groups on the assignment page to customize overrides.`}
-          </DialogDescription>
-        </DialogHeader>
+              : `Default permissions for role “${roleName}”. Select users or groups on the assignment page to customize overrides.`
+          }
+          icon={Shield}
+        />
         <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
           {selectionCount > 0 ? (
             <PermissionMatrixEditor value={draft} onChange={setDraft} />

@@ -6,8 +6,8 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import RuleFolderOutlinedIcon from '@mui/icons-material/RuleFolderOutlined'
 import { Menu, MenuItem } from '@mui/material'
 import { DataGrid, useGridApiRef, type GridColDef } from '@mui/x-data-grid'
-import { MoreVertical, Plus, Shield } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { MoreVertical, Plus } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   UM_GRID_CELL_MUTED,
@@ -17,12 +17,10 @@ import {
 } from '@/src/components/user-management/user-management-data-grid-defaults'
 import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
 import { gridColDefsToFilterColumns } from '@/src/lib/user-management/grid-filter-columns'
-import { AppDialog } from '@/src/components/modals/app-dialog'
-import { RoleFormModal } from '@/src/components/modals/role-form-modal'
+import { RoleFormModal, type RoleFormTab } from '@/src/components/modals/role-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { EnterpriseDataGridSurface } from '@/src/components/tables/enterprise-data-grid-surface'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
-import { PermissionMatrixReadonly } from '@/src/components/user-management/permission-matrix-readonly'
 import {
   clonePermissionMatrix,
   createEmptyPermissionMatrix,
@@ -42,11 +40,15 @@ export function RolesPermissionsPage() {
   const [search, setSearch] = useState('')
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [menuRow, setMenuRow] = useState<RoleRow | null>(null)
-  const [modal, setModal] = useState<{ open: boolean; mode: 'create' | 'edit'; row?: RoleRow | null }>({
+  const [modal, setModal] = useState<{
+    open: boolean
+    mode: 'create' | 'edit'
+    row?: RoleRow | null
+    initialTab?: RoleFormTab
+  }>({
     open: false,
     mode: 'create',
   })
-  const [viewMatrixRole, setViewMatrixRole] = useState<RoleRow | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<RoleRow | null>(null)
 
   useEffect(() => {
@@ -78,11 +80,46 @@ export function RolesPermissionsPage() {
     setMenuRow(null)
   }
 
+  const openEdit = useCallback((row: RoleRow, initialTab: RoleFormTab = 'details') => {
+    setModal({ open: true, mode: 'edit', row, initialTab })
+    closeMenu()
+  }, [])
+
+  const handleRowClick = useCallback(
+    (row: RoleRow, event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (target.closest('[data-field="actions"]') || target.closest('button')) {
+        return
+      }
+      openEdit(row)
+    },
+    [openEdit]
+  )
+
+  const requestDeleteRole = useCallback((row: RoleRow) => {
+    setModal({ open: false, mode: 'create', row: null, initialTab: undefined })
+    setConfirmDelete(row)
+  }, [])
+
+  const confirmDeleteRole = useCallback(() => {
+    if (!confirmDelete) return
+    setRows((prev) => prev.filter((r) => r.id !== confirmDelete.id))
+    setMatrices((m) => {
+      const next = { ...m }
+      delete next[confirmDelete.id]
+      return next
+    })
+    showMessage('Role deleted', 'info')
+    setConfirmDelete(null)
+  }, [confirmDelete, showMessage])
+
   const saveRole = useCallback(
     (values: RoleFormValues, matrix: PermissionMatrix, existingId?: string) => {
       if (existingId) {
         setRows((prev) =>
-          prev.map((r) => (r.id === existingId ? { ...r, roleName: values.roleName, description: values.description ?? '' } : r))
+          prev.map((r) =>
+            r.id === existingId ? { ...r, roleName: values.roleName, description: values.description ?? '' } : r
+          )
         )
         setMatrices((prev) => ({ ...prev, [existingId]: clonePermissionMatrix(matrix) }))
         showMessage('Role & permissions saved')
@@ -101,9 +138,29 @@ export function RolesPermissionsPage() {
         setMatrices((prev) => ({ ...prev, [id]: clonePermissionMatrix(matrix) }))
         showMessage('Role created')
       }
-      setModal({ open: false, mode: 'create' })
+      setModal({ open: false, mode: 'create', row: null, initialTab: undefined })
     },
     [showMessage]
+  )
+
+  const cloneRole = useCallback(
+    (source: RoleRow) => {
+      const id = `r${Date.now()}`
+      const clone: RoleRow = {
+        ...source,
+        id,
+        roleName: `${source.roleName} (copy)`,
+        userCount: 0,
+        createdDate: new Date().toISOString().slice(0, 10),
+      }
+      setRows((p) => [...p, clone])
+      setMatrices((m) => ({
+        ...m,
+        [id]: matrices[source.id] ? clonePermissionMatrix(matrices[source.id]) : createEmptyPermissionMatrix(),
+      }))
+      showMessage('Role cloned')
+    },
+    [matrices, showMessage]
   )
 
   const columns: GridColDef<RoleRow>[] = useMemo(
@@ -146,6 +203,7 @@ export function RolesPermissionsPage() {
             size="icon-sm"
             className="text-muted-foreground hover:text-primary"
             onClick={(e) => {
+              e.stopPropagation()
               setMenuRow(p.row)
               setMenuAnchor(e.currentTarget)
             }}
@@ -165,7 +223,10 @@ export function RolesPermissionsPage() {
       title="Roles & Permissions"
       description="RBAC catalog with an enterprise-grade permission matrix per role."
       actions={
-        <Button onClick={() => setModal({ open: true, mode: 'create', row: null })} className="gap-2">
+        <Button
+          onClick={() => setModal({ open: true, mode: 'create', row: null, initialTab: undefined })}
+          className="gap-2"
+        >
           <Plus className="size-4" />
           Add Role
         </Button>
@@ -190,24 +251,29 @@ export function RolesPermissionsPage() {
           loading={loading}
           getRowId={(r) => r.id}
           {...userManagementDataGridDefaults}
+          onRowClick={(params, event) => handleRowClick(params.row, event)}
           pageSizeOptions={[5, 10]}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-          sx={{ ...userManagementDataGridSx, minHeight: 400 }}
+          sx={{
+            ...userManagementDataGridSx,
+            minHeight: 400,
+            '& .MuiDataGrid-row': { cursor: 'pointer' },
+            '& [data-field="actions"]': { cursor: 'default' },
+          }}
         />
       </EnterpriseDataGridSurface>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
         <MenuItem
           onClick={() => {
-            if (menuRow) setModal({ open: true, mode: 'edit', row: menuRow })
-            closeMenu()
+            if (menuRow) openEdit(menuRow)
           }}
         >
           <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Edit
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuRow) setConfirmDelete(menuRow)
+            if (menuRow) requestDeleteRole(menuRow)
             closeMenu()
           }}
         >
@@ -215,22 +281,7 @@ export function RolesPermissionsPage() {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuRow) {
-              const id = `r${Date.now()}`
-              const clone: RoleRow = {
-                ...menuRow,
-                id,
-                roleName: `${menuRow.roleName} (copy)`,
-                userCount: 0,
-                createdDate: new Date().toISOString().slice(0, 10),
-              }
-              setRows((p) => [...p, clone])
-              setMatrices((m) => ({
-                ...m,
-                [id]: matrices[menuRow.id] ? clonePermissionMatrix(matrices[menuRow.id]) : createEmptyPermissionMatrix(),
-              }))
-              showMessage('Role cloned')
-            }
+            if (menuRow) cloneRole(menuRow)
             closeMenu()
           }}
         >
@@ -238,8 +289,7 @@ export function RolesPermissionsPage() {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuRow) setViewMatrixRole(menuRow)
-            closeMenu()
+            if (menuRow) openEdit(menuRow, 'permissions')
           }}
         >
           <RuleFolderOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> View Permissions
@@ -249,29 +299,17 @@ export function RolesPermissionsPage() {
       <RoleFormModal
         open={modal.open}
         mode={modal.mode}
+        roleRow={modal.row ?? undefined}
         roleId={modal.row?.id ?? null}
         initial={modal.row ? { roleName: modal.row.roleName, description: modal.row.description } : undefined}
         initialMatrix={modal.row && matrices[modal.row.id] ? matrices[modal.row.id] : null}
-        onClose={() => setModal({ open: false, mode: 'create' })}
+        initialTab={modal.initialTab}
+        onClose={() => setModal({ open: false, mode: 'create', row: null, initialTab: undefined })}
         onSubmit={(vals, matrix) => saveRole(vals, matrix, modal.row?.id)}
-      />
-
-      <AppDialog
-        open={Boolean(viewMatrixRole)}
-        onClose={() => setViewMatrixRole(null)}
-        title={`Permissions — ${viewMatrixRole?.roleName ?? ''}`}
-        icon={Shield}
-        maxWidth="4xl"
-        footer={
-          <Button type="button" variant="outline" className="border-border" onClick={() => setViewMatrixRole(null)}>
-            Close
-          </Button>
+        onDeleteRequest={
+          modal.mode === 'edit' && modal.row ? () => requestDeleteRole(modal.row as RoleRow) : undefined
         }
-      >
-        {viewMatrixRole && matrices[viewMatrixRole.id] ? (
-          <PermissionMatrixReadonly matrix={matrices[viewMatrixRole.id]} maxHeight={360} />
-        ) : null}
-      </AppDialog>
+      />
 
       <ConfirmDialog
         open={Boolean(confirmDelete)}
@@ -280,18 +318,7 @@ export function RolesPermissionsPage() {
         destructive
         confirmLabel="Delete"
         onClose={() => setConfirmDelete(null)}
-        onConfirm={() => {
-          if (confirmDelete) {
-            setRows((p) => p.filter((r) => r.id !== confirmDelete.id))
-            setMatrices((m) => {
-              const n = { ...m }
-              delete n[confirmDelete.id]
-              return n
-            })
-            showMessage('Role deleted', 'info')
-          }
-          setConfirmDelete(null)
-        }}
+        onConfirm={confirmDeleteRole}
       />
     </UserManagementPageShell>
   )

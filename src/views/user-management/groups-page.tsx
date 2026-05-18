@@ -5,8 +5,8 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline'
 import { Menu, MenuItem } from '@mui/material'
 import { DataGrid, useGridApiRef, type GridColDef } from '@mui/x-data-grid'
-import { MoreVertical, Plus, UsersRound } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { MoreVertical, Plus } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   UM_GRID_CELL_MUTED,
@@ -16,8 +16,10 @@ import {
 } from '@/src/components/user-management/user-management-data-grid-defaults'
 import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
 import { gridColDefsToFilterColumns } from '@/src/lib/user-management/grid-filter-columns'
-import { AppDialog } from '@/src/components/modals/app-dialog'
-import { GroupFormModal } from '@/src/components/modals/group-form-modal'
+import {
+  GroupFormModal,
+  type GroupFormTab,
+} from '@/src/components/modals/group-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { EnterpriseDataGridSurface } from '@/src/components/tables/enterprise-data-grid-surface'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
@@ -51,11 +53,15 @@ export function GroupsPage() {
   const [search, setSearch] = useState('')
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [menuRow, setMenuRow] = useState<GroupRow | null>(null)
-  const [modal, setModal] = useState<{ open: boolean; mode: 'create' | 'edit'; row?: GroupRow | null }>({
+  const [modal, setModal] = useState<{
+    open: boolean
+    mode: 'create' | 'edit'
+    row?: GroupRow | null
+    initialTab?: GroupFormTab
+  }>({
     open: false,
     mode: 'create',
   })
-  const [viewUsersGroup, setViewUsersGroup] = useState<GroupRow | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<GroupRow | null>(null)
 
   useEffect(() => {
@@ -82,6 +88,42 @@ export function GroupsPage() {
     setMenuAnchor(null)
     setMenuRow(null)
   }
+
+  const openEdit = useCallback((row: GroupRow, initialTab: GroupFormTab = 'details') => {
+    setModal({ open: true, mode: 'edit', row, initialTab })
+    closeMenu()
+  }, [])
+
+  const handleRowClick = useCallback(
+    (row: GroupRow, event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (
+        target.closest('[data-field="actions"]') ||
+        target.closest('button')
+      ) {
+        return
+      }
+      openEdit(row)
+    },
+    [openEdit]
+  )
+
+  const requestDeleteGroup = useCallback((row: GroupRow) => {
+    setModal({ open: false, mode: 'create', row: null, initialTab: undefined })
+    setConfirmDelete(row)
+  }, [])
+
+  const confirmDeleteGroup = useCallback(() => {
+    if (!confirmDelete) return
+    setRows((prev) => prev.filter((r) => r.id !== confirmDelete.id))
+    setMembersByGroup((m) => {
+      const next = { ...m }
+      delete next[confirmDelete.id]
+      return next
+    })
+    showMessage('Group deleted', 'info')
+    setConfirmDelete(null)
+  }, [confirmDelete, showMessage])
 
   const saveGroup = useCallback(
     (values: GroupFormValues & { memberUserIds: string[] }, existingId?: string) => {
@@ -117,7 +159,7 @@ export function GroupsPage() {
         setMembersByGroup((m) => ({ ...m, [id]: values.memberUserIds }))
         showMessage('Group created')
       }
-      setModal({ open: false, mode: 'create' })
+      setModal({ open: false, mode: 'create', row: null, initialTab: undefined })
     },
     [rows.length, showMessage]
   )
@@ -163,6 +205,7 @@ export function GroupsPage() {
             size="icon-sm"
             className="text-muted-foreground hover:text-primary"
             onClick={(e) => {
+              e.stopPropagation()
               setMenuRow(p.row)
               setMenuAnchor(e.currentTarget)
             }}
@@ -182,7 +225,10 @@ export function GroupsPage() {
       title="Groups"
       description="Organize operators into access groups with dual-list membership editing."
       actions={
-        <Button onClick={() => setModal({ open: true, mode: 'create', row: null })} className="gap-2">
+        <Button
+          onClick={() => setModal({ open: true, mode: 'create', row: null, initialTab: undefined })}
+          className="gap-2"
+        >
           <Plus className="size-4" />
           Add Group
         </Button>
@@ -207,24 +253,29 @@ export function GroupsPage() {
           loading={loading}
           getRowId={(r) => r.id}
           {...userManagementDataGridDefaults}
+          onRowClick={(params, event) => handleRowClick(params.row, event)}
           pageSizeOptions={[5, 10]}
           initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-          sx={{ ...userManagementDataGridSx, minHeight: 400 }}
+          sx={{
+            ...userManagementDataGridSx,
+            minHeight: 400,
+            '& .MuiDataGrid-row': { cursor: 'pointer' },
+            '& [data-field="actions"]': { cursor: 'default' },
+          }}
         />
       </EnterpriseDataGridSurface>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
         <MenuItem
           onClick={() => {
-            if (menuRow) setModal({ open: true, mode: 'edit', row: menuRow })
-            closeMenu()
+            if (menuRow) openEdit(menuRow)
           }}
         >
           <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Edit
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuRow) setConfirmDelete(menuRow)
+            if (menuRow) requestDeleteGroup(menuRow)
             closeMenu()
           }}
         >
@@ -232,8 +283,7 @@ export function GroupsPage() {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuRow) setViewUsersGroup(menuRow)
-            closeMenu()
+            if (menuRow) openEdit(menuRow, 'members')
           }}
         >
           <PeopleOutlineIcon fontSize="small" sx={{ mr: 1 }} /> View Users
@@ -243,6 +293,8 @@ export function GroupsPage() {
       <GroupFormModal
         open={modal.open}
         mode={modal.mode}
+        groupRow={modal.row ?? undefined}
+        initialTab={modal.initialTab}
         initial={
           modal.row
             ? {
@@ -253,37 +305,12 @@ export function GroupsPage() {
             : undefined
         }
         allUsers={userDirectory}
-        onClose={() => setModal({ open: false, mode: 'create' })}
+        onClose={() => setModal({ open: false, mode: 'create', row: null, initialTab: undefined })}
         onSubmit={(vals) => saveGroup(vals, modal.row?.id)}
-      />
-
-      <AppDialog
-        open={Boolean(viewUsersGroup)}
-        onClose={() => setViewUsersGroup(null)}
-        title={`Users in ${viewUsersGroup?.groupName ?? ''}`}
-        icon={UsersRound}
-        maxWidth="md"
-        footer={
-          <Button type="button" variant="outline" className="border-border" onClick={() => setViewUsersGroup(null)}>
-            Close
-          </Button>
+        onDeleteRequest={
+          modal.mode === 'edit' && modal.row ? () => requestDeleteGroup(modal.row as GroupRow) : undefined
         }
-      >
-        <ul className="space-y-3">
-          {(viewUsersGroup ? membersByGroup[viewUsersGroup.id] ?? [] : []).map((uid) => {
-            const u = MOCK_USERS.find((x) => x.id === uid)
-            return (
-              <li key={uid} className="border-b border-border pb-2 last:border-0 last:pb-0">
-                <p className="text-sm font-medium text-foreground">{u?.userName ?? uid}</p>
-                {u?.email ? <p className="text-xs text-muted-foreground">{u.email}</p> : null}
-              </li>
-            )
-          })}
-        </ul>
-        {viewUsersGroup && (membersByGroup[viewUsersGroup.id]?.length ?? 0) === 0 ? (
-          <p className="text-sm text-muted-foreground">No members assigned.</p>
-        ) : null}
-      </AppDialog>
+      />
 
       <ConfirmDialog
         open={Boolean(confirmDelete)}
@@ -292,18 +319,7 @@ export function GroupsPage() {
         destructive
         confirmLabel="Delete"
         onClose={() => setConfirmDelete(null)}
-        onConfirm={() => {
-          if (confirmDelete) {
-            setRows((p) => p.filter((r) => r.id !== confirmDelete.id))
-            setMembersByGroup((m) => {
-              const n = { ...m }
-              delete n[confirmDelete.id]
-              return n
-            })
-            showMessage('Group deleted', 'info')
-          }
-          setConfirmDelete(null)
-        }}
+        onConfirm={confirmDeleteGroup}
       />
     </UserManagementPageShell>
   )
