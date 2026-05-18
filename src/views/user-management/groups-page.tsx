@@ -132,11 +132,11 @@ export function GroupsPage() {
           prev.map((r) =>
             r.id === existingId
               ? {
-                  ...r,
-                  groupName: values.groupName,
-                  description: values.description ?? '',
-                  assignedUsersCount: values.memberUserIds.length,
-                }
+                ...r,
+                groupName: values.groupName,
+                description: values.description ?? '',
+                assignedUsersCount: values.memberUserIds.length,
+              }
               : r
           )
         )
@@ -298,10 +298,10 @@ export function GroupsPage() {
         initial={
           modal.row
             ? {
-                groupName: modal.row.groupName,
-                description: modal.row.description,
-                memberUserIds: membersByGroup[modal.row.id] ?? [],
-              }
+              groupName: modal.row.groupName,
+              description: modal.row.description,
+              memberUserIds: membersByGroup[modal.row.id] ?? [],
+            }
             : undefined
         }
         allUsers={userDirectory}
