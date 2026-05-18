@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Autocomplete,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -27,7 +26,13 @@ import {
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { GeoLocationTree } from '@/src/components/user-management/geo-location-tree'
+import { GeoLocationSelector } from '@/src/components/user-management/GeoLocationSelector'
+import {
+  GeoLocationPreviewMap,
+  type GeoMapFocusTarget,
+  type GeoMapPin,
+} from '@/src/components/user-management/geo-location-preview-map'
+import { getGeoCoordinates } from '@/src/mock-data/geo-coordinates'
 import { GEO_TREE_ROOT } from '@/src/mock-data/geo-tree'
 import { MOCK_GROUPS } from '@/src/mock-data/groups'
 import { MOCK_ROLE_OPTIONS } from '@/src/mock-data/users'
@@ -66,9 +71,39 @@ const groupOptions = MOCK_GROUPS.map((g) => ({ id: g.id, label: g.groupName }))
 
 export function UserFormModal({ open, mode, initial, onClose, onSubmit }: UserFormModalProps) {
   const [geoSelected, setGeoSelected] = useState<Set<string>>(new Set())
+  const [geoMapFocus, setGeoMapFocus] = useState<{ id: string; name: string } | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const labelsByGeoId = useMemo(() => geoLabelMap(GEO_TREE_ROOT), [])
+
+  const geoMapPins = useMemo((): GeoMapPin[] => {
+    return [...geoSelected]
+      .map((id) => {
+        const coord = getGeoCoordinates(id)
+        const name = labelsByGeoId[id]
+        if (!coord || !name) return null
+        return {
+          id,
+          name,
+          latitude: coord.latitude,
+          longitude: coord.longitude,
+        }
+      })
+      .filter((p): p is GeoMapPin => p !== null)
+  }, [geoSelected, labelsByGeoId])
+
+  const geoMapFocusTarget = useMemo((): GeoMapFocusTarget | null => {
+    if (!geoMapFocus) return null
+    const coord = getGeoCoordinates(geoMapFocus.id)
+    if (!coord) return null
+    return {
+      id: geoMapFocus.id,
+      name: geoMapFocus.name,
+      latitude: coord.latitude,
+      longitude: coord.longitude,
+      zoom: coord.zoom,
+    }
+  }, [geoMapFocus])
 
   const isCreate = mode === 'create'
   const resolver = useMemo(
@@ -114,6 +149,7 @@ export function UserFormModal({ open, mode, initial, onClose, onSubmit }: UserFo
         locationLabel: initial.location,
       })
       setGeoSelected(new Set())
+      setGeoMapFocus(null)
     } else if (isCreate) {
       reset({
         userName: '',
@@ -128,6 +164,7 @@ export function UserFormModal({ open, mode, initial, onClose, onSubmit }: UserFo
         locationLabel: '',
       })
       setGeoSelected(new Set())
+      setGeoMapFocus(null)
     }
   }, [open, initial, isCreate, reset])
 
@@ -158,7 +195,7 @@ export function UserFormModal({ open, mode, initial, onClose, onSubmit }: UserFo
   })
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth scroll="paper">
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth scroll="paper">
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
         <PersonIcon color="primary" sx={{ fontSize: 30 }} aria-hidden />
         <Typography component="span" variant="h6" fontWeight={700}>
@@ -406,36 +443,19 @@ export function UserFormModal({ open, mode, initial, onClose, onSubmit }: UserFo
           </Grid>
           <Grid size={{ xs: 12 }}>
             <Divider sx={{ my: 1 }} />
-            <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1} sx={{ mb: 1 }}>
-              <Typography variant="subtitle2" fontWeight={700} component="span" sx={{ mr: 0.5 }}>
-                Select Geo Location
-              </Typography>
-              {[...geoSelected].map((id) => {
-                const label = labelsByGeoId[id]
-                if (!label) return null
-                return (
-                  <Chip
-                    key={id}
-                    size="small"
-                    color="primary"
-                    variant="filled"
-                    label={label}
-                    onDelete={() => {
-                      setGeoSelected((prev) => {
-                        const next = new Set(prev)
-                        next.delete(id)
-                        return next
-                      })
-                    }}
-                  />
-                )
-              })}
-            </Stack>
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-              Use the tree chevrons to expand regions. Click a location to add or remove it; selected places appear
-              as tags above.
-            </Typography>
-            <GeoLocationTree root={GEO_TREE_ROOT} selectedIds={geoSelected} onChange={setGeoSelected} />
+            <Grid container spacing={2} alignItems="stretch">
+              <Grid size={{ xs: 12, md: 6 }}>
+                <GeoLocationSelector
+                  root={GEO_TREE_ROOT}
+                  selectedIds={geoSelected}
+                  onChange={setGeoSelected}
+                  onLocationFocus={setGeoMapFocus}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <GeoLocationPreviewMap focusTarget={geoMapFocusTarget} pins={geoMapPins} />
+              </Grid>
+            </Grid>
           </Grid>
         </Grid>
       </DialogContent>
