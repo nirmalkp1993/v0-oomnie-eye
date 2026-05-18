@@ -41,6 +41,67 @@ function demoDockPinGlyphSvg(type: MockEarthDockPin['type']): string {
   }
 }
 
+function buildCameraPinMarkerHtml(options: {
+  iconSize?: number
+  iconColor?: string
+  name?: string
+  labelSize?: number
+  opacity?: number
+}): string {
+  const size = options.iconSize ?? 40
+  const color = options.iconColor ?? '#2196F3'
+  const labelSize = options.labelSize ?? 14
+  const opacity = options.opacity ?? 1
+  const name = options.name ?? ''
+
+  return `
+    <div class="pin-marker" style="
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+      transform: translate(-50%, -100%);
+      opacity: ${opacity};
+    ">
+      <div style="
+        width: ${size}px;
+        height: ${size}px;
+        background: ${color};
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        border: 2px solid white;
+      ">
+        <svg style="
+          transform: rotate(45deg);
+          width: ${size * 0.5}px;
+          height: ${size * 0.5}px;
+          color: white;
+        " viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="6" width="20" height="12" rx="2"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      ${
+        name
+          ? `<div style="
+        margin-top: 4px;
+        padding: 2px 8px;
+        background: rgba(0,0,0,0.75);
+        color: white;
+        font-size: ${labelSize}px;
+        border-radius: 4px;
+        white-space: nowrap;
+      ">${name}</div>`
+          : ''
+      }
+    </div>
+  `
+}
+
 function buildDemoDockMarkerHtml(pin: MockEarthDockPin, size: number): string {
   const bg = DEMO_PIN_COLORS[pin.type]
   const glyph = demoDockPinGlyphSvg(pin.type)
@@ -92,20 +153,26 @@ function buildDemoDockMarkerHtml(pin: MockEarthDockPin, size: number): string {
   `
 }
 
+const PREVIEW_PIN_SIZE = 40
+
 export function CesiumGlobe() {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
   const userMarkersRef = useRef<any[]>([])
   const demoMarkersRef = useRef<any[]>([])
+  const previewMarkerRef = useRef<any>(null)
   const [isLoaded, setIsLoaded] = useState(false)
   const [L, setL] = useState<any>(null)
+  const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null)
 
   const filteredDemoPins = useFilteredDemoPins()
 
-  const { 
-    pins, 
-    isAddingPin, 
-    setPendingPinLocation, 
+  const {
+    pins,
+    isAddingPin,
+    pendingPinLocation,
+    setIsAddingPin,
+    setPendingPinLocation,
     setSelectedPin,
     setIsPinViewerOpen,
   } = usePinStore()
@@ -163,16 +230,15 @@ export function CesiumGlobe() {
     if (!mapRef.current || !L) return
 
     const handleClick = (e: any) => {
-      console.log('[v0] Map clicked, isAddingPin:', isAddingPin)
-      if (isAddingPin) {
-        const { lat, lng } = e.latlng
-        console.log('[v0] Setting pending pin location:', lat, lng)
-        setPendingPinLocation({
-          latitude: lat,
-          longitude: lng,
-          altitude: 50,
-        })
-      }
+      if (!isAddingPin || pendingPinLocation) return
+
+      const { lat, lng } = e.latlng
+      setPendingPinLocation({
+        latitude: lat,
+        longitude: lng,
+        altitude: 50,
+      })
+      setIsAddingPin(false)
     }
 
     mapRef.current.on('click', handleClick)
@@ -182,13 +248,80 @@ export function CesiumGlobe() {
         mapRef.current.off('click', handleClick)
       }
     }
-  }, [isAddingPin, setPendingPinLocation, L])
+  }, [isAddingPin, pendingPinLocation, setIsAddingPin, setPendingPinLocation, L])
 
-  // Update cursor when adding pin
+  // Follow cursor with pin preview while placing
+  useEffect(() => {
+    const container = mapContainerRef.current
+    if (!container || !isAddingPin || pendingPinLocation) {
+      setCursorPosition(null)
+      return
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const rect = container.getBoundingClientRect()
+      setCursorPosition({
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      })
+    }
+
+    const handleMouseLeave = () => setCursorPosition(null)
+
+    container.addEventListener('mousemove', handleMouseMove)
+    container.addEventListener('mouseleave', handleMouseLeave)
+
+    return () => {
+      container.removeEventListener('mousemove', handleMouseMove)
+      container.removeEventListener('mouseleave', handleMouseLeave)
+      setCursorPosition(null)
+    }
+  }, [isAddingPin, pendingPinLocation])
+
+  // Update cursor when adding pin (hide default cursor; pin overlay follows pointer)
   useEffect(() => {
     if (!mapContainerRef.current) return
-    mapContainerRef.current.style.cursor = isAddingPin ? 'crosshair' : 'grab'
-  }, [isAddingPin])
+    mapContainerRef.current.style.cursor =
+      isAddingPin && !pendingPinLocation ? 'none' : 'grab'
+  }, [isAddingPin, pendingPinLocation])
+
+  // Preview pin on map after click (until save or cancel)
+  useEffect(() => {
+    if (!mapRef.current || !L || !isLoaded) return
+
+    if (previewMarkerRef.current) {
+      previewMarkerRef.current.remove()
+      previewMarkerRef.current = null
+    }
+
+    if (!pendingPinLocation) return
+
+    const iconSize = PREVIEW_PIN_SIZE
+    const iconHtml = buildCameraPinMarkerHtml({
+      iconSize,
+      iconColor: '#2196F3',
+      opacity: 0.95,
+    })
+
+    const customIcon = L.divIcon({
+      html: iconHtml,
+      className: 'custom-pin-icon pending-pin-icon',
+      iconSize: [iconSize, iconSize + 8],
+      iconAnchor: [iconSize / 2, iconSize],
+    })
+
+    previewMarkerRef.current = L.marker(
+      [pendingPinLocation.latitude, pendingPinLocation.longitude],
+      { icon: customIcon, interactive: false }
+    ).addTo(mapRef.current)
+
+    return () => {
+      if (previewMarkerRef.current) {
+        previewMarkerRef.current.remove()
+        previewMarkerRef.current = null
+      }
+    }
+  }, [pendingPinLocation, L, isLoaded])
 
   // User pins from store (unchanged behavior)
   useEffect(() => {
@@ -293,6 +426,38 @@ export function CesiumGlobe() {
       {/* Map container with lower z-index */}
       <div ref={mapContainerRef} className="absolute inset-0" style={{ zIndex: 1 }} />
 
+      {/* Camera pin follows cursor while placing */}
+      {isAddingPin && !pendingPinLocation && cursorPosition && (
+        <div
+          className="pointer-events-none absolute z-[1004]"
+          style={{
+            left: cursorPosition.x,
+            top: cursorPosition.y,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          <div
+            className="flex items-center justify-center border-2 border-white opacity-90 shadow-lg"
+            style={{
+              width: PREVIEW_PIN_SIZE,
+              height: PREVIEW_PIN_SIZE,
+              background: '#2196F3',
+              borderRadius: '50% 50% 50% 0',
+              transform: 'rotate(-45deg)',
+            }}
+          >
+            <Camera
+              className="text-white"
+              style={{
+                width: PREVIEW_PIN_SIZE * 0.5,
+                height: PREVIEW_PIN_SIZE * 0.5,
+                transform: 'rotate(45deg)',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Loading indicator */}
       {!isLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-slate-900" style={{ zIndex: 2 }}>
@@ -304,13 +469,13 @@ export function CesiumGlobe() {
       )}
 
       {/* Pin Placement Indicator */}
-      {isAddingPin && (
-        <div 
+      {isAddingPin && !pendingPinLocation && (
+        <div
           className="absolute bottom-32 left-1/2 z-[1005] -translate-x-1/2 rounded-lg bg-orange-500 px-4 py-2 text-white shadow-lg"
         >
           <div className="flex items-center gap-2">
             <Camera className="size-4" />
-            <span className="text-sm font-medium">Click anywhere on the map to place a camera pin</span>
+            <span className="text-sm font-medium">Click on the map to place the camera pin</span>
           </div>
         </div>
       )}
@@ -359,6 +524,13 @@ export function CesiumGlobe() {
         }
         .demo-dock-pin-icon {
           transition: opacity 0.16s ease-out;
+        }
+        .pending-pin-icon .pin-marker {
+          animation: pending-pin-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pending-pin-pulse {
+          0%, 100% { filter: drop-shadow(0 0 0 rgba(33, 150, 243, 0)); }
+          50% { filter: drop-shadow(0 0 6px rgba(33, 150, 243, 0.85)); }
         }
       `}</style>
     </div>
