@@ -4,11 +4,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Pencil, Shield } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { Box, Button } from '@mui/material'
+import { Box } from '@mui/material'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS } from '@/src/components/modals/app-dialog'
+import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
+import { useDialogEditMode } from '@/src/hooks/use-dialog-edit-mode'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { DialogEarthTabs, TabsContent, type DialogEarthTabConfig } from '@/src/components/modals/dialog-earth-tabs'
 import { PermissionMatrixEditor } from '@/src/components/user-management/permission-matrix-editor'
@@ -80,7 +82,32 @@ export function RoleFormModal({
     setActiveTab(initialTab)
   }, [open, initial, initialMatrix, roleId, reset, initialTab, isCreate])
 
-  const submit = handleSubmit((vals) => onSubmit(vals, matrix))
+  const resetToInitial = () => {
+    if (initial) {
+      reset({ roleName: initial.roleName, description: initial.description ?? '' })
+      if (initialMatrix) {
+        setMatrix(clonePermissionMatrix(initialMatrix))
+      } else if (roleId && MOCK_ROLE_PERMISSIONS[roleId]) {
+        setMatrix(clonePermissionMatrix(MOCK_ROLE_PERMISSIONS[roleId]))
+      } else {
+        setMatrix(createEmptyPermissionMatrix())
+      }
+    }
+  }
+
+  const submit = handleSubmit((vals) => {
+    onSubmit(vals, matrix)
+    if (!isCreate) setIsEditing(false)
+  })
+
+  const handleFooterClose = () => {
+    if (!isCreate && isEditing) {
+      resetToInitial()
+      setIsEditing(false)
+      return
+    }
+    onClose()
+  }
 
   const tabs = useMemo(
     (): DialogEarthTabConfig[] => [
@@ -91,21 +118,15 @@ export function RoleFormModal({
   )
 
   const dialogFooter = (
-    <>
-      {!isCreate && onDeleteRequest ? (
-        <Button type="button" variant="contained" color="error" sx={{ mr: 'auto' }} onClick={onDeleteRequest}>
-          Delete role
-        </Button>
-      ) : (
-        <span className="mr-auto" />
-      )}
-      <Button type="button" variant="outlined" onClick={onClose}>
-        Cancel
-      </Button>
-      <Button type="button" variant="contained" onClick={submit}>
-        Save
-      </Button>
-    </>
+    <DialogFormFooter
+      isCreate={isCreate}
+      isEditing={isEditing}
+      onClose={handleFooterClose}
+      onEdit={() => setIsEditing(true)}
+      onSave={submit}
+      onDelete={onDeleteRequest}
+      deleteLabel="Delete role"
+    />
   )
 
   return (
@@ -167,7 +188,7 @@ export function RoleFormModal({
                 control={control}
                 render={({ field }) => (
                   <DialogFormField label="Role Name" htmlFor="roleName" error={errors.roleName?.message} required>
-                    <Input id="roleName" {...field} className={DIALOG_INPUT_CLASS} />
+                    <Input id="roleName" {...field} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
                   </DialogFormField>
                 )}
               />
@@ -176,7 +197,7 @@ export function RoleFormModal({
                 control={control}
                 render={({ field }) => (
                   <DialogFormField label="Description" htmlFor="roleDescription" error={errors.description?.message}>
-                    <Textarea id="roleDescription" {...field} rows={3} className={DIALOG_INPUT_CLASS} />
+                    <Textarea id="roleDescription" {...field} rows={3} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
                   </DialogFormField>
                 )}
               />
@@ -194,7 +215,9 @@ export function RoleFormModal({
             <Box component="p" sx={{ mb: 2, fontSize: '0.875rem', color: 'text.secondary', m: 0 }}>
               Fine-grained RBAC across platform modules. Changes apply when you save the role.
             </Box>
-            <PermissionMatrixEditor value={matrix} onChange={setMatrix} />
+            <Box sx={{ pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.85 : 1 }}>
+              <PermissionMatrixEditor value={matrix} onChange={setMatrix} />
+            </Box>
           </EarthDialogSectionCard>
         </TabsContent>
       </DialogEarthTabs>

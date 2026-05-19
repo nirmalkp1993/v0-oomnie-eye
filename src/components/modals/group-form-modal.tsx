@@ -5,10 +5,12 @@ import { Pencil, Users, UsersRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm, type Control, type FieldErrors } from 'react-hook-form'
 import { z } from 'zod'
-import { Box, Button } from '@mui/material'
+import { Box } from '@mui/material'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS } from '@/src/components/modals/app-dialog'
+import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
+import { useDialogEditMode } from '@/src/hooks/use-dialog-edit-mode'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { DialogEarthTabs, TabsContent, type DialogEarthTabConfig } from '@/src/components/modals/dialog-earth-tabs'
@@ -35,9 +37,11 @@ interface GroupFormModalProps {
 function GroupDetailsCard({
   control,
   errors,
+  readOnly,
 }: {
   control: Control<GroupFormValuesWithMembers>
   errors: FieldErrors<GroupFormValuesWithMembers>
+  readOnly: boolean
 }) {
   return (
     <EarthDialogSectionCard
@@ -52,7 +56,7 @@ function GroupDetailsCard({
           control={control}
           render={({ field }) => (
             <DialogFormField label="Group Name" htmlFor="groupName" error={errors.groupName?.message} required>
-              <Input id="groupName" {...field} className={DIALOG_INPUT_CLASS} />
+              <Input id="groupName" {...field} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
             </DialogFormField>
           )}
         />
@@ -61,7 +65,7 @@ function GroupDetailsCard({
           control={control}
           render={({ field }) => (
             <DialogFormField label="Description" htmlFor="groupDescription" error={errors.description?.message}>
-              <Textarea id="groupDescription" {...field} rows={2} className={DIALOG_INPUT_CLASS} />
+              <Textarea id="groupDescription" {...field} rows={2} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
             </DialogFormField>
           )}
         />
@@ -74,10 +78,12 @@ function GroupUserAssignmentCard({
   allUsers,
   memberUserIds,
   onMemberIdsChange,
+  readOnly,
 }: {
   allUsers: TransferUserItem[]
   memberUserIds: string[]
   onMemberIdsChange: (ids: string[]) => void
+  readOnly: boolean
 }) {
   return (
     <EarthDialogSectionCard
@@ -86,7 +92,9 @@ function GroupUserAssignmentCard({
       tooltip="Assign members to this group"
       accentColor={EARTH_DIALOG_SECTION_ACCENTS.info}
     >
-      <DualTransferList available={allUsers} selectedIds={memberUserIds} onChange={onMemberIdsChange} />
+      <Box sx={{ pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.85 : 1 }}>
+        <DualTransferList available={allUsers} selectedIds={memberUserIds} onChange={onMemberIdsChange} />
+      </Box>
     </EarthDialogSectionCard>
   )
 }
@@ -179,6 +187,7 @@ export function GroupFormModal({
   onDeleteRequest,
 }: GroupFormModalProps) {
   const isCreate = mode === 'create'
+  const { isEditing, setIsEditing, readOnly } = useDialogEditMode(open, isCreate)
   const [activeTab, setActiveTab] = useState<GroupFormTab>('details')
 
   const {
@@ -213,7 +222,29 @@ export function GroupFormModal({
     }
   }, [open, initial, mode, reset, initialTab, isCreate])
 
-  const submit = handleSubmit((vals) => onSubmit(vals))
+  const resetToInitial = () => {
+    if (initial && mode === 'edit') {
+      reset({
+        groupName: initial.groupName,
+        description: initial.description ?? '',
+        memberUserIds: initial.memberUserIds,
+      })
+    }
+  }
+
+  const submit = handleSubmit((vals) => {
+    onSubmit(vals)
+    if (!isCreate) setIsEditing(false)
+  })
+
+  const handleFooterClose = () => {
+    if (!isCreate && isEditing) {
+      resetToInitial()
+      setIsEditing(false)
+      return
+    }
+    onClose()
+  }
 
   const usersById = useMemo(() => new Map(allUsers.map((u) => [u.id, u])), [allUsers])
 
@@ -231,31 +262,26 @@ export function GroupFormModal({
 
   const detailsAndAssignment = (
     <div className="flex flex-col gap-4">
-      <GroupDetailsCard control={control} errors={errors} />
+      <GroupDetailsCard control={control} errors={errors} readOnly={readOnly} />
       <GroupUserAssignmentCard
         allUsers={allUsers}
         memberUserIds={memberUserIds}
         onMemberIdsChange={handleMemberIdsChange}
+        readOnly={readOnly}
       />
     </div>
   )
 
   const dialogFooter = (
-    <>
-      {!isCreate && onDeleteRequest ? (
-        <Button type="button" variant="contained" color="error" sx={{ mr: 'auto' }} onClick={onDeleteRequest}>
-          Delete group
-        </Button>
-      ) : (
-        <Box sx={{ mr: 'auto' }} />
-      )}
-      <Button type="button" variant="outlined" onClick={onClose}>
-        Cancel
-      </Button>
-      <Button type="button" variant="contained" onClick={submit}>
-        Save
-      </Button>
-    </>
+    <DialogFormFooter
+      isCreate={isCreate}
+      isEditing={isEditing}
+      onClose={handleFooterClose}
+      onEdit={() => setIsEditing(true)}
+      onSave={submit}
+      onDelete={onDeleteRequest}
+      deleteLabel="Delete group"
+    />
   )
 
   return (

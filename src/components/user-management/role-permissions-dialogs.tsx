@@ -1,5 +1,8 @@
 'use client'
 
+import CloseIcon from '@mui/icons-material/Close'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { Shield } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@mui/material'
@@ -120,6 +123,7 @@ export function RolePermissionsViewDialog({
             <Button
               type="button"
               variant="outlined"
+              startIcon={<EditOutlinedIcon />}
               disabled={selectionCount === 0}
               sx={{ mr: 'auto' }}
               onClick={() => {
@@ -130,7 +134,13 @@ export function RolePermissionsViewDialog({
               Edit for selection
             </Button>
           ) : null}
-          <Button type="button" variant="outlined" onClick={() => onOpenChange(false)} sx={!onEditRequest ? { ml: 'auto' } : undefined}>
+          <Button
+            type="button"
+            variant="outlined"
+            startIcon={<CloseIcon />}
+            onClick={() => onOpenChange(false)}
+            sx={!onEditRequest ? { ml: 'auto' } : undefined}
+          >
             Close
           </Button>
         </>
@@ -207,10 +217,16 @@ export function RolePermissionsEditDialog({
       maxWidth="4xl"
       footer={
         <>
-          <Button type="button" variant="outlined" onClick={cancelEdit}>
+          <Button type="button" variant="outlined" startIcon={<CloseIcon />} onClick={cancelEdit}>
             Cancel
           </Button>
-          <Button type="button" variant="contained" disabled={selectionCount === 0} onClick={saveEdit}>
+          <Button
+            type="button"
+            variant="contained"
+            startIcon={<SaveOutlinedIcon />}
+            disabled={selectionCount === 0}
+            onClick={saveEdit}
+          >
             Save changes
           </Button>
         </>

@@ -1,6 +1,8 @@
 'use client'
 
 import type { LucideIcon } from 'lucide-react'
+import CloseIcon from '@mui/icons-material/Close'
+import CheckIcon from '@mui/icons-material/Check'
 import { AlertTriangle } from 'lucide-react'
 import { Box, Button } from '@mui/material'
 import { useClientMounted } from '@/src/hooks/use-client-mounted'
@@ -65,10 +67,16 @@ export function ConfirmDialog({
       headerIcon={HeaderIcon ? <ConfirmDialogIcon icon={HeaderIcon} /> : undefined}
       footer={
         <>
-          <Button type="button" variant="outlined" onClick={onClose}>
+          <Button type="button" variant="outlined" startIcon={<CloseIcon />} onClick={onClose}>
             {cancelLabel}
           </Button>
-          <Button type="button" variant="contained" color={destructive ? 'error' : 'primary'} onClick={onConfirm}>
+          <Button
+            type="button"
+            variant="contained"
+            color={destructive ? 'error' : 'primary'}
+            startIcon={<CheckIcon />}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </Button>
         </>

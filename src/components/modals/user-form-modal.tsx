@@ -14,8 +14,9 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { Box, Button as MuiButton } from '@mui/material'
+import { Box } from '@mui/material'
 import { Button } from '@/components/ui/button'
+import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -35,6 +36,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS } from '@/src/components/modals/app-dialog'
+import { useDialogEditMode } from '@/src/hooks/use-dialog-edit-mode'
 import { DialogEarthTabs, TabsContent, type DialogEarthTabConfig } from '@/src/components/modals/dialog-earth-tabs'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { GeoLocationSelector } from '@/src/components/user-management/GeoLocationSelector'
@@ -93,6 +95,7 @@ function PasswordField({
   error,
   show,
   onToggleShow,
+  readOnly,
 }: {
   id: string
   label: string
@@ -101,22 +104,26 @@ function PasswordField({
   error?: string
   show: boolean
   onToggleShow: () => void
+  readOnly?: boolean
 }) {
   return (
     <DialogFormField label={label} htmlFor={id} error={error}>
-      <InputGroup className={cn('border-border bg-input', error && 'border-destructive')}>
+      <InputGroup className={cn('border-border bg-input', error && 'border-destructive', readOnly && 'opacity-80')}>
         <InputGroupInput
           id={id}
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="text-foreground"
+          readOnly={readOnly}
+          disabled={readOnly}
         />
         <InputGroupAddon align="inline-end">
           <InputGroupButton
             type="button"
             aria-label={show ? 'Hide password' : 'Show password'}
             onClick={onToggleShow}
+            disabled={readOnly}
           >
             {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </InputGroupButton>
@@ -176,6 +183,7 @@ export function UserFormModal({
   }, [geoMapFocus])
 
   const isCreate = mode === 'create'
+  const { isEditing, setIsEditing, readOnly } = useDialogEditMode(open, isCreate, Boolean(initialFocus))
   const resolver = useMemo(
     () => zodResolver(isCreate ? userCreateFormSchema : userEditFormSchema),
     [isCreate]
@@ -262,6 +270,26 @@ export function UserFormModal({
     return () => window.clearTimeout(t)
   }, [open, initialFocus])
 
+  const resetToInitial = () => {
+    if (initial && !isCreate) {
+      const matched = groupOptions.filter((g) => initial.group.split(',').map((s) => s.trim()).includes(g.label))
+      reset({
+        userName: initial.userName,
+        email: initial.email,
+        age: initial.age,
+        mobileNumber: initial.mobileNumber,
+        password: '',
+        confirmPassword: '',
+        role: initial.role,
+        groupIds: matched.map((g) => g.id),
+        status: initial.status,
+        locationLabel: initial.location,
+      })
+      setGeoSelected(new Set())
+      setGeoMapFocus(null)
+    }
+  }
+
   const submit = handleSubmit((values) => {
     const groupLabels = groupOptions.filter((g) => values.groupIds.includes(g.id)).map((g) => g.label)
     const geoLabels = [...geoSelected].map((id) => labelsByGeoId[id]).filter(Boolean)
@@ -279,7 +307,17 @@ export function UserFormModal({
       locationLabel,
       password: isCreate ? (values as UserCreateFormValues).password : (values as UserEditFormValues).password || undefined,
     })
+    if (!isCreate) setIsEditing(false)
   })
+
+  const handleFooterClose = () => {
+    if (!isCreate && isEditing) {
+      resetToInitial()
+      setIsEditing(false)
+      return
+    }
+    onClose()
+  }
 
   const passwordErrors = errors as {
     password?: { message?: string }
@@ -297,21 +335,15 @@ export function UserFormModal({
   )
 
   const dialogFooter = (
-    <>
-      {!isCreate && onDeleteRequest ? (
-        <MuiButton type="button" variant="contained" color="error" sx={{ mr: 'auto' }} onClick={onDeleteRequest}>
-          Delete user
-        </MuiButton>
-      ) : (
-        <span className="mr-auto" />
-      )}
-      <MuiButton type="button" variant="outlined" onClick={onClose}>
-        Cancel
-      </MuiButton>
-      <MuiButton type="button" variant="contained" onClick={submit}>
-        Save
-      </MuiButton>
-    </>
+    <DialogFormFooter
+      isCreate={isCreate}
+      isEditing={isEditing}
+      onClose={handleFooterClose}
+      onEdit={() => setIsEditing(true)}
+      onSave={submit}
+      onDelete={onDeleteRequest}
+      deleteLabel="Delete user"
+    />
   )
 
   return (
@@ -342,7 +374,7 @@ export function UserFormModal({
                 control={control}
                 render={({ field }) => (
                   <DialogFormField label="User Name" htmlFor="userName" error={errors.userName?.message} required>
-                    <Input id="userName" {...field} className={DIALOG_INPUT_CLASS} />
+                    <Input id="userName" {...field} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
                   </DialogFormField>
                 )}
               />
@@ -351,7 +383,7 @@ export function UserFormModal({
                 control={control}
                 render={({ field }) => (
                   <DialogFormField label="Email" htmlFor="email" error={errors.email?.message} required>
-                    <Input id="email" type="email" {...field} className={DIALOG_INPUT_CLASS} />
+                    <Input id="email" type="email" {...field} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
                   </DialogFormField>
                 )}
               />
@@ -366,6 +398,8 @@ export function UserFormModal({
                       {...field}
                       onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
                       className={DIALOG_INPUT_CLASS}
+                      readOnly={readOnly}
+                      disabled={readOnly}
                     />
                   </DialogFormField>
                 )}
@@ -375,7 +409,7 @@ export function UserFormModal({
                 control={control}
                 render={({ field }) => (
                   <DialogFormField label="Mobile Number" htmlFor="mobileNumber" error={errors.mobileNumber?.message}>
-                    <Input id="mobileNumber" {...field} className={DIALOG_INPUT_CLASS} />
+                    <Input id="mobileNumber" {...field} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
                   </DialogFormField>
                 )}
               />
@@ -384,8 +418,8 @@ export function UserFormModal({
                 control={control}
                 render={({ field }) => (
                   <DialogFormField label="Account status">
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className={DIALOG_SELECT_CLASS}>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={readOnly}>
+                      <SelectTrigger className={DIALOG_SELECT_CLASS} disabled={readOnly}>
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent className="border-border bg-card">
@@ -455,6 +489,7 @@ export function UserFormModal({
                         onChange={field.onChange}
                         show={showPassword}
                         onToggleShow={() => setShowPassword((v) => !v)}
+                        readOnly={readOnly}
                       />
                     )}
                   />
@@ -470,6 +505,7 @@ export function UserFormModal({
                         error={passwordErrors.confirmPassword?.message}
                         show={showConfirmPassword}
                         onToggleShow={() => setShowConfirmPassword((v) => !v)}
+                        readOnly={readOnly}
                       />
                     )}
                   />
@@ -495,9 +531,10 @@ export function UserFormModal({
                 control={control}
                 render={({ field }) => (
                   <DialogFormField label="Select Role" error={errors.role?.message} required>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select value={field.value} onValueChange={field.onChange} disabled={readOnly}>
                       <SelectTrigger
                         className={DIALOG_SELECT_CLASS}
+                        disabled={readOnly}
                         data-initial-focus={initialFocus === 'role' ? 'true' : undefined}
                       >
                         <SelectValue placeholder="Select role" />
@@ -530,11 +567,12 @@ export function UserFormModal({
                       label="Select Groups"
                       error={(errors.groupIds as { message?: string } | undefined)?.message}
                     >
-                      <Popover open={groupsOpen} onOpenChange={setGroupsOpen}>
+                      <Popover open={groupsOpen && !readOnly} onOpenChange={readOnly ? undefined : setGroupsOpen}>
                         <PopoverTrigger asChild>
                           <Button
                             type="button"
                             variant="outline"
+                            disabled={readOnly}
                             className={cn('w-full justify-between border-border font-normal', DIALOG_INPUT_CLASS)}
                           >
                             <span className="truncate text-left">{label}</span>
@@ -584,7 +622,10 @@ export function UserFormModal({
             tooltip="Assign geographic regions for this user"
             accentColor={EARTH_DIALOG_SECTION_ACCENTS.info}
           >
-            <div className="grid gap-4 md:grid-cols-2">
+            <Box
+              className="grid gap-4 md:grid-cols-2"
+              sx={{ pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.85 : 1 }}
+            >
               <GeoLocationSelector
                 root={GEO_TREE_ROOT}
                 selectedIds={geoSelected}
@@ -593,7 +634,7 @@ export function UserFormModal({
                 titleClassName="text-accent"
               />
               <GeoLocationPreviewMap focusTarget={geoMapFocusTarget} pins={geoMapPins} />
-            </div>
+            </Box>
           </EarthDialogSectionCard>
         </TabsContent>
       </DialogEarthTabs>

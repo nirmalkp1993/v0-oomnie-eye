@@ -1,5 +1,7 @@
 'use client'
 
+import CloseIcon from '@mui/icons-material/Close'
+import CheckIcon from '@mui/icons-material/Check'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Box, Button } from '@mui/material'
@@ -108,7 +110,7 @@ export function AppDialog({
   const defaultFooter =
     confirmLabel != null ? (
       <>
-        <Button type="button" variant="outlined" onClick={onClose}>
+        <Button type="button" variant="outlined" startIcon={<CloseIcon />} onClick={onClose}>
           {cancelLabel}
         </Button>
         <Button
@@ -116,6 +118,7 @@ export function AppDialog({
           disabled={confirmDisabled}
           variant="contained"
           color={confirmDestructive ? 'error' : 'primary'}
+          startIcon={<CheckIcon />}
           onClick={onConfirm}
         >
           {confirmLabel}
