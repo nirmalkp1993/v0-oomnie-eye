@@ -144,7 +144,7 @@ export function AppSidebar({
         data-app-sidebar-root
         style={{ width: expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
         className={cn(
-          'font-chrome flex h-full shrink-0 flex-col border-r-0 bg-chrome text-chrome-foreground transition-[width] duration-300 ease-out dark-scrollbar',
+          'font-chrome flex h-full shrink-0 flex-col border-r-0 bg-[#000000] text-white transition-[width] duration-300 ease-out dark-scrollbar',
           'overflow-x-hidden overflow-y-auto'
         )}
         role="navigation"

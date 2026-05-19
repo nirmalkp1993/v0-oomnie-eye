@@ -15,7 +15,7 @@ export function AppHeader({ sidebarExpanded = true, onSidebarToggle }: AppHeader
   const sidebarToggleLabel = sidebarExpanded ? 'Collapse sidebar' : 'Expand sidebar'
 
   return (
-    <header className="chrome-header font-chrome relative z-[1300] flex h-16 shrink-0 items-center px-4 text-chrome-foreground">
+    <header className="chrome-header font-chrome relative z-[1300] flex h-16 shrink-0 items-center bg-[#000000] px-4 text-white">
       <Button
         type="button"
         variant="ghost"
