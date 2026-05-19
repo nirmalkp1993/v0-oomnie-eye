@@ -2,11 +2,8 @@
 
 import { Shield } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { useClientMounted } from '@/src/hooks/use-client-mounted'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog'
-import { AppDialogHeader } from '@/src/components/modals/app-dialog'
+import { Button } from '@mui/material'
+import { AppDialog } from '@/src/components/modals/app-dialog'
 import { PermissionMatrixEditor } from '@/src/components/user-management/permission-matrix-editor'
 import { PermissionMatrixReadonly } from '@/src/components/user-management/permission-matrix-readonly'
 import {
@@ -101,8 +98,6 @@ export function RolePermissionsViewDialog({
     overrides
   )
 
-  const mounted = useClientMounted()
-
   const subtitle =
     selectionCount > 0 && hasCustomOverrides
       ? `Showing effective permissions for ${selectionCount} selected target(s) where customized.`
@@ -110,22 +105,23 @@ export function RolePermissionsViewDialog({
         ? `Default permissions for role “${roleName}” (applies to ${selectionCount} selected target(s)).`
         : `Default permissions defined for role “${roleName}”.`
 
-  if (!mounted || !open) return null
-
   return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden border-border bg-card p-0 sm:max-w-4xl">
-        <AppDialogHeader title={`View permissions — ${roleName}`} description={subtitle} icon={Shield} />
-        <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
-          <PermissionMatrixReadonly matrix={displayMatrix} maxHeight={420} />
-        </div>
-        <DialogFooter className="gap-2 border-t border-border px-6 py-4 sm:justify-between">
+    <AppDialog
+      open={open}
+      onClose={() => onOpenChange(false)}
+      title={`View permissions — ${roleName}`}
+      description={subtitle}
+      icon={Shield}
+      maxWidth="4xl"
+      hideFooter={false}
+      footer={
+        <>
           {onEditRequest ? (
             <Button
               type="button"
-              variant="outline"
-              className="border-border sm:mr-auto"
+              variant="outlined"
               disabled={selectionCount === 0}
+              sx={{ mr: 'auto' }}
               onClick={() => {
                 onOpenChange(false)
                 onEditRequest()
@@ -134,17 +130,14 @@ export function RolePermissionsViewDialog({
               Edit for selection
             </Button>
           ) : null}
-          <Button
-            type="button"
-            variant="outline"
-            className={cn('border-border', !onEditRequest && 'sm:ml-auto')}
-            onClick={() => onOpenChange(false)}
-          >
+          <Button type="button" variant="outlined" onClick={() => onOpenChange(false)} sx={!onEditRequest ? { ml: 'auto' } : undefined}>
             Close
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      <PermissionMatrixReadonly matrix={displayMatrix} maxHeight={420} />
+    </AppDialog>
   )
 }
 
@@ -200,38 +193,34 @@ export function RolePermissionsEditDialog({
     onOpenChange(false)
   }
 
-  const mounted = useClientMounted()
-
-  if (!mounted || !open) return null
-
   return (
-    <Dialog open onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden border-border bg-card p-0 sm:max-w-4xl">
-        <AppDialogHeader
-          title={`Permissions — ${roleName}`}
-          description={
-            selectionCount > 0
-              ? `View and customize permissions for ${selectionCount} selected user(s) and/or group(s). Changes apply on save.`
-              : `Default permissions for role “${roleName}”. Select users or groups on the assignment page to customize overrides.`
-          }
-          icon={Shield}
-        />
-        <div className="min-h-0 flex-1 overflow-auto px-6 py-4">
-          {selectionCount > 0 ? (
-            <PermissionMatrixEditor value={draft} onChange={setDraft} />
-          ) : (
-            <PermissionMatrixReadonly matrix={displayMatrix} maxHeight={420} />
-          )}
-        </div>
-        <DialogFooter className="border-t border-border px-6 py-4">
-          <Button type="button" variant="outline" className="border-border" onClick={cancelEdit}>
+    <AppDialog
+      open={open}
+      onClose={cancelEdit}
+      title={`Permissions — ${roleName}`}
+      description={
+        selectionCount > 0
+          ? `View and customize permissions for ${selectionCount} selected user(s) and/or group(s). Changes apply on save.`
+          : `Default permissions for role “${roleName}”. Select users or groups on the assignment page to customize overrides.`
+      }
+      icon={Shield}
+      maxWidth="4xl"
+      footer={
+        <>
+          <Button type="button" variant="outlined" onClick={cancelEdit}>
             Cancel
           </Button>
-          <Button type="button" disabled={selectionCount === 0} onClick={saveEdit}>
+          <Button type="button" variant="contained" disabled={selectionCount === 0} onClick={saveEdit}>
             Save changes
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      {selectionCount > 0 ? (
+        <PermissionMatrixEditor value={draft} onChange={setDraft} />
+      ) : (
+        <PermissionMatrixReadonly matrix={displayMatrix} maxHeight={420} />
+      )}
+    </AppDialog>
   )
 }

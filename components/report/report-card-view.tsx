@@ -1,29 +1,28 @@
 'use client'
 
-import { Fragment, useMemo } from 'react'
+import { useMemo } from 'react'
+import {
+  Box,
+  Breadcrumbs,
+  Card,
+  CardContent,
+  Chip,
+  Link,
+  Typography,
+} from '@mui/material'
 import {
   useReportPlacemarkStore,
   REPORT_PIN_TAB_LABEL,
 } from '@/lib/report-placemark-store'
 import { placemarkMatchesSearch } from '@/lib/report-group-tree'
 import type { ReportGroup, ReportPlacemark } from '@/types/report-placemark'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { enterpriseExplorerTileSx } from '@/src/components/enterprise'
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
-import { cn } from '@/lib/utils'
-import {
-  Camera as CameraIcon,
-  ChevronDown,
+  CameraAltOutlined as CameraIcon,
   ChevronRight,
-  MapPinned,
-} from 'lucide-react'
+  ExpandMore,
+  MapOutlined as MapPinnedIcon,
+} from '@mui/icons-material'
 import { ReportPinGlyph } from '@/components/report/report-pin-glyph'
 
 function placemarkGroupIds(p: ReportPlacemark): string[] {
@@ -98,65 +97,88 @@ export function ReportCardView() {
 
   const totalItems = folderCards.length + placemarkCards.length
 
-  return (
-    <div className="space-y-3">
-      <Breadcrumb>
-        <BreadcrumbList className="rounded-md border border-border bg-muted/40 px-2 py-1.5 sm:px-3">
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <button
-                type="button"
-                className={cn(
-                  'rounded px-1.5 py-0.5 text-sm font-medium transition-colors',
-                  reportCardExplorerStack.length === 0
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                )}
-                onClick={() => navigateReportCardExplorerToSegmentIndex(0)}
-              >
-                Root
-              </button>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          {reportCardExplorerStack.map((id, i) => {
-            const g = reportGroups.find((x) => x.id === id)
-            const label = g?.name ?? id
-            const isLast = i === reportCardExplorerStack.length - 1
-            const segmentIndex = i + 1
-            return (
-              <Fragment key={`${id}-${i}`}>
-                <BreadcrumbSeparator>
-                  <ChevronRight className="size-3.5 text-muted-foreground" />
-                </BreadcrumbSeparator>
-                <BreadcrumbItem>
-                  {isLast ? (
-                    <BreadcrumbPage className="max-w-[200px] truncate text-sm font-medium sm:max-w-xs">
-                      {label}
-                    </BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink asChild>
-                      <button
-                        type="button"
-                        className="max-w-[160px] truncate rounded px-1.5 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:max-w-[240px]"
-                        onClick={() => navigateReportCardExplorerToSegmentIndex(segmentIndex)}
-                      >
-                        {label}
-                      </button>
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
-              </Fragment>
-            )
-          })}
-        </BreadcrumbList>
-      </Breadcrumb>
+  const breadcrumbItems = useMemo(() => {
+    const items: { id: string | null; label: string; index: number }[] = [
+      { id: null, label: 'Root', index: 0 },
+    ]
+    reportCardExplorerStack.forEach((id, i) => {
+      const g = reportGroups.find((x) => x.id === id)
+      items.push({ id, label: g?.name ?? id, index: i + 1 })
+    })
+    return items
+  }, [reportCardExplorerStack, reportGroups])
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Breadcrumbs
+        separator={<ChevronRight sx={{ fontSize: 14, color: 'text.secondary' }} />}
+        sx={{
+          px: 1.5,
+          py: 1,
+          borderRadius: 1,
+          border: 1,
+          borderColor: 'divider',
+          bgcolor: 'action.hover',
+        }}
+      >
+        {breadcrumbItems.map((item, i) => {
+          const isLast = i === breadcrumbItems.length - 1
+          if (isLast) {
+            return (
+              <Typography
+                key={`${item.label}-${i}`}
+                variant="body2"
+                color="text.primary"
+                fontWeight={600}
+                noWrap
+                sx={{ maxWidth: { xs: 200, sm: 320 } }}
+              >
+                {item.label}
+              </Typography>
+            )
+          }
+          return (
+            <Link
+              key={`${item.label}-${i}`}
+              component="button"
+              type="button"
+              variant="body2"
+              underline="hover"
+              color="text.secondary"
+              onClick={() => navigateReportCardExplorerToSegmentIndex(item.index)}
+              sx={{
+                maxWidth: { xs: 160, sm: 240 },
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                fontWeight: reportCardExplorerStack.length === 0 && item.index === 0 ? 600 : 400,
+              }}
+            >
+              {item.label}
+            </Link>
+          )
+        })}
+      </Breadcrumbs>
+
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'repeat(2, 1fr)',
+            sm: 'repeat(3, 1fr)',
+            md: 'repeat(4, 1fr)',
+            lg: 'repeat(5, 1fr)',
+            xl: 'repeat(6, 1fr)',
+          },
+          gap: 1.5,
+        }}
+      >
         {folderCards.map((group) => {
           const n = directChildCount(group.id, reportGroups, placemarks)
           return (
             <Card
               key={group.id}
+              elevation={0}
               role="button"
               tabIndex={0}
               onClick={() => pushReportCardExplorerFolder(group.id)}
@@ -166,116 +188,246 @@ export function ReportCardView() {
                   pushReportCardExplorerFolder(group.id)
                 }
               }}
-              className="group cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-sm hover:shadow-primary/10"
+              sx={enterpriseExplorerTileSx}
             >
-              <div className="relative flex h-24 flex-col items-center justify-center bg-gradient-to-b from-muted/80 to-muted/40">
-                <div className="absolute left-2 top-2 flex items-center gap-1">
-                  <Badge
-                    variant="outline"
-                    className="h-5 border-orange-200 bg-orange-100 px-1.5 py-0 text-[10px] font-bold text-orange-800"
+              <Box
+                sx={{
+                  position: 'relative',
+                  display: 'flex',
+                  height: 96,
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: (theme) =>
+                    `linear-gradient(180deg, ${theme.palette.action.hover} 0%, ${theme.palette.background.default} 100%)`,
+                }}
+              >
+                <Box sx={{ position: 'absolute', left: 8, top: 8, display: 'flex', gap: 0.5 }}>
+                  <Chip
+                    label={`L${displayLevel}`}
+                    size="small"
+                    sx={{
+                      height: 20,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      bgcolor: 'warning.light',
+                      color: 'warning.contrastText',
+                      border: 1,
+                      borderColor: 'warning.main',
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      size: 20,
+                      width: 20,
+                      height: 20,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '50%',
+                      border: 1,
+                      borderColor: 'divider',
+                      bgcolor: 'background.paper',
+                    }}
                   >
-                    L{displayLevel}
-                  </Badge>
-                  <span className="flex size-5 items-center justify-center rounded-full border border-border bg-background/90 shadow-sm">
-                    <ChevronDown className="size-2.5 text-muted-foreground" />
-                  </span>
-                </div>
-                <CameraIcon className="size-11 text-primary drop-shadow-sm" strokeWidth={1.15} />
-              </div>
-              <CardContent className="space-y-0.5 border-t border-border p-2">
-                <h3 className="truncate text-sm font-semibold leading-tight text-foreground" title={group.name}>
+                    <ExpandMore sx={{ fontSize: 12, color: 'text.secondary' }} />
+                  </Box>
+                </Box>
+                <CameraIcon sx={{ fontSize: 44, color: 'primary.main' }} />
+              </Box>
+              <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 }, borderTop: 1, borderColor: 'divider' }}>
+                <Typography variant="subtitle2" fontWeight={600} noWrap title={group.name}>
                   {group.name}
-                </h3>
-                <p className="text-xs text-muted-foreground">
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
                   {n} item{n === 1 ? '' : 's'}
-                </p>
-                <p className="text-[11px] leading-tight text-muted-foreground">Type: group</p>
-                <div className="mt-1.5 flex items-center gap-1.5 border-t border-border pt-1.5">
-                  <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary">
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: 11 }}>
+                  Type: group
+                </Typography>
+                <Box
+                  sx={{
+                    mt: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    borderTop: 1,
+                    borderColor: 'divider',
+                    pt: 1,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      bgcolor: 'primary.main',
+                      color: 'primary.contrastText',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 10,
+                      fontWeight: 700,
+                    }}
+                  >
                     G
-                  </div>
-                  <span className="truncate text-[11px] text-muted-foreground">Report group</span>
-                </div>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    Report group
+                  </Typography>
+                </Box>
               </CardContent>
             </Card>
           )
         })}
 
         {placemarkCards.map((p) => (
-          <Card
-            key={p.id}
-            className="group overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-sm hover:shadow-primary/10"
-          >
-            <div className="relative h-20 overflow-hidden bg-muted sm:h-24">
-              <div className="absolute left-2 top-2 z-10 flex items-center gap-1">
-                <Badge
-                  variant="outline"
-                  className="h-5 border-orange-200 bg-orange-100 px-1.5 py-0 text-[10px] font-bold text-orange-800"
-                >
-                  L{displayLevel}
-                </Badge>
-                <span className="flex size-5 items-center justify-center rounded-full border border-border bg-background/90 shadow-sm">
-                  <ChevronDown className="size-2.5 text-muted-foreground" />
-                </span>
-              </div>
-              <div
-                className="flex h-full items-center justify-center bg-gradient-to-br from-muted to-muted/60"
-                style={{
-                  background: `linear-gradient(135deg, ${p.iconColor}22 0%, var(--muted) 55%, var(--muted) 100%)`,
+          <Card key={p.id} elevation={0} sx={enterpriseExplorerTileSx}>
+            <Box sx={{ position: 'relative', height: { xs: 80, sm: 96 }, overflow: 'hidden' }}>
+              <Box sx={{ position: 'absolute', left: 8, top: 8, zIndex: 2, display: 'flex', gap: 0.5 }}>
+                <Chip
+                  label={`L${displayLevel}`}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    bgcolor: 'warning.light',
+                    color: 'warning.contrastText',
+                  }}
+                />
+              </Box>
+              <Box
+                sx={{
+                  display: 'flex',
+                  height: '100%',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: `linear-gradient(135deg, ${p.iconColor}22 0%, rgba(0,0,0,0.04) 55%)`,
                 }}
               >
-                <span style={{ color: p.iconColor }} className="opacity-90 drop-shadow-sm">
+                <Box sx={{ color: p.iconColor, opacity: 0.9 }}>
                   <ReportPinGlyph iconKey={p.pinIcon} className="size-10 sm:size-11" />
-                </span>
-              </div>
-              <Badge className="absolute right-2 top-2 z-10 border-0 bg-primary/90 px-1.5 py-0 text-[9px] font-bold uppercase leading-tight text-primary-foreground">
-                {REPORT_PIN_TAB_LABEL[p.pinType]}
-              </Badge>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 z-10 p-1.5">
-                <h3 className="truncate text-xs font-semibold leading-tight text-white">{p.placemarkName}</h3>
-                <p className="truncate text-[10px] leading-tight text-white/75">{p.city}</p>
-              </div>
-            </div>
-            <CardContent className="space-y-0.5 p-2">
-              <p className="truncate text-sm font-semibold leading-tight text-foreground">{p.placemarkName}</p>
-              <p className="text-xs text-muted-foreground">Items —</p>
-              <p className="text-[11px] leading-tight text-muted-foreground">
+                </Box>
+              </Box>
+              <Chip
+                label={REPORT_PIN_TAB_LABEL[p.pinType]}
+                size="small"
+                sx={{
+                  position: 'absolute',
+                  right: 8,
+                  top: 8,
+                  zIndex: 2,
+                  height: 18,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+                }}
+              />
+              <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2, p: 1 }}>
+                <Typography variant="caption" fontWeight={600} color="common.white" noWrap>
+                  {p.placemarkName}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)', fontSize: 10 }} noWrap>
+                  {p.city}
+                </Typography>
+              </Box>
+            </Box>
+            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+              <Typography variant="subtitle2" fontWeight={600} noWrap>
+                {p.placemarkName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Items —
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: 11 }}>
                 Type: {REPORT_PIN_TAB_LABEL[p.pinType].toLowerCase()}
-              </p>
-              <div className="flex items-center justify-between gap-1 pt-0.5">
-                <Badge
-                  variant="outline"
-                  className="h-5 gap-0.5 border-primary/30 px-1.5 text-[10px] text-primary"
+              </Typography>
+              <Chip
+                icon={<MapPinnedIcon sx={{ fontSize: '12px !important' }} />}
+                label={p.category}
+                size="small"
+                variant="outlined"
+                sx={{
+                  mt: 0.5,
+                  height: 20,
+                  fontSize: 10,
+                  borderColor: 'primary.light',
+                  color: 'primary.main',
+                }}
+              />
+              <Box
+                sx={{
+                  mt: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  borderTop: 1,
+                  borderColor: 'divider',
+                  pt: 1,
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    bgcolor: 'secondary.main',
+                    color: 'text.primary',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 10,
+                    fontWeight: 700,
+                  }}
                 >
-                  <MapPinned className="size-2.5" />
-                  {p.category}
-                </Badge>
-              </div>
-              <div className="mt-1 flex items-center gap-1.5 border-t border-border pt-1.5">
-                <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-accent-foreground">
                   P
-                </div>
-                <span className="truncate text-[11px] text-muted-foreground">Placemark</span>
-              </div>
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  Placemark
+                </Typography>
+              </Box>
             </CardContent>
           </Card>
         ))}
-      </div>
+      </Box>
 
       {totalItems === 0 && (
-        <div className="flex h-44 items-center justify-center rounded-lg border border-dashed border-border bg-muted/20">
-          <div className="text-center">
-            <MapPinned className="mx-auto size-9 text-muted-foreground/40" />
-            <p className="mt-2 text-muted-foreground">This folder is empty</p>
-            <p className="text-sm text-muted-foreground/80">
+        <Box
+          sx={{
+            display: 'flex',
+            height: 176,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 2,
+            border: 1,
+            borderStyle: 'dashed',
+            borderColor: 'divider',
+            bgcolor: 'action.hover',
+          }}
+        >
+          <Box sx={{ textAlign: 'center' }}>
+            <MapPinnedIcon sx={{ fontSize: 36, color: 'text.disabled', mx: 'auto' }} />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              This folder is empty
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
               {searchQuery.trim()
                 ? 'No groups or placemarks match your search here.'
                 : 'Open another folder from the path above or add groups and placemarks.'}
-            </p>
-          </div>
-        </div>
+            </Typography>
+          </Box>
+        </Box>
       )}
-    </div>
+    </Box>
   )
 }

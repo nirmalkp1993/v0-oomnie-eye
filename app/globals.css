@@ -31,16 +31,23 @@
   --chart-5: #dc2626;
   --radius: 0.625rem;
   
-  /* Dark sidebar - stays dark in light mode */
-  --sidebar: #0f1729;
-  --sidebar-foreground: #e8e8ed;
-  --sidebar-primary: #22d3ee;
+  /* Chrome (header + sidebar) — matches OomniEye ultra-dark / CHROME_BLACK */
+  --chrome-bg: #000000;
+  --chrome-text: #ffffff;
+  --chrome-text-secondary: #b0bec5;
+  --chrome-icon-active: #90caf9;
+  --chrome-icon-inactive: #757575;
+  --chrome-border: #424242;
+
+  --sidebar: var(--chrome-bg);
+  --sidebar-foreground: var(--chrome-text);
+  --sidebar-primary: var(--chrome-icon-active);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ea580c;
-  --sidebar-accent-foreground: #0f1729;
-  --sidebar-border: #1e293b;
-  --sidebar-ring: #22d3ee;
-  --sidebar-muted: #94a3b8;
+  --sidebar-accent: var(--chrome-icon-active);
+  --sidebar-accent-foreground: var(--chrome-bg);
+  --sidebar-border: var(--chrome-border);
+  --sidebar-ring: var(--chrome-icon-active);
+  --sidebar-muted: var(--chrome-icon-inactive);
   
   /* Custom tokens */
   --success: #16a34a;
@@ -50,9 +57,8 @@
   --live: #16a34a;
   --stopped: #dc2626;
   
-  /* Header - dark */
-  --header: #0f1729;
-  --header-foreground: #e8e8ed;
+  --header: var(--chrome-bg);
+  --header-foreground: var(--chrome-text);
 }
 
 .dark {
@@ -80,15 +86,22 @@
   --chart-3: #16a34a;
   --chart-4: #8b5cf6;
   --chart-5: #dc2626;
-  --sidebar: #0a0f1a;
-  --sidebar-foreground: #f5f5f7;
-  --sidebar-primary: #22d3ee;
+  --chrome-bg: #000000;
+  --chrome-text: #ffffff;
+  --chrome-text-secondary: #b0bec5;
+  --chrome-icon-active: #90caf9;
+  --chrome-icon-inactive: #757575;
+  --chrome-border: #424242;
+
+  --sidebar: var(--chrome-bg);
+  --sidebar-foreground: var(--chrome-text);
+  --sidebar-primary: var(--chrome-icon-active);
   --sidebar-primary-foreground: #f5f5f7;
-  --sidebar-accent: #ea580c;
-  --sidebar-accent-foreground: #0a0f1a;
-  --sidebar-border: #1e293b;
-  --sidebar-ring: #22d3ee;
-  --sidebar-muted: #64748b;
+  --sidebar-accent: var(--chrome-icon-active);
+  --sidebar-accent-foreground: var(--chrome-bg);
+  --sidebar-border: var(--chrome-border);
+  --sidebar-ring: var(--chrome-icon-active);
+  --sidebar-muted: var(--chrome-icon-inactive);
   
   /* Custom tokens */
   --success: #22c55e;
@@ -98,14 +111,20 @@
   --live: #22c55e;
   --stopped: #dc2626;
   
-  /* Header - dark */
-  --header: #0a0f1a;
-  --header-foreground: #f5f5f7;
+  --header: var(--chrome-bg);
+  --header-foreground: var(--chrome-text);
 }
 
 @theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-chrome: var(--font-roboto, 'Roboto'), 'Helvetica', 'Arial', sans-serif;
+  --color-chrome: var(--chrome-bg);
+  --color-chrome-foreground: var(--chrome-text);
+  --color-chrome-muted: var(--chrome-text-secondary);
+  --color-chrome-icon-active: var(--chrome-icon-active);
+  --color-chrome-icon-inactive: var(--chrome-icon-inactive);
+  --color-chrome-border: var(--chrome-border);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -184,15 +203,64 @@
   background: #6b7280;
 }
 
-/* Dark scrollbar for sidebar */
+/* Dark scrollbar for chrome sidebar */
 .dark-scrollbar::-webkit-scrollbar-track {
-  background: #0f1729;
+  background: var(--chrome-bg);
 }
 
 .dark-scrollbar::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #424242;
 }
 
 .dark-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #616161;
+}
+
+/* Header gradient fade — matches OomniEye-DigitalTwin-Frontend headerGradientOverlaySx */
+.chrome-header {
+  position: relative;
+  background-color: var(--chrome-bg);
+  box-shadow:
+    0 2px 4px -1px rgba(0, 0, 0, 0.2),
+    0 4px 5px 0 rgba(0, 0, 0, 0.14),
+    0 1px 10px 0 rgba(0, 0, 0, 0.12);
+}
+
+.chrome-header::after {
+  content: '';
+  position: absolute;
+  bottom: -36px;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: linear-gradient(rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.font-chrome {
+  font-family: var(--font-chrome);
+}
+
+/* Earth placemark control cluster — matches PlacemarkPlacementModeButton pulse */
+@keyframes earth-placement-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 70%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary) 0%, transparent);
+  }
+}
+
+.animate-earth-placement-pulse {
+  animation: earth-placement-pulse 2s infinite;
+}
+
+/* MUI Paper elevation={4} */
+.earth-control-cluster {
+  box-shadow:
+    0 2px 4px -1px rgba(0, 0, 0, 0.2),
+    0 4px 5px 0 rgba(0, 0, 0, 0.14),
+    0 1px 10px 0 rgba(0, 0, 0, 0.12);
 }

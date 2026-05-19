@@ -194,17 +194,37 @@ export const muiAdminTheme = createTheme({
     },
     MuiTabs: {
       styleOverrides: {
-        indicator: { backgroundColor: primary, height: 3, borderRadius: 3 },
+        root: {
+          minHeight: 64,
+        },
+        indicator: {
+          backgroundColor: primary,
+          height: 3,
+          borderRadius: '3px 3px 0 0',
+        },
       },
     },
     MuiTab: {
       styleOverrides: {
         root: {
           textTransform: 'none',
-          fontWeight: 600,
-          fontSize: '0.875rem',
-          minHeight: 44,
-          '&.Mui-selected': { color: primary },
+          fontWeight: 500,
+          fontSize: '14px',
+          lineHeight: '20px',
+          minHeight: 64,
+          minWidth: 140,
+          maxWidth: 200,
+          color: fg,
+          opacity: 1,
+          '&:hover': {
+            color: primary,
+            backgroundColor: alpha(primary, 0.06),
+          },
+          '&.Mui-selected': {
+            color: primary,
+            fontWeight: 600,
+            backgroundColor: alpha(primary, 0.08),
+          },
         },
       },
     },

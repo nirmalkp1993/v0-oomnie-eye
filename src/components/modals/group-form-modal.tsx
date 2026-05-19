@@ -1,15 +1,16 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Info, Pencil, Users, UsersRound } from 'lucide-react'
+import { Pencil, Users, UsersRound } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm, type Control, type FieldErrors } from 'react-hook-form'
 import { z } from 'zod'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Box, Button } from '@mui/material'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS } from '@/src/components/modals/app-dialog'
+import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
+import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { DialogEarthTabs, TabsContent, type DialogEarthTabConfig } from '@/src/components/modals/dialog-earth-tabs'
 import { DualTransferList, type TransferUserItem } from '@/src/components/user-management/dual-transfer-list'
 import type { GroupRow } from '@/src/types/user-management'
@@ -39,17 +40,13 @@ function GroupDetailsCard({
   errors: FieldErrors<GroupFormValuesWithMembers>
 }) {
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base text-orange-500">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-            <Pencil className="size-4 text-primary-foreground" />
-          </div>
-          Group details
-          <Info className="size-3.5 text-muted-foreground" />
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <EarthDialogSectionCard
+      title="Group details"
+      icon={Pencil}
+      tooltip="Name and description for this group"
+      accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
+    >
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Controller
           name="groupName"
           control={control}
@@ -68,8 +65,8 @@ function GroupDetailsCard({
             </DialogFormField>
           )}
         />
-      </CardContent>
-    </Card>
+      </Box>
+    </EarthDialogSectionCard>
   )
 }
 
@@ -83,20 +80,14 @@ function GroupUserAssignmentCard({
   onMemberIdsChange: (ids: string[]) => void
 }) {
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base text-orange-500">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-            <Users className="size-4 text-primary-foreground" />
-          </div>
-          User assignment
-          <Info className="size-3.5 text-muted-foreground" />
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <DualTransferList available={allUsers} selectedIds={memberUserIds} onChange={onMemberIdsChange} />
-      </CardContent>
-    </Card>
+    <EarthDialogSectionCard
+      title="User assignment"
+      icon={Users}
+      tooltip="Assign members to this group"
+      accentColor={EARTH_DIALOG_SECTION_ACCENTS.info}
+    >
+      <DualTransferList available={allUsers} selectedIds={memberUserIds} onChange={onMemberIdsChange} />
+    </EarthDialogSectionCard>
   )
 }
 
@@ -110,49 +101,69 @@ function GroupMembersViewCard({
   usersById: Map<string, TransferUserItem>
 }) {
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base text-orange-500">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-            <Users className="size-4 text-primary-foreground" />
-          </div>
-          View users
-          <Info className="size-3.5 text-muted-foreground" />
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="mb-4 grid gap-2 rounded-md border border-border bg-card/50 p-3 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-muted-foreground">Group ID</dt>
-            <dd className="font-medium text-foreground">{groupRow.groupId}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Created</dt>
-            <dd className="font-medium text-foreground">{groupRow.createdDate}</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-muted-foreground">Members</dt>
-            <dd className="font-medium text-foreground">{memberUserIds.length}</dd>
-          </div>
-        </dl>
-        <ul className="max-h-[280px] space-y-3 overflow-y-auto">
+    <EarthDialogSectionCard
+      title="View users"
+      icon={Users}
+      tooltip="Members currently assigned to this group"
+      accentColor={EARTH_DIALOG_SECTION_ACCENTS.warning}
+    >
+      <Box>
+        <Box
+          component="dl"
+          sx={{
+            mb: 2,
+            display: 'grid',
+            gap: 1,
+            p: 1.5,
+            borderRadius: 1,
+            border: 1,
+            borderColor: 'divider',
+            bgcolor: 'action.hover',
+            gridTemplateColumns: { sm: '1fr 1fr' },
+            fontSize: '0.875rem',
+          }}
+        >
+          <Box>
+            <Box component="dt" sx={{ color: 'text.secondary', m: 0 }}>Group ID</Box>
+            <Box component="dd" sx={{ fontWeight: 600, color: 'text.primary', m: 0 }}>{groupRow.groupId}</Box>
+          </Box>
+          <Box>
+            <Box component="dt" sx={{ color: 'text.secondary', m: 0 }}>Created</Box>
+            <Box component="dd" sx={{ fontWeight: 600, color: 'text.primary', m: 0 }}>{groupRow.createdDate}</Box>
+          </Box>
+          <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+            <Box component="dt" sx={{ color: 'text.secondary', m: 0 }}>Members</Box>
+            <Box component="dd" sx={{ fontWeight: 600, color: 'text.primary', m: 0 }}>{memberUserIds.length}</Box>
+          </Box>
+        </Box>
+        <Box component="ul" sx={{ maxHeight: 280, overflowY: 'auto', m: 0, p: 0, listStyle: 'none' }}>
           {memberUserIds.map((uid) => {
             const u = usersById.get(uid)
             return (
-              <li key={uid} className="border-b border-border pb-2 last:border-0 last:pb-0">
-                <p className="text-sm font-medium text-foreground">{u?.label ?? uid}</p>
-                {u?.secondary ? <p className="text-xs text-muted-foreground">{u.secondary}</p> : null}
-              </li>
+              <Box
+                component="li"
+                key={uid}
+                sx={{ borderBottom: 1, borderColor: 'divider', py: 1, '&:last-child': { borderBottom: 0 } }}
+              >
+                <Box component="p" sx={{ fontSize: '0.875rem', fontWeight: 600, m: 0 }}>
+                  {u?.label ?? uid}
+                </Box>
+                {u?.secondary ? (
+                  <Box component="p" sx={{ fontSize: '0.75rem', color: 'text.secondary', m: 0 }}>
+                    {u.secondary}
+                  </Box>
+                ) : null}
+              </Box>
             )
           })}
-        </ul>
+        </Box>
         {memberUserIds.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">
+          <Box component="p" sx={{ mt: 1.5, fontSize: '0.875rem', color: 'text.secondary', m: 0 }}>
             No members assigned. Use the Details tab to add users.
-          </p>
+          </Box>
         ) : null}
-      </CardContent>
-    </Card>
+      </Box>
+    </EarthDialogSectionCard>
   )
 }
 
@@ -232,16 +243,16 @@ export function GroupFormModal({
   const dialogFooter = (
     <>
       {!isCreate && onDeleteRequest ? (
-        <Button type="button" variant="destructive" className="mr-auto" onClick={onDeleteRequest}>
+        <Button type="button" variant="contained" color="error" sx={{ mr: 'auto' }} onClick={onDeleteRequest}>
           Delete group
         </Button>
       ) : (
-        <span className="mr-auto" />
+        <Box sx={{ mr: 'auto' }} />
       )}
-      <Button type="button" variant="outline" className="border-border" onClick={onClose}>
+      <Button type="button" variant="outlined" onClick={onClose}>
         Cancel
       </Button>
-      <Button type="button" onClick={submit}>
+      <Button type="button" variant="contained" onClick={submit}>
         Save
       </Button>
     </>

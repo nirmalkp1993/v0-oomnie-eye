@@ -1,30 +1,123 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import {
+  Edit as EditIcon,
+  Place as PlaceIcon,
+  Save as SaveIcon,
+} from '@mui/icons-material'
+import { Box, Button, MenuItem, Stack, Typography } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { usePinStore } from '@/lib/pin-store'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { Slider } from '@/components/ui/slider'
-import {
-  MapPin,
-  Pencil,
-  X,
-  Save,
-  Settings,
-  Droplets,
-  Info,
-} from 'lucide-react'
+  PlacemarkCardPanel,
+  PlacemarkLabeledSelect,
+  PlacemarkSettingsCard,
+  PlacemarkTextFieldWithInfo,
+} from '@/src/components/earth/placemark-card'
+
+function AddCameraPlacemarkDialogBody({
+  description,
+  setDescription,
+  latitude,
+  setLatitude,
+  longitude,
+  setLongitude,
+  altitude,
+  setAltitude,
+  groundingMode,
+  setGroundingMode,
+}: {
+  description: string
+  setDescription: (v: string) => void
+  latitude: string
+  setLatitude: (v: string) => void
+  longitude: string
+  setLongitude: (v: string) => void
+  altitude: string
+  setAltitude: (v: string) => void
+  groundingMode: 'relative' | 'absolute' | 'clampToGround'
+  setGroundingMode: (v: 'relative' | 'absolute' | 'clampToGround') => void
+}) {
+  const theme = useTheme()
+
+  return (
+    <Box sx={{ py: 2 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 3,
+          alignItems: 'start',
+        }}
+      >
+        <PlacemarkSettingsCard
+          title="Placemark Details"
+          tooltip="Provide basic information for your new placemark"
+          headerIcon={<EditIcon />}
+          accentColor={theme.palette.primary.main}
+          fullHeight
+        >
+          <PlacemarkTextFieldWithInfo
+            label="Description"
+            tooltip="Markdown supported (e.g., **bold**, *italic*, [link](url))"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            multiline
+            rows={8}
+            placeholder="Enter description..."
+          />
+        </PlacemarkSettingsCard>
+
+        <PlacemarkSettingsCard
+          title="Position"
+          tooltip="Geographic coordinates for this placemark"
+          headerIcon={<PlaceIcon />}
+          accentColor={theme.palette.info.main}
+          fullHeight
+        >
+          <Stack spacing={2}>
+            <PlacemarkTextFieldWithInfo
+              label="Latitude"
+              tooltip="Latitude in decimal degrees"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+            />
+            <PlacemarkTextFieldWithInfo
+              label="Longitude"
+              tooltip="Longitude in decimal degrees"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
+            />
+            <PlacemarkTextFieldWithInfo
+              label="Altitude"
+              tooltip="Height above reference in meters"
+              value={altitude}
+              onChange={(e) => setAltitude(e.target.value)}
+              InputProps={{
+                endAdornment: (
+                  <Typography variant="body2" color="text.secondary" sx={{ pr: 1 }}>
+                    m
+                  </Typography>
+                ),
+              }}
+            />
+            <PlacemarkLabeledSelect
+              label="Grounding"
+              tooltip="How the placemark is anchored to the terrain"
+              value={groundingMode}
+              onChange={(e) => setGroundingMode(e.target.value as typeof groundingMode)}
+            >
+              <MenuItem value="relative">Relative to Ground</MenuItem>
+              <MenuItem value="absolute">Absolute</MenuItem>
+              <MenuItem value="clampToGround">Clamp to Ground</MenuItem>
+            </PlacemarkLabeledSelect>
+          </Stack>
+        </PlacemarkSettingsCard>
+      </Box>
+    </Box>
+  )
+}
 
 export function AddCameraPlacemarkDialog() {
   const {
@@ -85,145 +178,41 @@ export function AddCameraPlacemarkDialog() {
   if (!pendingPinLocation || isPlacemarkStepComplete) return null
 
   return (
-    <div className="absolute right-4 top-4 z-20 w-[760px]">
-      <Card className="border-border bg-card shadow-xl">
-        <CardHeader className="border-b border-border pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary">
-                <MapPin className="size-5 text-primary-foreground" />
-              </div>
-              <CardTitle className="text-xl text-orange-500">Add Camera</CardTitle>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Droplets className="size-4 text-muted-foreground" />
-                <Slider defaultValue={[50]} max={100} step={1} className="w-24" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Places auto-open</span>
-                <Switch checked={placesAutoOpen} onCheckedChange={setPlacesAutoOpen} />
-              </div>
-              <Button variant="ghost" size="icon" type="button">
-                <Settings className="size-4 text-muted-foreground" />
-              </Button>
-              <Button variant="ghost" size="icon" type="button" onClick={resetPinPlacement}>
-                <X className="size-4 text-muted-foreground" />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="grid gap-4 p-4 md:grid-cols-2">
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base text-orange-500">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-                  <Pencil className="size-4 text-primary-foreground" />
-                </div>
-                Placemark Details
-                <Info className="size-3.5 text-muted-foreground" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Label className="flex items-center gap-1 text-sm text-muted-foreground">
-                Description
-                <Info className="size-3 text-muted-foreground" />
-              </Label>
-              <Textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="Enter description..."
-                className="mt-2 min-h-[220px] resize-none border-border bg-input"
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base text-orange-500">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-                  <MapPin className="size-4 text-primary-foreground" />
-                </div>
-                Position
-                <Info className="size-3.5 text-muted-foreground" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="flex items-center gap-1 text-sm text-muted-foreground">
-                  Latitude
-                  <Info className="size-3 text-muted-foreground" />
-                </Label>
-                <Input
-                  value={latitude}
-                  onChange={(event) => setLatitude(event.target.value)}
-                  className="mt-1 border-border bg-input"
-                />
-              </div>
-              <div>
-                <Label className="flex items-center gap-1 text-sm text-muted-foreground">
-                  Longitude
-                  <Info className="size-3 text-muted-foreground" />
-                </Label>
-                <Input
-                  value={longitude}
-                  onChange={(event) => setLongitude(event.target.value)}
-                  className="mt-1 border-border bg-input"
-                />
-              </div>
-              <div>
-                <Label className="flex items-center gap-1 text-sm text-muted-foreground">
-                  Altitude
-                  <Info className="size-3 text-muted-foreground" />
-                </Label>
-                <div className="mt-1 flex items-center gap-2">
-                  <Input
-                    value={altitude}
-                    onChange={(event) => setAltitude(event.target.value)}
-                    className="border-border bg-input"
-                  />
-                  <span className="text-sm text-muted-foreground">m</span>
-                </div>
-              </div>
-              <div>
-                <Label className="flex items-center gap-1 text-sm text-muted-foreground">
-                  Grounding
-                  <Info className="size-3 text-muted-foreground" />
-                </Label>
-                <Select
-                  value={groundingMode}
-                  onValueChange={(value) => setGroundingMode(value as typeof groundingMode)}
-                >
-                  <SelectTrigger className="mt-1 border-border bg-input">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-border bg-card">
-                    <SelectItem value="relative">Relative to Ground</SelectItem>
-                    <SelectItem value="absolute">Absolute</SelectItem>
-                    <SelectItem value="clampToGround">Clamp to Ground</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-        </CardContent>
-
-        <div className="flex items-center justify-between gap-2 border-t border-border p-4">
-          <span className="text-xs text-muted-foreground">
+    <PlacemarkCardPanel
+      title="Add Camera"
+      mode="preview"
+      width={760}
+      placesAutoOpen={placesAutoOpen}
+      onPlacesAutoOpenChange={setPlacesAutoOpen}
+      onClose={resetPinPlacement}
+      footer={
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
             Press ESC to close • ⌘S to save
-          </span>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={resetPinPlacement} className="border-border">
-              CANCEL
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 'auto' }}>
+            <Button variant="outlined" onClick={resetPinPlacement}>
+              Cancel
             </Button>
-            <Button onClick={handleCreatePlacemark} className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <Save className="mr-2 size-4" />
-              CREATE PLACEMARK
+            <Button variant="contained" startIcon={<SaveIcon />} onClick={handleCreatePlacemark}>
+              Create Placemark
             </Button>
-          </div>
-        </div>
-      </Card>
-    </div>
+          </Box>
+        </Box>
+      }
+    >
+      <AddCameraPlacemarkDialogBody
+        description={description}
+        setDescription={setDescription}
+        latitude={latitude}
+        setLatitude={setLatitude}
+        longitude={longitude}
+        setLongitude={setLongitude}
+        altitude={altitude}
+        setAltitude={setAltitude}
+        groundingMode={groundingMode}
+        setGroundingMode={setGroundingMode}
+      />
+    </PlacemarkCardPanel>
   )
 }

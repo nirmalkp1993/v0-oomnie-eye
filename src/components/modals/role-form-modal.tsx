@@ -1,14 +1,15 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Info, Pencil, Shield } from 'lucide-react'
+import { Pencil, Shield } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Box, Button } from '@mui/material'
+import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS } from '@/src/components/modals/app-dialog'
+import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { DialogEarthTabs, TabsContent, type DialogEarthTabConfig } from '@/src/components/modals/dialog-earth-tabs'
 import { PermissionMatrixEditor } from '@/src/components/user-management/permission-matrix-editor'
 import {
@@ -92,16 +93,16 @@ export function RoleFormModal({
   const dialogFooter = (
     <>
       {!isCreate && onDeleteRequest ? (
-        <Button type="button" variant="destructive" className="mr-auto" onClick={onDeleteRequest}>
+        <Button type="button" variant="contained" color="error" sx={{ mr: 'auto' }} onClick={onDeleteRequest}>
           Delete role
         </Button>
       ) : (
         <span className="mr-auto" />
       )}
-      <Button type="button" variant="outline" className="border-border" onClick={onClose}>
+      <Button type="button" variant="outlined" onClick={onClose}>
         Cancel
       </Button>
-      <Button type="button" onClick={submit}>
+      <Button type="button" variant="contained" onClick={submit}>
         Save
       </Button>
     </>
@@ -120,35 +121,46 @@ export function RoleFormModal({
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as RoleFormTab)}
         tabs={tabs}
-        contentClassName="max-h-[min(460px,55vh)] overflow-y-auto"
+        contentClassName="max-h-[min(460px,55vh)]"
       >
         <TabsContent value="details" className="mt-0">
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base text-orange-500">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-                  <Pencil className="size-4 text-primary-foreground" />
-                </div>
-                Role details
-                <Info className="size-3.5 text-muted-foreground" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <EarthDialogSectionCard
+            title="Role details"
+            icon={Pencil}
+            tooltip="Name, description, and role metadata"
+            accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {roleRow && !isCreate ? (
-                <dl className="grid gap-2 rounded-md border border-border bg-card/50 p-3 text-sm sm:grid-cols-3">
-                  <div>
-                    <dt className="text-muted-foreground">Users</dt>
-                    <dd className="font-medium text-foreground">{roleRow.userCount}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Created</dt>
-                    <dd className="font-medium text-foreground">{roleRow.createdDate}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground">Role ID</dt>
-                    <dd className="font-medium text-foreground">{roleRow.id}</dd>
-                  </div>
-                </dl>
+                <Box
+                  component="dl"
+                  sx={{
+                    display: 'grid',
+                    gap: 1,
+                    p: 1.5,
+                    borderRadius: 1,
+                    border: 1,
+                    borderColor: 'divider',
+                    bgcolor: 'action.hover',
+                    gridTemplateColumns: { sm: '1fr 1fr 1fr' },
+                    fontSize: '0.875rem',
+                    '& dt': { color: 'text.secondary', m: 0 },
+                    '& dd': { fontWeight: 600, color: 'text.primary', m: 0 },
+                  }}
+                >
+                  <Box>
+                    <Box component="dt">Users</Box>
+                    <Box component="dd">{roleRow.userCount}</Box>
+                  </Box>
+                  <Box>
+                    <Box component="dt">Created</Box>
+                    <Box component="dd">{roleRow.createdDate}</Box>
+                  </Box>
+                  <Box>
+                    <Box component="dt">Role ID</Box>
+                    <Box component="dd">{roleRow.id}</Box>
+                  </Box>
+                </Box>
               ) : null}
               <Controller
                 name="roleName"
@@ -168,28 +180,22 @@ export function RoleFormModal({
                   </DialogFormField>
                 )}
               />
-            </CardContent>
-          </Card>
+            </Box>
+          </EarthDialogSectionCard>
         </TabsContent>
 
         <TabsContent value="permissions" className="mt-0">
-          <Card className="border-primary/20 bg-primary/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base text-orange-500">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-                  <Shield className="size-4 text-primary-foreground" />
-                </div>
-                Permission matrix
-                <Info className="size-3.5 text-muted-foreground" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Fine-grained RBAC across platform modules. Changes apply when you save the role.
-              </p>
-              <PermissionMatrixEditor value={matrix} onChange={setMatrix} />
-            </CardContent>
-          </Card>
+          <EarthDialogSectionCard
+            title="Permission matrix"
+            icon={Shield}
+            tooltip="Fine-grained RBAC across platform modules"
+            accentColor={EARTH_DIALOG_SECTION_ACCENTS.success}
+          >
+            <Box component="p" sx={{ mb: 2, fontSize: '0.875rem', color: 'text.secondary', m: 0 }}>
+              Fine-grained RBAC across platform modules. Changes apply when you save the role.
+            </Box>
+            <PermissionMatrixEditor value={matrix} onChange={setMatrix} />
+          </EarthDialogSectionCard>
         </TabsContent>
       </DialogEarthTabs>
     </AppDialog>

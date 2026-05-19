@@ -11,12 +11,12 @@ import {
   Pencil,
   Shield,
   UserRound,
-  type LucideIcon,
 } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { Box, Button as MuiButton } from '@mui/material'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import {
@@ -36,6 +36,7 @@ import {
 import { cn } from '@/lib/utils'
 import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS } from '@/src/components/modals/app-dialog'
 import { DialogEarthTabs, TabsContent, type DialogEarthTabConfig } from '@/src/components/modals/dialog-earth-tabs'
+import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { GeoLocationSelector } from '@/src/components/user-management/GeoLocationSelector'
 import {
   GeoLocationPreviewMap,
@@ -83,33 +84,6 @@ interface UserFormModalProps {
 }
 
 const groupOptions = MOCK_GROUPS.map((g) => ({ id: g.id, label: g.groupName }))
-
-function EarthSectionCard({
-  title,
-  icon: Icon,
-  children,
-  className,
-}: {
-  title: string
-  icon: LucideIcon
-  children: ReactNode
-  className?: string
-}) {
-  return (
-    <Card className={cn('border-primary/20 bg-primary/5', className)}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base text-orange-500">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-            <Icon className="size-4 text-primary-foreground" />
-          </div>
-          {title}
-          <Info className="size-3.5 text-muted-foreground" />
-        </CardTitle>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
-  )
-}
 
 function PasswordField({
   id,
@@ -325,18 +299,18 @@ export function UserFormModal({
   const dialogFooter = (
     <>
       {!isCreate && onDeleteRequest ? (
-        <Button type="button" variant="destructive" className="mr-auto" onClick={onDeleteRequest}>
+        <MuiButton type="button" variant="contained" color="error" sx={{ mr: 'auto' }} onClick={onDeleteRequest}>
           Delete user
-        </Button>
+        </MuiButton>
       ) : (
         <span className="mr-auto" />
       )}
-      <Button type="button" variant="outline" className="border-border" onClick={onClose}>
+      <MuiButton type="button" variant="outlined" onClick={onClose}>
         Cancel
-      </Button>
-      <Button type="button" onClick={submit}>
+      </MuiButton>
+      <MuiButton type="button" variant="contained" onClick={submit}>
         Save
-      </Button>
+      </MuiButton>
     </>
   )
 
@@ -353,10 +327,15 @@ export function UserFormModal({
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as UserFormTab)}
         tabs={tabs}
-        contentClassName="max-h-[min(480px,55vh)] overflow-y-auto"
+        contentClassName="max-h-[min(480px,55vh)]"
       >
         <TabsContent value="basic" className="mt-0">
-          <EarthSectionCard title="Basic information" icon={Pencil}>
+          <EarthDialogSectionCard
+            title="Basic information"
+            icon={Pencil}
+            tooltip="Account identity and contact details"
+            accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
+          >
             <div className="grid gap-4 sm:grid-cols-2">
               <Controller
                 name="userName"
@@ -419,11 +398,16 @@ export function UserFormModal({
                 )}
               />
             </div>
-          </EarthSectionCard>
+          </EarthDialogSectionCard>
         </TabsContent>
 
         <TabsContent value="security" className="mt-0">
-          <EarthSectionCard title={isCreate ? 'Account security' : 'Change password'} icon={Lock}>
+          <EarthDialogSectionCard
+            title={isCreate ? 'Account security' : 'Change password'}
+            icon={Lock}
+            tooltip={isCreate ? 'Set the initial login password' : 'Optional — leave blank to keep current password'}
+            accentColor={EARTH_DIALOG_SECTION_ACCENTS.warning}
+          >
             <div className="grid gap-4 sm:grid-cols-2">
               {isCreate ? (
                 <>
@@ -495,11 +479,16 @@ export function UserFormModal({
             {!isCreate ? (
               <p className="mt-3 text-sm text-muted-foreground">Leave blank to keep the current password.</p>
             ) : null}
-          </EarthSectionCard>
+          </EarthDialogSectionCard>
         </TabsContent>
 
         <TabsContent value="access" className="mt-0">
-          <EarthSectionCard title="Role & groups" icon={Shield}>
+          <EarthDialogSectionCard
+            title="Role & groups"
+            icon={Shield}
+            tooltip="Role assignment and group membership"
+            accentColor={EARTH_DIALOG_SECTION_ACCENTS.secondary}
+          >
             <div className="grid gap-4 sm:grid-cols-2">
               <Controller
                 name="role"
@@ -585,11 +574,16 @@ export function UserFormModal({
                 }}
               />
             </div>
-          </EarthSectionCard>
+          </EarthDialogSectionCard>
         </TabsContent>
 
         <TabsContent value="location" className="mt-0">
-          <EarthSectionCard title="Geographic assignment" icon={MapPin}>
+          <EarthDialogSectionCard
+            title="Geographic assignment"
+            icon={MapPin}
+            tooltip="Assign geographic regions for this user"
+            accentColor={EARTH_DIALOG_SECTION_ACCENTS.info}
+          >
             <div className="grid gap-4 md:grid-cols-2">
               <GeoLocationSelector
                 root={GEO_TREE_ROOT}
@@ -600,7 +594,7 @@ export function UserFormModal({
               />
               <GeoLocationPreviewMap focusTarget={geoMapFocusTarget} pins={geoMapPins} />
             </div>
-          </EarthSectionCard>
+          </EarthDialogSectionCard>
         </TabsContent>
       </DialogEarthTabs>
     </AppDialog>

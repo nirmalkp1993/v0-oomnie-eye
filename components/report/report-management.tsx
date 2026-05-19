@@ -1,8 +1,6 @@
 'use client'
 
-import {
-  useReportPlacemarkStore,
-} from '@/lib/report-placemark-store'
+import { useReportPlacemarkStore } from '@/lib/report-placemark-store'
 import { ExplorerListTableProvider } from '@/components/tables/explorer-list-table-context'
 import { REPORT_LIST_COLUMNS } from '@/lib/explorer-list-table/report-table'
 import { ReportToolbar } from '@/components/report/report-toolbar'
@@ -13,6 +11,8 @@ import { NewReportRootGroupDialog } from '@/components/report/new-report-root-gr
 import { ReportSubgroupDialog } from '@/components/report/report-subgroup-dialog'
 import { AddPlacemarksToGroupDialog } from '@/components/report/add-placemarks-to-group-dialog'
 import { DeleteReportGroupDialog } from '@/components/report/delete-report-group-dialog'
+import { EnterprisePageShell } from '@/src/components/enterprise'
+import { Box } from '@mui/material'
 
 export function ReportManagement() {
   const activePinType = useReportPlacemarkStore((s) => s.activePinType)
@@ -21,28 +21,23 @@ export function ReportManagement() {
 
   return (
     <ExplorerListTableProvider storageKey="explorer-list-table:report" columns={REPORT_LIST_COLUMNS}>
-    <div className="flex flex-1 flex-col gap-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold text-accent">Reports</h1>
-        <p className="text-sm text-muted-foreground">
-          Organize placemarks by pin type. Data is read-only from integrations; use groups to structure
-          exports and views.
-        </p>
-      </div>
+      <EnterprisePageShell
+        title="Reports"
+        description="Organize placemarks by pin type. Data is read-only from integrations; use groups to structure exports and views."
+      >
+        <ReportPinTypeTabs value={activePinType} onValueChange={setActivePinType} />
 
-      <ReportPinTypeTabs value={activePinType} onValueChange={setActivePinType} />
+        <ReportToolbar />
 
-      <ReportToolbar />
+        <Box sx={{ flex: 1, minHeight: 0 }}>
+          {viewMode === 'card' ? <ReportCardView /> : <ReportListView />}
+        </Box>
 
-      <div className="flex-1">
-        {viewMode === 'card' ? <ReportCardView /> : <ReportListView />}
-      </div>
-
-      <NewReportRootGroupDialog />
-      <ReportSubgroupDialog />
-      <AddPlacemarksToGroupDialog />
-      <DeleteReportGroupDialog />
-    </div>
+        <NewReportRootGroupDialog />
+        <ReportSubgroupDialog />
+        <AddPlacemarksToGroupDialog />
+        <DeleteReportGroupDialog />
+      </EnterprisePageShell>
     </ExplorerListTableProvider>
   )
 }

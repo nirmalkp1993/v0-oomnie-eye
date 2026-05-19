@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AppSidebar, type AppTab, isUserManagementTab } from '@/components/camera/app-sidebar'
 import { AppHeader } from '@/components/camera/app-header'
 import { CameraManagement } from '@/components/camera/camera-management'
@@ -12,39 +12,68 @@ import { RoleAssignmentPage } from '@/src/views/user-management/role-assignment-
 import { RolesPermissionsPage } from '@/src/views/user-management/roles-permissions-page'
 import { UsersPage } from '@/src/views/user-management/users-page'
 
+function usesEnterpriseTheme(tab: AppTab): boolean {
+  return tab === 'camera' || tab === 'reports' || isUserManagementTab(tab)
+}
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<AppTab>('earth')
+  const [sidebarExpanded, setSidebarExpanded] = useState(true)
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarExpanded((prev) => !prev)
+  }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'b') {
+        event.preventDefault()
+        setSidebarExpanded((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  const mainContent = (
+    <>
+      {activeTab === 'earth' && <EarthView />}
+      {activeTab === 'camera' && <CameraManagement />}
+      {activeTab === 'reports' && <ReportManagement />}
+      {activeTab === 'um-users' && <UsersPage />}
+      {activeTab === 'um-groups' && <GroupsPage />}
+      {activeTab === 'um-roles' && <RolesPermissionsPage />}
+      {activeTab === 'um-role-assignment' && <RoleAssignmentPage />}
+      {activeTab !== 'earth' &&
+        activeTab !== 'camera' &&
+        activeTab !== 'reports' &&
+        !isUserManagementTab(activeTab) && (
+          <div className="flex h-full items-center justify-center">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-accent capitalize">{activeTab}</h2>
+              <p className="mt-2 text-muted-foreground">This section is under development</p>
+            </div>
+          </div>
+        )}
+    </>
+  )
 
   return (
-    <div className="flex h-screen">
-      <AppSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <AppHeader />
-        <main className="flex min-h-0 flex-1 flex-col overflow-auto bg-background">
-          {activeTab === 'earth' && <EarthView />}
-          {activeTab === 'camera' && <CameraManagement />}
-          {activeTab === 'reports' && <ReportManagement />}
-          {isUserManagementTab(activeTab) && (
-            <MuiAdminProvider>
-              <div className="flex min-h-0 flex-1 flex-col bg-background text-foreground antialiased">
-                {activeTab === 'um-users' && <UsersPage />}
-                {activeTab === 'um-groups' && <GroupsPage />}
-                {activeTab === 'um-roles' && <RolesPermissionsPage />}
-                {activeTab === 'um-role-assignment' && <RoleAssignmentPage />}
-              </div>
-            </MuiAdminProvider>
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
+      <AppHeader sidebarExpanded={sidebarExpanded} onSidebarToggle={toggleSidebar} />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <AppSidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          expanded={sidebarExpanded}
+          onExpandedChange={setSidebarExpanded}
+        />
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto bg-background">
+          {usesEnterpriseTheme(activeTab) ? (
+            <MuiAdminProvider>{mainContent}</MuiAdminProvider>
+          ) : (
+            mainContent
           )}
-          {activeTab !== 'earth' &&
-            activeTab !== 'camera' &&
-            activeTab !== 'reports' &&
-            !isUserManagementTab(activeTab) && (
-              <div className="flex h-full items-center justify-center">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-accent capitalize">{activeTab}</h2>
-                  <p className="mt-2 text-muted-foreground">This section is under development</p>
-                </div>
-              </div>
-            )}
         </main>
       </div>
     </div>

@@ -1,14 +1,20 @@
 'use client'
 
-import { Columns3, RotateCcw, Search } from 'lucide-react'
+import ColumnsIcon from '@mui/icons-material/ViewColumnOutlined'
+import RestartAltIcon from '@mui/icons-material/RestartAlt'
+import SearchIcon from '@mui/icons-material/Search'
+import {
+  Box,
+  Button,
+  InputAdornment,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material'
 import type { GridApi } from '@mui/x-data-grid'
 import type { MutableRefObject, ReactNode } from 'react'
 import { useId, useState } from 'react'
 import { MultiFilterPopover, type MultiFilterColumn } from '@/components/tables/multi-filter-popover'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
 import { useUserManagementDataGridControls } from '@/src/hooks/use-user-management-data-grid-controls'
 import { useUserManagementMultiFilter } from '@/src/hooks/use-user-management-multi-filter'
 
@@ -19,10 +25,8 @@ export type UserManagementTableToolbarProps = {
   apiRef: MutableRefObject<GridApi | null>
   filterStorageKey: string
   filterableColumns: MultiFilterColumn[]
-  /** Optional count label (e.g. "5 users") — matches Camera / Report toolbar */
   resultCount?: number
   resultLabel?: string
-  /** Extra filters (e.g. status) rendered next to search */
   filtersSlot?: ReactNode
   className?: string
 }
@@ -37,7 +41,6 @@ export function UserManagementTableToolbar({
   resultCount,
   resultLabel = 'item',
   filtersSlot,
-  className,
 }: UserManagementTableToolbarProps) {
   const columnsButtonId = useId()
   const columnsPanelId = useId()
@@ -68,48 +71,55 @@ export function UserManagementTableToolbar({
       : null
 
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between',
-        className
-      )}
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { sm: 'center' },
+        justifyContent: 'space-between',
+        gap: 2,
+      }}
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <Input
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={searchPlaceholder}
-            className="w-64 border-border bg-input pl-9 text-foreground placeholder:text-muted-foreground focus:border-primary"
-          />
-        </div>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+        <TextField
+          size="small"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder={searchPlaceholder}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ width: { xs: '100%', sm: 280 } }}
+        />
         {countLabel ? (
-          <span className="text-sm text-muted-foreground">{countLabel}</span>
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+            {countLabel}
+          </Typography>
         ) : null}
-        {filtersSlot ? (
-          <div className="flex flex-wrap items-center gap-2">{filtersSlot}</div>
-        ) : null}
-      </div>
+        {filtersSlot}
+      </Box>
 
-      <div
-        className="flex flex-wrap items-center gap-1.5"
+      <Box
+        sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}
         role="group"
         aria-label="Table display options"
       >
         {activeFilterCount > 0 ? (
           <Button
             type="button"
-            variant="ghost"
-            size="sm"
+            variant="text"
+            size="small"
             disabled={!ready}
             onClick={clearFilters}
-            className="text-muted-foreground hover:text-foreground"
+            startIcon={<RestartAltIcon fontSize="small" />}
+            sx={{ color: 'text.secondary' }}
           >
-            <RotateCcw className="size-4" />
             Clear filters
           </Button>
         ) : null}
@@ -123,35 +133,31 @@ export function UserManagementTableToolbar({
           onOpenChange={setFilterOpen}
         />
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              id={columnsButtonId}
-              variant="outline"
-              size="sm"
-              disabled={!ready}
-              aria-expanded={columnsPanelOpen}
-              aria-controls={columnsPanelOpen ? columnsPanelId : undefined}
-              aria-haspopup="dialog"
-              onClick={toggleColumnsPanel}
-              onPointerUp={(e) => {
-                if (columnsPanelOpen) e.stopPropagation()
-              }}
-              className={cn(
-                'gap-2 border-border',
-                columnsPanelOpen && 'border-primary bg-primary/5 text-foreground'
-              )}
-            >
-              <Columns3 className="size-4" />
-              <span>Columns</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            Show, hide, and reorder columns
-          </TooltipContent>
+        <Tooltip title="Show, hide, and reorder columns">
+          <Button
+            type="button"
+            id={columnsButtonId}
+            variant="outlined"
+            size="small"
+            disabled={!ready}
+            aria-expanded={columnsPanelOpen}
+            aria-controls={columnsPanelOpen ? columnsPanelId : undefined}
+            aria-haspopup="dialog"
+            onClick={toggleColumnsPanel}
+            onPointerUp={(e) => {
+              if (columnsPanelOpen) e.stopPropagation()
+            }}
+            startIcon={<ColumnsIcon fontSize="small" />}
+            sx={
+              columnsPanelOpen
+                ? { borderColor: 'primary.main', bgcolor: 'action.selected', color: 'text.primary' }
+                : undefined
+            }
+          >
+            Columns
+          </Button>
         </Tooltip>
-      </div>
-    </div>
+      </Box>
+    </Box>
   )
 }

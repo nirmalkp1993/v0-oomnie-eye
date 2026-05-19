@@ -12,7 +12,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  Eye,
   Shield,
   User,
   UsersRound,
@@ -43,9 +42,14 @@ export function isUserManagementTab(tab: AppTab): boolean {
   return tab === 'um-users' || tab === 'um-groups' || tab === 'um-roles' || tab === 'um-role-assignment'
 }
 
+const SIDEBAR_WIDTH_EXPANDED = 240
+const SIDEBAR_WIDTH_COLLAPSED = 64
+
 interface AppSidebarProps {
   activeTab?: AppTab
   onTabChange?: (tab: AppTab) => void
+  expanded?: boolean
+  onExpandedChange?: (expanded: boolean) => void
 }
 
 const topMenuItems: { icon: React.ElementType; label: string; tab: AppTab }[] = [
@@ -65,17 +69,29 @@ const userManagementChildren: { icon: React.ElementType; label: string; tab: App
   { icon: ClipboardList, label: 'Role Assignment', tab: 'um-role-assignment' },
 ]
 
-function itemClassName(isActive: boolean) {
+function itemClassName(isActive: boolean, collapsed: boolean) {
   return cn(
-    'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+    'flex w-full items-center rounded-lg text-sm font-normal transition-colors',
+    collapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3 py-3',
     isActive
-      ? 'bg-primary/10 text-primary border border-primary/30'
-      : 'text-sidebar-foreground hover:bg-sidebar-accent/10 hover:text-sidebar-accent'
+      ? 'bg-white/[0.08] text-chrome-icon-active'
+      : 'text-chrome-foreground hover:bg-white/[0.05]'
   )
 }
 
-export function AppSidebar({ activeTab = 'camera', onTabChange }: AppSidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
+export function AppSidebar({
+  activeTab = 'camera',
+  onTabChange,
+  expanded: expandedProp,
+  onExpandedChange,
+}: AppSidebarProps) {
+  const [internalExpanded, setInternalExpanded] = useState(true)
+  const expanded = expandedProp ?? internalExpanded
+  const setExpanded = (value: boolean) => {
+    onExpandedChange?.(value)
+    if (expandedProp === undefined) setInternalExpanded(value)
+  }
+
   const [userMgmtOpen, setUserMgmtOpen] = useState(true)
   const umActive = isUserManagementTab(activeTab)
 
@@ -90,18 +106,30 @@ export function AppSidebar({ activeTab = 'camera', onTabChange }: AppSidebarProp
       <button
         type="button"
         onClick={() => onTabChange?.(tab)}
-        className={cn(itemClassName(isActive), nested && 'py-2 pl-9 pr-3')}
+        className={cn(
+          itemClassName(isActive, !expanded),
+          nested && expanded && 'py-2 pl-9 pr-3',
+          nested && !expanded && 'hidden'
+        )}
       >
-        <Icon className={cn('size-4 shrink-0', isActive && 'text-primary')} />
-        {!collapsed && <span className={nested ? 'text-[13px]' : ''}>{label}</span>}
+        <Icon
+          className={cn(
+            'shrink-0',
+            expanded ? 'size-6' : 'size-6',
+            isActive ? 'text-chrome-icon-active' : 'text-chrome-icon-inactive'
+          )}
+        />
+        {expanded && <span className={cn('text-sm', nested && 'text-[13px]')}>{label}</span>}
       </button>
     )
 
-    if (collapsed && !nested) {
+    if (!expanded && !nested) {
       return (
         <Tooltip key={label + tab}>
           <TooltipTrigger asChild>{btn}</TooltipTrigger>
-          <TooltipContent side="right">{label}</TooltipContent>
+          <TooltipContent side="right" className="font-chrome">
+            {label}
+          </TooltipContent>
         </Tooltip>
       )
     }
@@ -112,76 +140,76 @@ export function AppSidebar({ activeTab = 'camera', onTabChange }: AppSidebarProp
   return (
     <TooltipProvider>
       <aside
+        id="app-sidebar"
+        data-app-sidebar-root
+        style={{ width: expanded ? SIDEBAR_WIDTH_EXPANDED : SIDEBAR_WIDTH_COLLAPSED }}
         className={cn(
-          'flex h-screen flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300 dark-scrollbar',
-          collapsed ? 'w-16' : 'w-56'
+          'font-chrome flex h-full shrink-0 flex-col border-r-0 bg-chrome text-chrome-foreground transition-[width] duration-300 ease-out dark-scrollbar',
+          'overflow-x-hidden overflow-y-auto'
         )}
+        role="navigation"
+        aria-label="Main navigation"
       >
-        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
-          <div className="flex size-9 items-center justify-center rounded-full border-2 border-primary">
-            <Eye className="size-5 text-primary" />
-          </div>
-          {!collapsed && (
-            <div className="flex flex-col">
-              <span className="text-lg font-bold text-primary">OomniEye</span>
-              <span className="text-[10px] uppercase tracking-wider text-sidebar-muted">
-                Next-Gen Command & Control
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end px-2 py-2">
+        <div className="flex min-h-10 shrink-0 items-center justify-end p-2">
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setCollapsed(!collapsed)}
-            className="size-8 text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50"
+            onClick={() => setExpanded(!expanded)}
+            className="size-8 text-chrome-icon-inactive hover:bg-white/[0.08] hover:text-chrome-icon-active"
+            aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
           >
-            {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+            {expanded ? <ChevronLeft className="size-5" /> : <ChevronRight className="size-5" />}
           </Button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-2">
+        <nav className="flex flex-1 flex-col gap-1 px-2 py-1">
           {topMenuItems.map((item) => renderTabButton(item.tab, item.icon, item.label))}
 
-          {collapsed ? (
+          {!expanded ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   type="button"
                   onClick={() => onTabChange?.('um-users')}
-                  className={cn(
-                    itemClassName(umActive),
-                    'justify-center px-2',
-                    umActive && 'border-primary/30'
-                  )}
+                  className={cn(itemClassName(umActive, true))}
                 >
-                  <Shield className={cn('size-5 shrink-0', umActive && 'text-primary')} />
+                  <Shield
+                    className={cn(
+                      'size-6 shrink-0',
+                      umActive ? 'text-chrome-icon-active' : 'text-chrome-icon-inactive'
+                    )}
+                  />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right">User Management</TooltipContent>
+              <TooltipContent side="right" className="font-chrome">
+                User Management
+              </TooltipContent>
             </Tooltip>
           ) : (
             <Collapsible open={userMgmtOpen} onOpenChange={setUserMgmtOpen}>
-              <div className="flex w-full items-stretch gap-0.5">
-                <CollapsibleTrigger asChild>
-                  <button
-                    type="button"
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm font-medium transition-colors',
+                    umActive
+                      ? 'text-chrome-icon-active'
+                      : 'text-chrome-foreground hover:bg-white/[0.05]'
+                  )}
+                  aria-expanded={userMgmtOpen}
+                >
+                  <Shield
                     className={cn(
-                      'flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm font-semibold text-sidebar-foreground transition-colors hover:bg-sidebar-accent/10',
-                      umActive && 'text-primary'
+                      'size-5 shrink-0',
+                      umActive ? 'text-chrome-icon-active' : 'text-chrome-icon-inactive'
                     )}
-                    aria-expanded={userMgmtOpen}
-                  >
-                    <Shield className={cn('size-4 shrink-0', umActive && 'text-primary')} />
-                    <span className="min-w-0 flex-1 truncate">User Management</span>
-                    <ChevronDown
-                      className={cn('size-4 shrink-0 transition-transform', !userMgmtOpen && '-rotate-90')}
-                    />
-                  </button>
-                </CollapsibleTrigger>
-              </div>
+                  />
+                  <span className="min-w-0 flex-1 truncate">User Management</span>
+                  <ChevronDown
+                    className={cn('size-4 shrink-0 text-chrome-icon-inactive', !userMgmtOpen && '-rotate-90')}
+                  />
+                </button>
+              </CollapsibleTrigger>
               <CollapsibleContent className="space-y-0.5 pt-0.5">
                 {userManagementChildren.map((c) => renderTabButton(c.tab, c.icon, c.label, true))}
               </CollapsibleContent>
@@ -191,9 +219,9 @@ export function AppSidebar({ activeTab = 'camera', onTabChange }: AppSidebarProp
           {renderTabButton('settings', Settings, 'Settings')}
         </nav>
 
-        {!collapsed && (
-          <div className="border-t border-sidebar-border px-4 py-3">
-            <p className="text-xs text-sidebar-muted">Press Ctrl+B to toggle</p>
+        {expanded && (
+          <div className="shrink-0 bg-white/[0.04] px-4 py-3">
+            <p className="text-xs text-chrome-muted">Press Ctrl+B to toggle</p>
           </div>
         )}
       </aside>

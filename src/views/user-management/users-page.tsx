@@ -5,7 +5,17 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined'
 import SecurityUpdateGoodOutlinedIcon from '@mui/icons-material/SecurityUpdateGoodOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
-import { Menu, MenuItem } from '@mui/material'
+import {
+  Box,
+  Button,
+  FormControl,
+  IconButton,
+  InputLabel,
+  Menu,
+  MenuItem,
+  Select,
+  Typography,
+} from '@mui/material'
 import {
   DataGrid,
   GridToolbarContainer,
@@ -14,11 +24,10 @@ import {
   type GridRowId,
   type GridRowSelectionModel,
 } from '@mui/x-data-grid'
-import { MoreVertical, Plus, Trash2, UserRound } from 'lucide-react'
+import { MoreVertical, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
+import AddIcon from '@mui/icons-material/Add'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   UM_GRID_CELL_MUTED,
   UM_GRID_CELL_PRIMARY,
@@ -37,15 +46,26 @@ import type { UserRow, UserStatus } from '@/src/types/user-management'
 
 function NoRowsOverlay({ emptySearch }: { emptySearch: boolean }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 px-4 py-12 text-center">
-      <UserRound className="size-12 text-muted-foreground/50" aria-hidden />
-      <p className="text-sm font-semibold text-foreground">
+    <Box
+      sx={{
+        display: 'flex',
+        height: '100%',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 1,
+        px: 2,
+        py: 6,
+        textAlign: 'center',
+      }}
+    >
+      <Typography variant="subtitle2" fontWeight={600} color="text.primary">
         {emptySearch ? 'No users match your filters' : 'No users yet'}
-      </p>
-      <p className="max-w-sm text-sm text-muted-foreground">
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 360 }}>
         Adjust search or filters, or add a new user to populate this directory.
-      </p>
-    </div>
+      </Typography>
+    </Box>
   )
 }
 
@@ -134,16 +154,16 @@ export function UsersPage() {
           prev.map((r) =>
             r.id === existingId
               ? {
-                ...r,
-                userName: payload.userName,
-                email: payload.email,
-                age: payload.age,
-                mobileNumber: payload.mobileNumber,
-                role: payload.role,
-                group: payload.groupLabels.join(', '),
-                location: payload.locationLabel,
-                status: payload.status,
-              }
+                  ...r,
+                  userName: payload.userName,
+                  email: payload.email,
+                  age: payload.age,
+                  mobileNumber: payload.mobileNumber,
+                  role: payload.role,
+                  group: payload.groupLabels.join(', '),
+                  location: payload.locationLabel,
+                  status: payload.status,
+                }
               : r
           )
         )
@@ -225,11 +245,10 @@ export function UsersPage() {
         align: 'right',
         headerAlign: 'right',
         renderCell: (params) => (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="text-muted-foreground hover:text-primary"
+          <IconButton
+            size="small"
+            aria-label="Row actions"
+            sx={{ color: 'text.secondary' }}
             onClick={(e) => {
               e.stopPropagation()
               setMenuUser(params.row)
@@ -237,7 +256,7 @@ export function UsersPage() {
             }}
           >
             <MoreVertical className="size-4" />
-          </Button>
+          </IconButton>
         ),
       },
     ],
@@ -273,10 +292,10 @@ export function UsersPage() {
       description="Enterprise directory with RBAC-aware fields and responsive grid tooling."
       actions={
         <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => setUserModal({ open: true, mode: 'create', user: null, initialFocus: undefined })}
-          className="gap-2"
         >
-          <Plus className="size-4" />
           Add User
         </Button>
       }
@@ -288,21 +307,23 @@ export function UsersPage() {
         searchPlaceholder="Search users…"
         filterStorageKey="user-management:users"
         filterableColumns={filterableColumns}
+        resultCount={filteredRows.length}
+        resultLabel="user"
         filtersSlot={
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v as 'all' | UserStatus)}
-          >
-            <SelectTrigger size="sm" className="w-full min-w-[180px] border-border sm:w-[200px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-            </SelectContent>
-          </Select>
+          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+            <InputLabel id="users-status-filter-label">Status</InputLabel>
+            <Select
+              labelId="users-status-filter-label"
+              label="Status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | UserStatus)}
+            >
+              <MenuItem value="all">All statuses</MenuItem>
+              <MenuItem value="Active">Active</MenuItem>
+              <MenuItem value="Inactive">Inactive</MenuItem>
+              <MenuItem value="Pending">Pending</MenuItem>
+            </Select>
+          </FormControl>
         }
       />
 
@@ -327,16 +348,18 @@ export function UsersPage() {
               <GridToolbarContainer sx={{ px: 2, py: 1.5, gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                 {selectedCount > 0 ? (
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    startIcon={<Trash2 className="size-4" />}
                     onClick={() => setConfirmBulk(true)}
                   >
-                    <Trash2 className="size-4" />
                     Delete selected ({selectedCount})
                   </Button>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Select rows for bulk delete</span>
+                  <Typography variant="caption" color="text.secondary">
+                    Select rows for bulk delete
+                  </Typography>
                 )}
               </GridToolbarContainer>
             ),

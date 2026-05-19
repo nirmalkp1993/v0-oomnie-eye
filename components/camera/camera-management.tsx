@@ -1,8 +1,10 @@
 'use client'
 
+import { Box } from '@mui/material'
 import { useCameraStore } from '@/lib/camera-store'
 import { ExplorerListTableProvider } from '@/components/tables/explorer-list-table-context'
 import { CAMERA_LIST_COLUMNS } from '@/lib/explorer-list-table/camera-table'
+import { EnterprisePageShell } from '@/src/components/enterprise'
 import { CameraToolbar } from './camera-toolbar'
 import { CameraCardView } from './camera-card-view'
 import { CameraListView } from './camera-list-view'
@@ -23,20 +25,16 @@ export function CameraManagement() {
         <CameraDetailView />
       ) : (
         <ExplorerListTableProvider storageKey="explorer-list-table:camera" columns={CAMERA_LIST_COLUMNS}>
-          <div className="flex flex-1 flex-col gap-6 p-6">
-            <div>
-              <h1 className="text-2xl font-bold text-accent">Camera Management</h1>
-              <p className="text-sm text-muted-foreground">
-                Manage and monitor your surveillance cameras
-              </p>
-            </div>
-
+          <EnterprisePageShell
+            title="Camera Management"
+            description="Manage and monitor your surveillance cameras"
+          >
             <CameraToolbar />
 
-            <div className="flex-1">
+            <Box sx={{ flex: 1, minHeight: 0 }}>
               {viewMode === 'card' ? <CameraCardView /> : <CameraListView />}
-            </div>
-          </div>
+            </Box>
+          </EnterprisePageShell>
         </ExplorerListTableProvider>
       )}
 

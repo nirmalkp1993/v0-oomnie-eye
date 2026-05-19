@@ -1,12 +1,20 @@
 'use client'
 
-import { Shield } from 'lucide-react'
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
+import {
+  Box,
+  Button,
+  Checkbox,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  TextField,
+  Typography,
+} from '@mui/material'
 import { useMemo, useState, type ReactNode } from 'react'
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
 import {
   RolePermissionsEditDialog,
   type AssignmentPermissionOverrides,
@@ -79,18 +87,33 @@ export function RoleAssignmentPage() {
   }
 
   const panelCard = (title: string, search: string, onSearch: (v: string) => void, body: ReactNode) => (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card text-card-foreground shadow-sm">
-      <div className="border-b border-border p-4">
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        <Input
+    <Paper
+      elevation={0}
+      sx={(theme) => ({
+        display: 'flex',
+        minHeight: 0,
+        minWidth: 0,
+        flex: 1,
+        flexDirection: 'column',
+        overflow: 'hidden',
+        ...getEnterpriseSettingsCardSx(theme),
+      })}
+    >
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', p: 2 }}>
+        <Typography variant="subtitle2" fontWeight={600}>
+          {title}
+        </Typography>
+        <TextField
+          size="small"
+          fullWidth
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search…"
-          className="mt-3 border-border bg-input text-foreground placeholder:text-muted-foreground focus-visible:border-primary"
+          sx={{ mt: 1.5 }}
         />
-      </div>
-      <div className="max-h-[420px] flex-1 overflow-y-auto p-2">{body}</div>
-    </div>
+      </Box>
+      <Box sx={{ maxHeight: 420, flex: 1, overflowY: 'auto', p: 1 }}>{body}</Box>
+    </Paper>
   )
 
   const dialogRoleMatrix = (id: string) => roleMatrices[id]
@@ -100,7 +123,7 @@ export function RoleAssignmentPage() {
       title="Role assignment"
       description="Select users and groups, pick a role, then assign in one coordinated action."
     >
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 2, alignItems: 'stretch' }}>
         {panelCard(
           'Users',
           userQ,
@@ -113,9 +136,9 @@ export function RoleAssignmentPage() {
                 className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted/80"
               >
                 <Checkbox
-                  id={`u-${u.id}`}
                   checked={selectedUsers.has(u.id)}
-                  onCheckedChange={() => setSelectedUsers((s) => toggle(s, u.id))}
+                  onChange={() => setSelectedUsers((s) => toggle(s, u.id))}
+                  size="small"
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-foreground">{u.userName}</p>
@@ -138,9 +161,9 @@ export function RoleAssignmentPage() {
                 className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 hover:bg-muted/80"
               >
                 <Checkbox
-                  id={`g-${g.id}`}
                   checked={selectedGroups.has(g.id)}
-                  onCheckedChange={() => setSelectedGroups((s) => toggle(s, g.id))}
+                  onChange={() => setSelectedGroups((s) => toggle(s, g.id))}
+                  size="small"
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-foreground">{g.groupName}</p>
@@ -151,28 +174,40 @@ export function RoleAssignmentPage() {
           </div>
         )}
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-lg border border-border bg-card shadow-sm">
-          <div className="p-4">
-            <h2 className="text-sm font-semibold text-foreground">Role selection</h2>
-            <div className="mt-3 space-y-2">
-              <Label htmlFor="role-select" className="text-xs text-muted-foreground">
-                Role
-              </Label>
-              <Select value={roleId} onValueChange={setRoleId}>
-                <SelectTrigger id="role-select" className="w-full border-border bg-input">
-                  <SelectValue placeholder="Choose role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MOCK_ROLES.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.roleName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+        <Paper
+          elevation={0}
+          sx={(theme) => ({
+            display: 'flex',
+            minHeight: 0,
+            minWidth: 0,
+            flex: 1,
+            flexDirection: 'column',
+            ...getEnterpriseSettingsCardSx(theme),
+          })}
+        >
+          <Box sx={{ p: 2 }}>
+            <Typography variant="subtitle2" fontWeight={600}>
+              Role selection
+            </Typography>
+            <FormControl size="small" fullWidth sx={{ mt: 1.5 }}>
+              <InputLabel id="role-assignment-select-label">Role</InputLabel>
+              <Select
+                labelId="role-assignment-select-label"
+                label="Role"
+                value={roleId}
+                onChange={(e) => setRoleId(e.target.value)}
+              >
+                {MOCK_ROLES.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>
+                    {r.roleName}
+                  </MenuItem>
+                ))}
               </Select>
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">Or select a role card below</p>
-            <div className="mt-2 flex max-h-[320px] flex-col gap-2 overflow-y-auto pr-1">
+            </FormControl>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
+              Or select a role card below
+            </Typography>
+            <Box sx={{ mt: 1, display: 'flex', maxHeight: 320, flexDirection: 'column', gap: 1, overflowY: 'auto', pr: 0.5 }}>
               {MOCK_ROLES.map((r) => {
                 const isSelected = roleId === r.id
                 const dialogRole = { id: r.id, name: r.roleName }
@@ -201,24 +236,23 @@ export function RoleAssignmentPage() {
                       <div className="flex shrink-0 border-l border-border/60">
                         <Button
                           type="button"
-                          variant="ghost"
-                          size="icon"
+                          variant="text"
                           title="View and edit permissions"
                           aria-label="View and edit permissions"
                           onClick={() => openPermissionsDialog(dialogRole)}
-                          className="h-full min-h-[52px] w-10 rounded-none text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                          sx={{ minHeight: 52, width: 40, borderRadius: 0, color: 'text.secondary' }}
                         >
-                          <Shield className="size-4" />
+                          <ShieldOutlinedIcon fontSize="small" />
                         </Button>
                       </div>
                     </div>
                   </div>
                 )
               })}
-            </div>
-          </div>
-        </div>
-      </div>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
 
       {permissionsDialogRole && dialogRoleMatrix(permissionsDialogRole.id) && (
         <RolePermissionsEditDialog
@@ -234,10 +268,9 @@ export function RoleAssignmentPage() {
         />
       )}
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, justifyContent: 'flex-end' }}>
         <Button
-          variant="outline"
-          className="border-border"
+          variant="outlined"
           onClick={() => {
             setSelectedUsers(new Set())
             setSelectedGroups(new Set())
@@ -249,11 +282,13 @@ export function RoleAssignmentPage() {
         >
           Reset
         </Button>
-        <Button variant="outline" className="border-border" onClick={() => showMessage('Cancelled', 'info')}>
+        <Button variant="outlined" onClick={() => showMessage('Cancelled', 'info')}>
           Cancel
         </Button>
-        <Button onClick={assign}>Assign Role</Button>
-      </div>
+        <Button variant="contained" onClick={assign}>
+          Assign Role
+        </Button>
+      </Box>
     </UserManagementPageShell>
   )
 }

@@ -3,11 +3,12 @@
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline'
-import { Menu, MenuItem } from '@mui/material'
+import { IconButton, Menu, MenuItem } from '@mui/material'
 import { DataGrid, useGridApiRef, type GridColDef } from '@mui/x-data-grid'
-import { MoreVertical, Plus } from 'lucide-react'
+import { MoreVertical } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
-import { Button } from '@/components/ui/button'
+import AddIcon from '@mui/icons-material/Add'
+import { Button } from '@mui/material'
 import {
   UM_GRID_CELL_MUTED,
   UM_GRID_CELL_PRIMARY,
@@ -199,11 +200,10 @@ export function GroupsPage() {
         align: 'right',
         headerAlign: 'right',
         renderCell: (p) => (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="text-muted-foreground hover:text-primary"
+          <IconButton
+            size="small"
+            aria-label="Row actions"
+            sx={{ color: 'text.secondary' }}
             onClick={(e) => {
               e.stopPropagation()
               setMenuRow(p.row)
@@ -211,7 +211,7 @@ export function GroupsPage() {
             }}
           >
             <MoreVertical className="size-4" />
-          </Button>
+          </IconButton>
         ),
       },
     ],
@@ -226,10 +226,10 @@ export function GroupsPage() {
       description="Organize operators into access groups with dual-list membership editing."
       actions={
         <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={() => setModal({ open: true, mode: 'create', row: null, initialTab: undefined })}
-          className="gap-2"
         >
-          <Plus className="size-4" />
           Add Group
         </Button>
       }

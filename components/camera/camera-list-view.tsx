@@ -38,6 +38,8 @@ import {
 import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
 import { applyCameraListFilters } from '@/lib/explorer-list-table/camera-table'
 import { cn } from '@/lib/utils'
+import { Box, Paper } from '@mui/material'
+import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
 
 const CELL_DASH = '-'
 
@@ -396,7 +398,8 @@ export function CameraListView() {
   const isEmpty = rootTrees.length === 0 && rootCameras.length === 0
 
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <Paper elevation={0} sx={(theme) => ({ overflow: 'hidden', ...getEnterpriseSettingsCardSx(theme) })}>
+      <Box sx={{ overflowX: 'auto' }}>
       <Table>
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
@@ -404,6 +407,7 @@ export function CameraListView() {
               <TableHead
                 key={col.id}
                 className={cn('font-semibold text-primary', col.headerClassName)}
+                style={{ fontWeight: 600, fontSize: '0.875rem' }}
               >
                 {col.label}
               </TableHead>
@@ -424,6 +428,7 @@ export function CameraListView() {
           )}
         </TableBody>
       </Table>
-    </div>
+      </Box>
+    </Paper>
   )
 }

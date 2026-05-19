@@ -2,31 +2,14 @@
 
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { Box, Button } from '@mui/material'
 import { useClientMounted } from '@/src/hooks/use-client-mounted'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
+import { EarthDialogShell } from './earth-dialog-shell'
+import { earthDialogMaxWidthPx, type EarthDialogMaxWidth } from './earth-dialog-constants'
 
-const maxWidthClass = {
-  sm: 'sm:max-w-sm',
-  md: 'sm:max-w-md',
-  lg: 'sm:max-w-lg',
-  xl: 'sm:max-w-xl',
-  '2xl': 'sm:max-w-2xl',
-  '3xl': 'sm:max-w-3xl',
-  '4xl': 'sm:max-w-4xl',
-} as const
+export type AppDialogMaxWidth = EarthDialogMaxWidth
 
-export type AppDialogMaxWidth = keyof typeof maxWidthClass
-
+/** @deprecated Use MUI TextField inside earth-themed dialogs */
 export const DIALOG_INPUT_CLASS =
   'border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary'
 
@@ -39,6 +22,26 @@ export const DIALOG_ICON_BOX_CLASS =
 
 export const DIALOG_ICON_CLASS = 'size-5 text-primary-foreground'
 
+function DialogHeaderIcon({ icon: Icon }: { icon: LucideIcon }) {
+  return (
+    <Box
+      className={DIALOG_ICON_BOX_CLASS}
+      sx={{
+        width: 40,
+        height: 40,
+        borderRadius: 2,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bgcolor: 'primary.main',
+      }}
+      aria-hidden
+    >
+      <Icon className={DIALOG_ICON_CLASS} />
+    </Box>
+  )
+}
+
 interface AppDialogHeaderProps {
   title: string
   description?: string
@@ -46,27 +49,24 @@ interface AppDialogHeaderProps {
   srOnlyTitle?: string
 }
 
-export function AppDialogHeader({ title, description, icon: Icon, srOnlyTitle }: AppDialogHeaderProps) {
-  const a11yTitle = srOnlyTitle ?? title
-
+/** @deprecated Header is rendered by EarthDialogShell; kept for role-permissions migration */
+export function AppDialogHeader({ title, description, icon: Icon }: AppDialogHeaderProps) {
   return (
-    <DialogHeader className="border-b border-border px-6 py-4 text-left">
-      <div className="flex items-center gap-3">
-        {Icon ? (
-          <div className={DIALOG_ICON_BOX_CLASS} aria-hidden>
-            <Icon className={DIALOG_ICON_CLASS} />
-          </div>
-        ) : null}
-        <div className="min-w-0 flex-1">
-          <DialogTitle className={cn('text-left', DIALOG_TITLE_CLASS)}>{title}</DialogTitle>
+    <Box sx={{ px: 3, py: 2, borderBottom: 1, borderColor: 'divider' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        {Icon ? <DialogHeaderIcon icon={Icon} /> : null}
+        <Box>
+          <Box component="h2" className={DIALOG_TITLE_CLASS}>
+            {title}
+          </Box>
           {description ? (
-            <DialogDescription className="mt-1.5">{description}</DialogDescription>
-          ) : (
-            <DialogDescription className="sr-only">{a11yTitle}</DialogDescription>
-          )}
-        </div>
-      </div>
-    </DialogHeader>
+            <Box component="p" sx={{ mt: 0.75, fontSize: '0.875rem', color: 'text.secondary' }}>
+              {description}
+            </Box>
+          ) : null}
+        </Box>
+      </Box>
+    </Box>
   )
 }
 
@@ -93,7 +93,7 @@ export function AppDialog({
   title,
   description,
   icon: Icon,
-  maxWidth = 'lg',
+  maxWidth = '4xl',
   children,
   footer,
   cancelLabel = 'Cancel',
@@ -108,13 +108,14 @@ export function AppDialog({
   const defaultFooter =
     confirmLabel != null ? (
       <>
-        <Button type="button" variant="outline" className="border-border" onClick={onClose}>
+        <Button type="button" variant="outlined" onClick={onClose}>
           {cancelLabel}
         </Button>
         <Button
           type="button"
           disabled={confirmDisabled}
-          variant={confirmDestructive ? 'destructive' : 'default'}
+          variant="contained"
+          color={confirmDestructive ? 'error' : 'primary'}
           onClick={onConfirm}
         >
           {confirmLabel}
@@ -127,20 +128,17 @@ export function AppDialog({
   if (!mounted || !open) return null
 
   return (
-    <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent
-        className={cn(
-          'flex max-h-[90vh] flex-col gap-0 overflow-hidden border-border bg-card p-0',
-          maxWidthClass[maxWidth]
-        )}
-      >
-        <AppDialogHeader title={title} description={description} icon={Icon} />
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">{children}</div>
-        {!hideFooter && resolvedFooter ? (
-          <DialogFooter className="gap-2 border-t border-border px-6 py-4">{resolvedFooter}</DialogFooter>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+    <EarthDialogShell
+      open
+      onClose={onClose}
+      title={title}
+      description={description}
+      maxWidth={maxWidth}
+      headerIcon={Icon ? <DialogHeaderIcon icon={Icon} /> : undefined}
+      footer={!hideFooter && resolvedFooter ? resolvedFooter : undefined}
+    >
+      <Box sx={{ px: 3, py: 2 }}>{children}</Box>
+    </EarthDialogShell>
   )
 }
 
@@ -155,13 +153,31 @@ interface DialogFormFieldProps {
 
 export function DialogFormField({ label, htmlFor, error, required, children, className }: DialogFormFieldProps) {
   return (
-    <div className={cn('w-full space-y-2', className)}>
-      <Label htmlFor={htmlFor} className={DIALOG_LABEL_CLASS}>
+    <Box className={className} sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Box
+        component="label"
+        htmlFor={htmlFor}
+        sx={{
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          color: 'warning.main',
+        }}
+      >
         {label}
-        {required ? <span className="text-destructive">*</span> : null}
-      </Label>
+        {required ? (
+          <Box component="span" sx={{ color: 'error.main', ml: 0.25 }}>
+            *
+          </Box>
+        ) : null}
+      </Box>
       {children}
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
-    </div>
+      {error ? (
+        <Box component="p" sx={{ fontSize: '0.875rem', color: 'error.main', m: 0 }}>
+          {error}
+        </Box>
+      ) : null}
+    </Box>
   )
 }
+
+export { earthDialogMaxWidthPx }
