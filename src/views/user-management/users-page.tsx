@@ -46,6 +46,7 @@ export function UsersPage() {
     mode: 'create' | 'edit'
     user?: UserRow | null
     initialFocus?: 'role' | 'groups'
+    startInEditMode?: boolean
   }>({
     open: false,
     mode: 'create',
@@ -86,8 +87,17 @@ export function UsersPage() {
   }
 
   const openEdit = useCallback(
-    (u: UserRow, initialFocus?: 'role' | 'groups') => {
-      setUserModal({ open: true, mode: 'edit', user: u, initialFocus })
+    (
+      u: UserRow,
+      options?: { initialFocus?: 'role' | 'groups'; startInEditMode?: boolean }
+    ) => {
+      setUserModal({
+        open: true,
+        mode: 'edit',
+        user: u,
+        initialFocus: options?.initialFocus,
+        startInEditMode: options?.startInEditMode,
+      })
       closeMenu()
     },
     []
@@ -147,7 +157,7 @@ export function UsersPage() {
         ])
         showMessage('User created')
       }
-      setUserModal({ open: false, mode: 'create', user: null })
+      setUserModal({ open: false, mode: 'create', user: null, startInEditMode: undefined })
     },
     [showMessage]
   )
@@ -161,7 +171,7 @@ export function UsersPage() {
   }
 
   const requestDeleteUser = useCallback((user: UserRow) => {
-    setUserModal({ open: false, mode: 'create', user: null, initialFocus: undefined })
+    setUserModal({ open: false, mode: 'create', user: null, initialFocus: undefined, startInEditMode: undefined })
     setConfirmSingle(user)
   }, [])
 
@@ -305,7 +315,7 @@ export function UsersPage() {
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
         <MenuItem
           onClick={() => {
-            if (menuUser) openEdit(menuUser)
+            if (menuUser) openEdit(menuUser, { startInEditMode: true })
           }}
         >
           <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Edit
@@ -320,14 +330,14 @@ export function UsersPage() {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuUser) openEdit(menuUser, 'groups')
+            if (menuUser) openEdit(menuUser, { initialFocus: 'groups', startInEditMode: true })
           }}
         >
           <GroupAddOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Assign Group
         </MenuItem>
         <MenuItem
           onClick={() => {
-            if (menuUser) openEdit(menuUser, 'role')
+            if (menuUser) openEdit(menuUser, { initialFocus: 'role', startInEditMode: true })
           }}
         >
           <SecurityUpdateGoodOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Assign Role
@@ -346,7 +356,16 @@ export function UsersPage() {
         mode={userModal.mode}
         initial={userModal.user ?? undefined}
         initialFocus={userModal.initialFocus}
-        onClose={() => setUserModal({ open: false, mode: 'create', user: null, initialFocus: undefined })}
+        startInEditMode={userModal.startInEditMode}
+        onClose={() =>
+          setUserModal({
+            open: false,
+            mode: 'create',
+            user: null,
+            initialFocus: undefined,
+            startInEditMode: undefined,
+          })
+        }
         onSubmit={(payload) => {
           if (userModal.mode === 'edit' && userModal.user) handleSaveUser(payload, userModal.user.id)
           else handleSaveUser(payload)

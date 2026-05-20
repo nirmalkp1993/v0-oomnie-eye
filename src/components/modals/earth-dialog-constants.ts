@@ -13,6 +13,9 @@ export const earthDialogMaxWidthPx = {
 
 export type EarthDialogMaxWidth = keyof typeof earthDialogMaxWidthPx
 
+/** Above MUI Dialog (z-index 1300) so portaled Select/Popover menus appear on top */
+export const EARTH_DIALOG_DROPDOWN_Z_CLASS = 'z-[1400]'
+
 /** Section card accent colors — aligned with muiPlacemarkClusterTheme / earth pin dialogs */
 export const EARTH_DIALOG_SECTION_ACCENTS = {
   primary: '#1976d2',
