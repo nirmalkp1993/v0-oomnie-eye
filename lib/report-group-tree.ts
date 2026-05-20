@@ -154,3 +154,15 @@ export function getReportTableTree(
 
   return { rootTrees, rootPlacemarks }
 }
+
+export function findReportTableGroupNode(
+  nodes: ReportTableGroupNode[],
+  groupId: string
+): ReportTableGroupNode | null {
+  for (const node of nodes) {
+    if (node.group.id === groupId) return node
+    const found = findReportTableGroupNode(node.children, groupId)
+    if (found) return found
+  }
+  return null
+}

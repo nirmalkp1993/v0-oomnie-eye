@@ -4,37 +4,30 @@ import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import RuleFolderOutlinedIcon from '@mui/icons-material/RuleFolderOutlined'
-import { IconButton, Menu, MenuItem } from '@mui/material'
-import { DataGrid, useGridApiRef, type GridColDef } from '@mui/x-data-grid'
+import { IconButton, Menu, MenuItem, Button } from '@mui/material'
 import { MoreVertical } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import AddIcon from '@mui/icons-material/Add'
-import { Button } from '@mui/material'
-import {
-  UM_GRID_CELL_MUTED,
-  UM_GRID_CELL_PRIMARY,
-  userManagementDataGridDefaults,
-  userManagementDataGridSx,
-} from '@/src/components/user-management/user-management-data-grid-defaults'
-import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
-import { gridColDefsToFilterColumns } from '@/src/lib/user-management/grid-filter-columns'
+import { ExplorerListTableProvider } from '@/components/tables/explorer-list-table-context'
+import { ROLE_LIST_COLUMNS } from '@/lib/explorer-list-table/user-management-columns'
 import { RoleFormModal, type RoleFormTab } from '@/src/components/modals/role-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
-import { EnterpriseDataGridSurface } from '@/src/components/tables/enterprise-data-grid-surface'
+import { UserManagementExplorerTable } from '@/src/components/user-management/user-management-explorer-table'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
+import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
 import {
   clonePermissionMatrix,
   createEmptyPermissionMatrix,
   type PermissionMatrix,
 } from '@/src/constants/permissions-matrix'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
+import { getRoleRowCellValue } from '@/src/lib/user-management/role-row-values'
 import { MOCK_ROLE_PERMISSIONS, MOCK_ROLES } from '@/src/mock-data/roles'
 import type { RoleRow } from '@/src/types/user-management'
 import type { RoleFormValues } from '@/src/utils/validation'
 
 export function RolesPermissionsPage() {
   const { showMessage } = useAdminSnackbar()
-  const apiRef = useGridApiRef()
   const [rows, setRows] = useState<RoleRow[]>([])
   const [matrices, setMatrices] = useState<Record<string, PermissionMatrix>>({})
   const [loading, setLoading] = useState(true)
@@ -87,9 +80,9 @@ export function RolesPermissionsPage() {
   }, [])
 
   const handleRowClick = useCallback(
-    (row: RoleRow, event: MouseEvent) => {
+    (row: RoleRow, event: MouseEvent<HTMLTableRowElement>) => {
       const target = event.target as HTMLElement
-      if (target.closest('[data-field="actions"]') || target.closest('button')) {
+      if (target.closest('[data-um-actions]') || target.closest('button')) {
         return
       }
       openEdit(row)
@@ -164,59 +157,36 @@ export function RolesPermissionsPage() {
     [matrices, showMessage]
   )
 
-  const columns: GridColDef<RoleRow>[] = useMemo(
-    () => [
-      {
-        field: 'roleName',
-        headerName: 'Role Name',
-        flex: 1,
-        minWidth: 160,
-        cellClassName: UM_GRID_CELL_PRIMARY,
-      },
-      {
-        field: 'description',
-        headerName: 'Description',
-        flex: 1.5,
-        minWidth: 220,
-        cellClassName: UM_GRID_CELL_MUTED,
-      },
-      {
-        field: 'userCount',
-        headerName: 'User Count',
-        type: 'number',
-        width: 120,
-        cellClassName: UM_GRID_CELL_MUTED,
-      },
-      { field: 'createdDate', headerName: 'Created Date', width: 130, cellClassName: UM_GRID_CELL_MUTED },
-      {
-        field: 'actions',
-        headerName: 'Actions',
-        sortable: false,
-        filterable: false,
-        hideable: false,
-        width: 88,
-        align: 'right',
-        headerAlign: 'right',
-        renderCell: (p) => (
+  const renderCell = useCallback((row: RoleRow, columnId: string) => {
+    switch (columnId) {
+      case 'roleName':
+        return <span className="truncate">{row.roleName}</span>
+      case 'description':
+        return <span className="line-clamp-2">{row.description}</span>
+      case 'userCount':
+        return row.userCount
+      case 'createdDate':
+        return row.createdDate
+      case 'actions':
+        return (
           <IconButton
             size="small"
             aria-label="Row actions"
+            data-um-actions
             sx={{ color: 'text.secondary' }}
             onClick={(e) => {
               e.stopPropagation()
-              setMenuRow(p.row)
+              setMenuRow(row)
               setMenuAnchor(e.currentTarget)
             }}
           >
             <MoreVertical className="size-4" />
           </IconButton>
-        ),
-      },
-    ],
-    []
-  )
-
-  const filterableColumns = useMemo(() => gridColDefsToFilterColumns(columns), [columns])
+        )
+      default:
+        return null
+    }
+  }, [])
 
   return (
     <UserManagementPageShell
@@ -232,36 +202,31 @@ export function RolesPermissionsPage() {
         </Button>
       }
     >
-      <UserManagementTableToolbar
-        apiRef={apiRef}
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search roles…"
-        resultCount={filtered.length}
-        resultLabel="role"
-        filterStorageKey="user-management:roles"
-        filterableColumns={filterableColumns}
-      />
+      <ExplorerListTableProvider storageKey="explorer-list-table:roles" columns={ROLE_LIST_COLUMNS}>
+        <UserManagementTableToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search roles…"
+          resultCount={filtered.length}
+          resultLabel="role"
+        />
 
-      <EnterpriseDataGridSurface className="min-h-[480px]">
-        <DataGrid
-          apiRef={apiRef}
+        <UserManagementExplorerTable
           rows={filtered}
-          columns={columns}
           loading={loading}
           getRowId={(r) => r.id}
-          {...userManagementDataGridDefaults}
-          onRowClick={(params, event) => handleRowClick(params.row, event)}
-          pageSizeOptions={[5, 10]}
-          initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-          sx={{
-            ...userManagementDataGridSx,
-            minHeight: 400,
-            '& .MuiDataGrid-row': { cursor: 'pointer' },
-            '& [data-field="actions"]': { cursor: 'default' },
-          }}
+          getCellValue={getRoleRowCellValue}
+          renderCell={renderCell}
+          onRowClick={handleRowClick}
+          primaryColumnId="roleName"
+          minHeight={480}
+          emptyMessage={
+            search.trim()
+              ? 'No roles match your search or filters.'
+              : 'No roles yet. Add a role to build your RBAC catalog.'
+          }
         />
-      </EnterpriseDataGridSurface>
+      </ExplorerListTableProvider>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
         <MenuItem

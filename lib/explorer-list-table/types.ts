@@ -12,6 +12,13 @@ export type ExplorerFilterItem = {
   value: string
 }
 
+export type ExplorerSortDirection = 'asc' | 'desc'
+
+export type ExplorerSortState = {
+  columnId: string
+  direction: ExplorerSortDirection
+} | null
+
 export type ExplorerListColumnDef = {
   id: string
   label: string
@@ -21,6 +28,8 @@ export type ExplorerListColumnDef = {
   defaultVisible?: boolean
   /** @default true (except actions) */
   filterable?: boolean
+  /** @default true (except actions) */
+  sortable?: boolean
   headerClassName?: string
 }
 

@@ -1,6 +1,9 @@
 import type { ReportTableGroupNode } from '@/lib/report-group-tree'
 import type { ReportGroup, ReportPlacemark } from '@/types/report-placemark'
-import { matchesAllExplorerFilters } from '@/lib/explorer-list-table/filter-utils'
+import {
+  hasActiveExplorerFilters,
+  matchesAllExplorerFilters,
+} from '@/lib/explorer-list-table/filter-utils'
 import type { ExplorerFilterItem, ExplorerListColumnDef } from '@/lib/explorer-list-table/types'
 
 export const REPORT_LIST_COLUMNS: ExplorerListColumnDef[] = [
@@ -23,6 +26,7 @@ export const REPORT_LIST_COLUMNS: ExplorerListColumnDef[] = [
     label: 'Actions',
     hideable: false,
     filterable: false,
+    sortable: false,
     headerClassName: 'sticky right-0 z-10 min-w-[72px] bg-card text-right',
   },
 ]
@@ -68,9 +72,16 @@ export function getReportGroupFilterValues(
   }
 }
 
-function placemarkMatchesFilters(p: ReportPlacemark, filters: ExplorerFilterItem[]): boolean {
+export function reportPlacemarkMatchesExplorerFilters(
+  p: ReportPlacemark,
+  filters: ExplorerFilterItem[]
+): boolean {
   const values = getPlacemarkFilterValues(p)
   return matchesAllExplorerFilters(filters, (id) => values[id] ?? '')
+}
+
+function placemarkMatchesFilters(p: ReportPlacemark, filters: ExplorerFilterItem[]): boolean {
+  return reportPlacemarkMatchesExplorerFilters(p, filters)
 }
 
 function groupMatchesFilters(
@@ -80,6 +91,38 @@ function groupMatchesFilters(
 ): boolean {
   const values = getReportGroupFilterValues(group, itemCount)
   return matchesAllExplorerFilters(filters, (id) => values[id] ?? '')
+}
+
+function groupParentIds(g: ReportGroup): string[] {
+  return g.parentGroupIds ?? []
+}
+
+function placemarkGroupIds(p: ReportPlacemark): string[] {
+  return p.groupIds ?? []
+}
+
+/** Whether a group card should show at the current explorer level when filters are active. */
+export function reportGroupMatchesExplorerFilters(
+  group: ReportGroup,
+  placemarks: ReportPlacemark[],
+  groups: ReportGroup[],
+  filters: ExplorerFilterItem[],
+  countInSubtree: (groupId: string) => number
+): boolean {
+  if (!hasActiveExplorerFilters(filters)) return true
+  if (groupMatchesFilters(group, countInSubtree(group.id), filters)) return true
+
+  const childGroups = groups.filter((g) => groupParentIds(g).includes(group.id))
+  if (
+    childGroups.some((ch) =>
+      reportGroupMatchesExplorerFilters(ch, placemarks, groups, filters, countInSubtree)
+    )
+  ) {
+    return true
+  }
+
+  const directPlacemarks = placemarks.filter((p) => placemarkGroupIds(p).includes(group.id))
+  return directPlacemarks.some((p) => placemarkMatchesFilters(p, filters))
 }
 
 export function pruneReportTableTree(

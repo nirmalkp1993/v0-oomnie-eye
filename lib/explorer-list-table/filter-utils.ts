@@ -1,4 +1,8 @@
-import type { ExplorerFilterItem, ExplorerFilterOperator } from '@/lib/explorer-list-table/types'
+import {
+  EXPLORER_FILTER_OPERATORS,
+  type ExplorerFilterItem,
+  type ExplorerFilterOperator,
+} from '@/lib/explorer-list-table/types'
 
 export function matchesExplorerFilter(
   cellValue: string,
@@ -41,14 +45,38 @@ export function matchesAllExplorerFilters(
   return active.every((f) => matchesExplorerFilter(getValue(f.columnId), f.operator, f.value))
 }
 
-export function countActiveExplorerFilters(filters: ExplorerFilterItem[]): number {
-  return filters.filter(
-    (f) =>
-      f.columnId &&
+export function isActiveExplorerFilter(f: ExplorerFilterItem): boolean {
+  return Boolean(
+    f.columnId &&
       (f.operator === 'isEmpty' ||
         f.operator === 'isNotEmpty' ||
         f.value.trim() !== '')
-  ).length
+  )
+}
+
+export function getActiveExplorerFilters(filters: ExplorerFilterItem[]): ExplorerFilterItem[] {
+  return filters.filter(isActiveExplorerFilter)
+}
+
+export function hasActiveExplorerFilters(filters: ExplorerFilterItem[]): boolean {
+  return getActiveExplorerFilters(filters).length > 0
+}
+
+export function countActiveExplorerFilters(filters: ExplorerFilterItem[]): number {
+  return getActiveExplorerFilters(filters).length
+}
+
+export function formatExplorerFilterLabel(
+  filter: ExplorerFilterItem,
+  columnLabel: string
+): string {
+  const op =
+    EXPLORER_FILTER_OPERATORS.find((o) => o.value === filter.operator)?.label ?? filter.operator
+  if (filter.operator === 'isEmpty' || filter.operator === 'isNotEmpty') {
+    return `${columnLabel} ${op}`
+  }
+  const value = filter.value.trim()
+  return value ? `${columnLabel} ${op} "${value}"` : `${columnLabel} ${op}`
 }
 
 export function createEmptyExplorerFilter(): ExplorerFilterItem {

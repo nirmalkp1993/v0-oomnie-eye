@@ -12,6 +12,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material'
+import { ExplorerAppliedFiltersBarGate } from '@/components/tables/explorer-applied-filters'
 import { ExplorerListTableControlsGate } from '@/components/tables/explorer-list-table-controls-gate'
 
 export type ExplorerViewMode = 'card' | 'table'
@@ -38,6 +39,7 @@ export function EnterpriseExplorerToolbar({
   trailingActions,
 }: EnterpriseExplorerToolbarProps) {
   return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
     <Box
       sx={{
         display: 'flex',
@@ -71,7 +73,7 @@ export function EnterpriseExplorerToolbar({
       </Box>
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
-        {viewMode === 'table' ? <ExplorerListTableControlsGate /> : null}
+        <ExplorerListTableControlsGate showColumns={viewMode === 'table'} />
 
         <ToggleButtonGroup
           exclusive
@@ -108,6 +110,8 @@ export function EnterpriseExplorerToolbar({
 
         {trailingActions}
       </Box>
+    </Box>
+    <ExplorerAppliedFiltersBarGate />
     </Box>
   )
 }

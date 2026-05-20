@@ -4,8 +4,12 @@ import { ExplorerListTableControls } from '@/components/tables/explorer-list-tab
 import { useExplorerListTableOptional } from '@/components/tables/explorer-list-table-context'
 
 /** Renders filter/column controls only when list-table context is available. */
-export function ExplorerListTableControlsGate() {
+export function ExplorerListTableControlsGate({
+  showColumns = true,
+}: {
+  showColumns?: boolean
+}) {
   const ctx = useExplorerListTableOptional()
   if (!ctx) return null
-  return <ExplorerListTableControls />
+  return <ExplorerListTableControls showColumns={showColumns} />
 }
