@@ -14,7 +14,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
@@ -35,8 +34,14 @@ import {
   MapPinned,
 } from 'lucide-react'
 import { ReportPinGlyph } from '@/components/report/report-pin-glyph'
+import { ExplorerTableHeaderRow } from '@/components/tables/explorer-table-header-row'
 import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
-import { applyReportListFilters } from '@/lib/explorer-list-table/report-table'
+import {
+  applyReportListFilters,
+  getPlacemarkFilterValues,
+  getReportGroupFilterValues,
+} from '@/lib/explorer-list-table/report-table'
+import { getSortedTreeSiblings } from '@/lib/explorer-list-table/tree-sort'
 import { cn } from '@/lib/utils'
 import { Box, Paper } from '@mui/material'
 import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
@@ -88,7 +93,7 @@ export function ReportListView() {
   const activePinType = useReportPlacemarkStore((s) => s.activePinType)
   const getReportTableTree = useReportPlacemarkStore((s) => s.getReportTableTree)
 
-  const { visibleColumns, filters } = useExplorerListTable()
+  const { visibleColumns, filters, sort } = useExplorerListTable()
 
   const rawTree = useMemo(
     () => getReportTableTree(),
@@ -97,10 +102,30 @@ export function ReportListView() {
 
   const { rootTrees, rootPlacemarks } = useMemo(
     () =>
-      applyReportListFilters(rawTree.rootTrees, rawTree.rootPlacemarks, filters, (groupId) =>
-        countPlacemarksInGroupSubtree(groupId, placemarks, reportGroups)
+      applyReportListFilters(
+        rawTree.rootTrees,
+        rawTree.rootPlacemarks,
+        filters,
+        (groupId) => countPlacemarksInGroupSubtree(groupId, placemarks, reportGroups)
       ),
     [rawTree, filters, placemarks, reportGroups]
+  )
+
+  const getSortedSiblings = useCallback(
+    (groups: ReportTableGroupNode[], leaves: ReportPlacemark[]) =>
+      getSortedTreeSiblings(
+        groups,
+        leaves,
+        sort,
+        (node) => {
+          const count = countPlacemarksInGroupSubtree(node.group.id, placemarks, reportGroups)
+          return sort
+            ? (getReportGroupFilterValues(node.group, count)[sort.columnId] ?? '')
+            : ''
+        },
+        (p) => (sort ? (getPlacemarkFilterValues(p)[sort.columnId] ?? '') : '')
+      ),
+    [sort, placemarks, reportGroups]
   )
 
   const setGroupToDelete = useReportPlacemarkStore((s) => s.setGroupToDelete)
@@ -374,16 +399,18 @@ export function ReportListView() {
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
-        {isOpen && (
-          <>
-            {node.children.map((ch) => renderGroupNode(ch, depth + 1, rowKey))}
-            {node.placemarks.map((p) => (
-              <Fragment key={`${p.id}@${rowKey}`}>
-                {renderPlacemarkRow(p, depth + 1, `${p.id}@${rowKey}`)}
+        {isOpen &&
+          getSortedSiblings(node.children, node.placemarks).map((sibling) =>
+            sibling.kind === 'group' ? (
+              <Fragment key={`g-${sibling.node.group.id}@${rowKey}`}>
+                {renderGroupNode(sibling.node, depth + 1, rowKey)}
               </Fragment>
-            ))}
-          </>
-        )}
+            ) : (
+              <Fragment key={`${sibling.item.id}@${rowKey}`}>
+                {renderPlacemarkRow(sibling.item, depth + 1, `${sibling.item.id}@${rowKey}`)}
+              </Fragment>
+            )
+          )}
       </Fragment>
     )
   }
@@ -395,17 +422,7 @@ export function ReportListView() {
       <Box sx={{ overflowX: 'auto' }}>
         <Table>
           <TableHeader>
-            <TableRow className="border-border hover:bg-transparent">
-              {visibleColumns.map((col) => (
-                <TableHead
-                  key={col.id}
-                  className={cn('font-semibold text-primary', col.headerClassName)}
-                  style={{ fontWeight: 600, fontSize: '0.875rem' }}
-                >
-                  {col.label}
-                </TableHead>
-              ))}
-            </TableRow>
+            <ExplorerTableHeaderRow />
           </TableHeader>
           <TableBody>
             <TableRow className="border-border bg-muted/20 hover:bg-muted/25">
@@ -416,10 +433,17 @@ export function ReportListView() {
                 Pins are read-only (API). Use groups to organize how they appear in reports.
               </TableCell>
             </TableRow>
-            {rootTrees.map((node) => renderGroupNode(node, 0, ''))}
-            {rootPlacemarks.map((p) => (
-              <Fragment key={p.id}>{renderPlacemarkRow(p, 0, p.id)}</Fragment>
-            ))}
+            {getSortedSiblings(rootTrees, rootPlacemarks).map((sibling) =>
+              sibling.kind === 'group' ? (
+                <Fragment key={sibling.node.group.id}>
+                  {renderGroupNode(sibling.node, 0, '')}
+                </Fragment>
+              ) : (
+                <Fragment key={sibling.item.id}>
+                  {renderPlacemarkRow(sibling.item, 0, sibling.item.id)}
+                </Fragment>
+              )
+            )}
             {isEmpty && (
               <TableRow>
                 <TableCell colSpan={colSpan} className="h-32 text-center text-muted-foreground">

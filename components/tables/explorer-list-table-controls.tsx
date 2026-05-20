@@ -12,7 +12,14 @@ import { cn } from '@/lib/utils'
 import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
 import { countActiveExplorerFilters } from '@/lib/explorer-list-table/filter-utils'
 
-export function ExplorerListTableControls({ className }: { className?: string }) {
+export function ExplorerListTableControls({
+  className,
+  showColumns = true,
+}: {
+  className?: string
+  /** Column visibility/reorder UI — list view only. */
+  showColumns?: boolean
+}) {
   const {
     columns,
     visibility,
@@ -58,6 +65,7 @@ export function ExplorerListTableControls({ className }: { className?: string })
         onOpenChange={setFilterOpen}
       />
 
+      {showColumns ? (
       <Popover open={columnsOpen} onOpenChange={setColumnsOpen}>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -121,6 +129,7 @@ export function ExplorerListTableControls({ className }: { className?: string })
           </div>
         </PopoverContent>
       </Popover>
+      ) : null}
     </div>
   )
 }

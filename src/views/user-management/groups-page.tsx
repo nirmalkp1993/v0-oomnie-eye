@@ -3,29 +3,23 @@
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline'
-import { IconButton, Menu, MenuItem } from '@mui/material'
-import { DataGrid, useGridApiRef, type GridColDef } from '@mui/x-data-grid'
+import { IconButton, Menu, MenuItem, Button } from '@mui/material'
 import { MoreVertical } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import AddIcon from '@mui/icons-material/Add'
-import { Button } from '@mui/material'
-import {
-  UM_GRID_CELL_MUTED,
-  UM_GRID_CELL_PRIMARY,
-  userManagementDataGridDefaults,
-  userManagementDataGridSx,
-} from '@/src/components/user-management/user-management-data-grid-defaults'
-import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
-import { gridColDefsToFilterColumns } from '@/src/lib/user-management/grid-filter-columns'
+import { ExplorerListTableProvider } from '@/components/tables/explorer-list-table-context'
+import { GROUP_LIST_COLUMNS } from '@/lib/explorer-list-table/user-management-columns'
 import {
   GroupFormModal,
   type GroupFormTab,
 } from '@/src/components/modals/group-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
-import { EnterpriseDataGridSurface } from '@/src/components/tables/enterprise-data-grid-surface'
+import { UserManagementExplorerTable } from '@/src/components/user-management/user-management-explorer-table'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
+import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
 import type { TransferUserItem } from '@/src/components/user-management/dual-transfer-list'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
+import { getGroupRowCellValue } from '@/src/lib/user-management/group-row-values'
 import { MOCK_GROUPS } from '@/src/mock-data/groups'
 import { MOCK_USERS } from '@/src/mock-data/users'
 import type { GroupRow } from '@/src/types/user-management'
@@ -47,7 +41,6 @@ const initialMembers: Record<string, string[]> = {
 
 export function GroupsPage() {
   const { showMessage } = useAdminSnackbar()
-  const apiRef = useGridApiRef()
   const [rows, setRows] = useState<GroupRow[]>([])
   const [membersByGroup, setMembersByGroup] = useState<Record<string, string[]>>({ ...initialMembers })
   const [loading, setLoading] = useState(true)
@@ -96,12 +89,9 @@ export function GroupsPage() {
   }, [])
 
   const handleRowClick = useCallback(
-    (row: GroupRow, event: MouseEvent) => {
+    (row: GroupRow, event: MouseEvent<HTMLTableRowElement>) => {
       const target = event.target as HTMLElement
-      if (
-        target.closest('[data-field="actions"]') ||
-        target.closest('button')
-      ) {
+      if (target.closest('[data-um-actions]') || target.closest('button')) {
         return
       }
       openEdit(row)
@@ -165,60 +155,38 @@ export function GroupsPage() {
     [rows.length, showMessage]
   )
 
-  const columns: GridColDef<GroupRow>[] = useMemo(
-    () => [
-      { field: 'groupId', headerName: 'Group ID', flex: 0.8, minWidth: 120, cellClassName: UM_GRID_CELL_MUTED },
-      {
-        field: 'groupName',
-        headerName: 'Group Name',
-        flex: 1,
-        minWidth: 160,
-        cellClassName: UM_GRID_CELL_PRIMARY,
-      },
-      {
-        field: 'description',
-        headerName: 'Description',
-        flex: 1.4,
-        minWidth: 220,
-        cellClassName: UM_GRID_CELL_MUTED,
-      },
-      {
-        field: 'assignedUsersCount',
-        headerName: 'Assigned Users Count',
-        type: 'number',
-        width: 200,
-        cellClassName: UM_GRID_CELL_MUTED,
-      },
-      { field: 'createdDate', headerName: 'Created Date', width: 130, cellClassName: UM_GRID_CELL_MUTED },
-      {
-        field: 'actions',
-        headerName: 'Actions',
-        sortable: false,
-        filterable: false,
-        hideable: false,
-        width: 88,
-        align: 'right',
-        headerAlign: 'right',
-        renderCell: (p) => (
+  const renderCell = useCallback((row: GroupRow, columnId: string) => {
+    switch (columnId) {
+      case 'groupId':
+        return row.groupId
+      case 'groupName':
+        return <span className="truncate">{row.groupName}</span>
+      case 'description':
+        return <span className="line-clamp-2">{row.description}</span>
+      case 'assignedUsersCount':
+        return row.assignedUsersCount
+      case 'createdDate':
+        return row.createdDate
+      case 'actions':
+        return (
           <IconButton
             size="small"
             aria-label="Row actions"
+            data-um-actions
             sx={{ color: 'text.secondary' }}
             onClick={(e) => {
               e.stopPropagation()
-              setMenuRow(p.row)
+              setMenuRow(row)
               setMenuAnchor(e.currentTarget)
             }}
           >
             <MoreVertical className="size-4" />
           </IconButton>
-        ),
-      },
-    ],
-    []
-  )
-
-  const filterableColumns = useMemo(() => gridColDefsToFilterColumns(columns), [columns])
+        )
+      default:
+        return null
+    }
+  }, [])
 
   return (
     <UserManagementPageShell
@@ -234,36 +202,31 @@ export function GroupsPage() {
         </Button>
       }
     >
-      <UserManagementTableToolbar
-        apiRef={apiRef}
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search groups…"
-        resultCount={filtered.length}
-        resultLabel="group"
-        filterStorageKey="user-management:groups"
-        filterableColumns={filterableColumns}
-      />
+      <ExplorerListTableProvider storageKey="explorer-list-table:groups" columns={GROUP_LIST_COLUMNS}>
+        <UserManagementTableToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search groups…"
+          resultCount={filtered.length}
+          resultLabel="group"
+        />
 
-      <EnterpriseDataGridSurface className="min-h-[480px]">
-        <DataGrid
-          apiRef={apiRef}
+        <UserManagementExplorerTable
           rows={filtered}
-          columns={columns}
           loading={loading}
           getRowId={(r) => r.id}
-          {...userManagementDataGridDefaults}
-          onRowClick={(params, event) => handleRowClick(params.row, event)}
-          pageSizeOptions={[5, 10]}
-          initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-          sx={{
-            ...userManagementDataGridSx,
-            minHeight: 400,
-            '& .MuiDataGrid-row': { cursor: 'pointer' },
-            '& [data-field="actions"]': { cursor: 'default' },
-          }}
+          getCellValue={getGroupRowCellValue}
+          renderCell={renderCell}
+          onRowClick={handleRowClick}
+          primaryColumnId="groupName"
+          minHeight={480}
+          emptyMessage={
+            search.trim()
+              ? 'No groups match your search or filters.'
+              : 'No groups yet. Add a group to get started.'
+          }
         />
-      </EnterpriseDataGridSurface>
+      </ExplorerListTableProvider>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
         <MenuItem

@@ -17,7 +17,13 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
 import MonitorOutlinedIcon from '@mui/icons-material/MonitorOutlined'
-import { useCameraStore } from '@/lib/camera-store'
+import {
+  countCamerasInGroupSubtree,
+  findCameraTableGroupNode,
+  useCameraStore,
+} from '@/lib/camera-store'
+import { applyCameraListFilters } from '@/lib/explorer-list-table/camera-table'
+import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
 import type { Camera, CameraGroup } from '@/types/camera'
 import { enterpriseExplorerTileSx } from '@/src/components/enterprise'
 
@@ -27,22 +33,6 @@ function camGroupIds(c: Camera): string[] {
 
 function grpParentIds(g: CameraGroup): string[] {
   return g.parentGroupIds ?? []
-}
-
-function nameMatchesQuery(name: string, query: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
-  return name.toLowerCase().includes(q)
-}
-
-function cameraMatchesQuery(c: Camera, query: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
-  return (
-    c.name.toLowerCase().includes(q) ||
-    c.ip.toLowerCase().includes(q) ||
-    c.type.toLowerCase().includes(q)
-  )
 }
 
 function directChildCount(folderId: string, groups: CameraGroup[], cameras: Camera[]): number {
@@ -67,10 +57,13 @@ export function CameraCardView() {
   const cameras = useCameraStore((s) => s.cameras)
   const cameraGroups = useCameraStore((s) => s.cameraGroups)
   const searchQuery = useCameraStore((s) => s.searchQuery)
+  const getCameraTableTree = useCameraStore((s) => s.getCameraTableTree)
   const cardExplorerStack = useCameraStore((s) => s.cardExplorerStack)
   const pushCardExplorerFolder = useCameraStore((s) => s.pushCardExplorerFolder)
   const navigateCardExplorerToSegmentIndex = useCameraStore((s) => s.navigateCardExplorerToSegmentIndex)
   const setSelectedCamera = useCameraStore((s) => s.setSelectedCamera)
+
+  const { filters } = useExplorerListTable()
 
   const currentFolderId =
     cardExplorerStack.length > 0 ? cardExplorerStack[cardExplorerStack.length - 1] : null
@@ -78,27 +71,31 @@ export function CameraCardView() {
   const displayLevel = cardExplorerStack.length + 1
 
   const { folderCards, cameraCards } = useMemo(() => {
+    const raw = getCameraTableTree()
+    const filtered = applyCameraListFilters(
+      raw.rootTrees,
+      raw.rootCameras,
+      filters,
+      (groupId) => countCamerasInGroupSubtree(groupId, cameras, cameraGroups)
+    )
+
     if (!currentFolderId) {
-      const folders = cameraGroups
-        .filter((g) => grpParentIds(g).length === 0)
-        .filter((g) => nameMatchesQuery(g.name, searchQuery))
-        .sort((a, b) => a.name.localeCompare(b.name))
-      const cams = cameras
-        .filter((c) => camGroupIds(c).length === 0)
-        .filter((c) => cameraMatchesQuery(c, searchQuery))
-        .sort((a, b) => a.name.localeCompare(b.name))
-      return { folderCards: folders, cameraCards: cams }
+      return {
+        folderCards: filtered.rootTrees.map((n) => n.group),
+        cameraCards: filtered.rootCameras,
+      }
     }
-    const folders = cameraGroups
-      .filter((g) => grpParentIds(g).includes(currentFolderId))
-      .filter((g) => nameMatchesQuery(g.name, searchQuery))
-      .sort((a, b) => a.name.localeCompare(b.name))
-    const cams = cameras
-      .filter((c) => camGroupIds(c).includes(currentFolderId))
-      .filter((c) => cameraMatchesQuery(c, searchQuery))
-      .sort((a, b) => a.name.localeCompare(b.name))
-    return { folderCards: folders, cameraCards: cams }
-  }, [cameras, cameraGroups, currentFolderId, searchQuery])
+
+    const node = findCameraTableGroupNode(filtered.rootTrees, currentFolderId)
+    if (!node) {
+      return { folderCards: [] as CameraGroup[], cameraCards: [] as Camera[] }
+    }
+
+    return {
+      folderCards: node.children.map((n) => n.group),
+      cameraCards: node.cameras,
+    }
+  }, [getCameraTableTree, filters, currentFolderId, cameras, cameraGroups])
 
   const totalItems = folderCards.length + cameraCards.length
 
