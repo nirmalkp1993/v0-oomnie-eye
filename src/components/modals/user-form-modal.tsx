@@ -38,7 +38,10 @@ import { cn } from '@/lib/utils'
 import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS } from '@/src/components/modals/app-dialog'
 import { useDialogEditMode } from '@/src/hooks/use-dialog-edit-mode'
 import { DialogEarthTabs, TabsContent, type DialogEarthTabConfig } from '@/src/components/modals/dialog-earth-tabs'
-import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
+import {
+  EARTH_DIALOG_DROPDOWN_Z_CLASS,
+  EARTH_DIALOG_SECTION_ACCENTS,
+} from '@/src/components/modals/earth-dialog-constants'
 import { GeoLocationSelector } from '@/src/components/user-management/GeoLocationSelector'
 import {
   GeoLocationPreviewMap,
@@ -80,6 +83,8 @@ interface UserFormModalProps {
   initial?: UserRow | null
   initialTab?: UserFormTab
   initialFocus?: 'role' | 'groups'
+  /** When true, edit dialog opens with fields editable (e.g. row action "Edit") */
+  startInEditMode?: boolean
   onClose: () => void
   onSubmit: (payload: UserFormSubmitPayload) => void
   onDeleteRequest?: () => void
@@ -134,6 +139,7 @@ function PasswordField({
 }
 
 const DIALOG_SELECT_CLASS = cn('w-full', DIALOG_INPUT_CLASS)
+const DIALOG_DROPDOWN_CONTENT_CLASS = cn('border-border bg-card', EARTH_DIALOG_DROPDOWN_Z_CLASS)
 
 export function UserFormModal({
   open,
@@ -141,6 +147,7 @@ export function UserFormModal({
   initial,
   initialTab = 'basic',
   initialFocus,
+  startInEditMode = false,
   onClose,
   onSubmit,
   onDeleteRequest,
@@ -183,7 +190,11 @@ export function UserFormModal({
   }, [geoMapFocus])
 
   const isCreate = mode === 'create'
-  const { isEditing, setIsEditing, readOnly } = useDialogEditMode(open, isCreate, Boolean(initialFocus))
+  const { isEditing, setIsEditing, readOnly } = useDialogEditMode(
+    open,
+    isCreate,
+    startInEditMode || Boolean(initialFocus)
+  )
   const resolver = useMemo(
     () => zodResolver(isCreate ? userCreateFormSchema : userEditFormSchema),
     [isCreate]
@@ -422,7 +433,7 @@ export function UserFormModal({
                       <SelectTrigger className={DIALOG_SELECT_CLASS} disabled={readOnly}>
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
-                      <SelectContent className="border-border bg-card">
+                      <SelectContent className={DIALOG_DROPDOWN_CONTENT_CLASS}>
                         <SelectItem value="Active">Active</SelectItem>
                         <SelectItem value="Inactive">Inactive</SelectItem>
                         <SelectItem value="Pending">Pending</SelectItem>
@@ -539,7 +550,7 @@ export function UserFormModal({
                       >
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
-                      <SelectContent className="border-border bg-card">
+                      <SelectContent className={DIALOG_DROPDOWN_CONTENT_CLASS}>
                         {MOCK_ROLE_OPTIONS.map((r) => (
                           <SelectItem key={r} value={r}>
                             {r}
@@ -580,7 +591,10 @@ export function UserFormModal({
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent
-                          className="w-[var(--radix-popover-trigger-width)] border-border bg-card p-2"
+                          className={cn(
+                            'w-[var(--radix-popover-trigger-width)] p-2',
+                            DIALOG_DROPDOWN_CONTENT_CLASS
+                          )}
                           align="start"
                         >
                           <div className="max-h-48 space-y-1 overflow-y-auto">
