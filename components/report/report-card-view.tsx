@@ -14,7 +14,12 @@ import {
   useReportPlacemarkStore,
   REPORT_PIN_TAB_LABEL,
 } from '@/lib/report-placemark-store'
-import { placemarkMatchesSearch } from '@/lib/report-group-tree'
+import {
+  countPlacemarksInGroupSubtree,
+  findReportTableGroupNode,
+} from '@/lib/report-group-tree'
+import { applyReportListFilters } from '@/lib/explorer-list-table/report-table'
+import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
 import type { ReportGroup, ReportPlacemark } from '@/types/report-placemark'
 import { enterpriseExplorerTileSx } from '@/src/components/enterprise'
 import {
@@ -33,12 +38,6 @@ function grpParentIds(g: ReportGroup): string[] {
   return g.parentGroupIds ?? []
 }
 
-function nameMatchesQuery(name: string, query: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
-  return name.toLowerCase().includes(q)
-}
-
 function directChildCount(folderId: string, groups: ReportGroup[], placemarks: ReportPlacemark[]): number {
   const subfolders = groups.filter((g) => grpParentIds(g).includes(folderId)).length
   const pins = placemarks.filter((p) => placemarkGroupIds(p).includes(folderId)).length
@@ -50,11 +49,14 @@ export function ReportCardView() {
   const placemarksAll = useReportPlacemarkStore((s) => s.placemarks)
   const reportGroupsAll = useReportPlacemarkStore((s) => s.reportGroups)
   const searchQuery = useReportPlacemarkStore((s) => s.searchQuery)
+  const getReportTableTree = useReportPlacemarkStore((s) => s.getReportTableTree)
   const reportCardExplorerStack = useReportPlacemarkStore((s) => s.reportCardExplorerStack)
   const pushReportCardExplorerFolder = useReportPlacemarkStore((s) => s.pushReportCardExplorerFolder)
   const navigateReportCardExplorerToSegmentIndex = useReportPlacemarkStore(
     (s) => s.navigateReportCardExplorerToSegmentIndex,
   )
+
+  const { filters } = useExplorerListTable()
 
   const placemarks = useMemo(
     () => placemarksAll.filter((p) => p.pinType === activePinType),
@@ -73,27 +75,31 @@ export function ReportCardView() {
   const displayLevel = reportCardExplorerStack.length + 1
 
   const { folderCards, placemarkCards } = useMemo(() => {
+    const raw = getReportTableTree()
+    const filtered = applyReportListFilters(
+      raw.rootTrees,
+      raw.rootPlacemarks,
+      filters,
+      (groupId) => countPlacemarksInGroupSubtree(groupId, placemarks, reportGroups)
+    )
+
     if (!currentFolderId) {
-      const folders = reportGroups
-        .filter((g) => grpParentIds(g).length === 0)
-        .filter((g) => nameMatchesQuery(g.name, searchQuery))
-        .sort((a, b) => a.name.localeCompare(b.name))
-      const pins = placemarks
-        .filter((p) => placemarkGroupIds(p).length === 0)
-        .filter((p) => placemarkMatchesSearch(p, searchQuery))
-        .sort((a, b) => a.placemarkName.localeCompare(b.placemarkName))
-      return { folderCards: folders, placemarkCards: pins }
+      return {
+        folderCards: filtered.rootTrees.map((n) => n.group),
+        placemarkCards: filtered.rootPlacemarks,
+      }
     }
-    const folders = reportGroups
-      .filter((g) => grpParentIds(g).includes(currentFolderId))
-      .filter((g) => nameMatchesQuery(g.name, searchQuery))
-      .sort((a, b) => a.name.localeCompare(b.name))
-    const pins = placemarks
-      .filter((p) => placemarkGroupIds(p).includes(currentFolderId))
-      .filter((p) => placemarkMatchesSearch(p, searchQuery))
-      .sort((a, b) => a.placemarkName.localeCompare(b.placemarkName))
-    return { folderCards: folders, placemarkCards: pins }
-  }, [placemarks, reportGroups, currentFolderId, searchQuery])
+
+    const node = findReportTableGroupNode(filtered.rootTrees, currentFolderId)
+    if (!node) {
+      return { folderCards: [] as ReportGroup[], placemarkCards: [] as ReportPlacemark[] }
+    }
+
+    return {
+      folderCards: node.children.map((n) => n.group),
+      placemarkCards: node.placemarks,
+    }
+  }, [getReportTableTree, filters, currentFolderId, placemarks, reportGroups])
 
   const totalItems = folderCards.length + placemarkCards.length
 

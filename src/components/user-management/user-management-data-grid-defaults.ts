@@ -46,6 +46,7 @@ export const userManagementDataGridDefaults = {
   filterMode: 'client',
   disableColumnFilter: false,
   disableColumnSelector: false,
+  sortingOrder: ['asc', 'desc', null],
   sx: userManagementDataGridSx,
   slots: {
     panel: UserManagementGridPanel,

@@ -11,7 +11,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
@@ -35,8 +34,14 @@ import {
   FolderPlus,
   Camera as CameraIcon,
 } from 'lucide-react'
+import { ExplorerTableHeaderRow } from '@/components/tables/explorer-table-header-row'
 import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
-import { applyCameraListFilters } from '@/lib/explorer-list-table/camera-table'
+import {
+  applyCameraListFilters,
+  getCameraFilterValues,
+  getCameraGroupFilterValues,
+} from '@/lib/explorer-list-table/camera-table'
+import { getSortedTreeSiblings } from '@/lib/explorer-list-table/tree-sort'
 import { cn } from '@/lib/utils'
 import { Box, Paper } from '@mui/material'
 import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
@@ -63,7 +68,7 @@ export function CameraListView() {
   const searchQuery = useCameraStore((s) => s.searchQuery)
   const getCameraTableTree = useCameraStore((s) => s.getCameraTableTree)
 
-  const { visibleColumns, filters } = useExplorerListTable()
+  const { visibleColumns, filters, sort } = useExplorerListTable()
 
   const rawTree = useMemo(
     () => getCameraTableTree(),
@@ -76,6 +81,23 @@ export function CameraListView() {
         countCamerasInGroupSubtree(groupId, cameras, cameraGroups)
       ),
     [rawTree, filters, cameras, cameraGroups]
+  )
+
+  const getSortedSiblings = useCallback(
+    (groups: CameraTableGroupNode[], leaves: Camera[]) =>
+      getSortedTreeSiblings(
+        groups,
+        leaves,
+        sort,
+        (node) => {
+          const count = countCamerasInGroupSubtree(node.group.id, cameras, cameraGroups)
+          return sort
+            ? (getCameraGroupFilterValues(node.group, count)[sort.columnId] ?? '')
+            : ''
+        },
+        (c) => (sort ? (getCameraFilterValues(c)[sort.columnId] ?? '') : '')
+      ),
+    [sort, cameras, cameraGroups]
   )
 
   const setSelectedCamera = useCameraStore((s) => s.setSelectedCamera)
@@ -381,16 +403,18 @@ export function CameraListView() {
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
-        {isOpen && (
-          <>
-            {node.children.map((ch) => renderGroupNode(ch, depth + 1, rowKey))}
-            {node.cameras.map((cam) => (
-              <Fragment key={`${cam.id}@${rowKey}`}>
-                {renderCameraRow(cam, depth + 1, `${cam.id}@${rowKey}`)}
+        {isOpen &&
+          getSortedSiblings(node.children, node.cameras).map((sibling) =>
+            sibling.kind === 'group' ? (
+              <Fragment key={`g-${sibling.node.group.id}@${rowKey}`}>
+                {renderGroupNode(sibling.node, depth + 1, rowKey)}
               </Fragment>
-            ))}
-          </>
-        )}
+            ) : (
+              <Fragment key={`${sibling.item.id}@${rowKey}`}>
+                {renderCameraRow(sibling.item, depth + 1, `${sibling.item.id}@${rowKey}`)}
+              </Fragment>
+            )
+          )}
       </Fragment>
     )
   }
@@ -402,23 +426,20 @@ export function CameraListView() {
       <Box sx={{ overflowX: 'auto' }}>
       <Table>
         <TableHeader>
-          <TableRow className="border-border hover:bg-transparent">
-            {visibleColumns.map((col) => (
-              <TableHead
-                key={col.id}
-                className={cn('font-semibold text-primary', col.headerClassName)}
-                style={{ fontWeight: 600, fontSize: '0.875rem' }}
-              >
-                {col.label}
-              </TableHead>
-            ))}
-          </TableRow>
+          <ExplorerTableHeaderRow />
         </TableHeader>
         <TableBody>
-          {rootTrees.map((node) => renderGroupNode(node, 0, ''))}
-          {rootCameras.map((camera) => (
-            <Fragment key={camera.id}>{renderCameraRow(camera, 0, camera.id)}</Fragment>
-          ))}
+          {getSortedSiblings(rootTrees, rootCameras).map((sibling) =>
+            sibling.kind === 'group' ? (
+              <Fragment key={sibling.node.group.id}>
+                {renderGroupNode(sibling.node, 0, '')}
+              </Fragment>
+            ) : (
+              <Fragment key={sibling.item.id}>
+                {renderCameraRow(sibling.item, 0, sibling.item.id)}
+              </Fragment>
+            )
+          )}
           {isEmpty && (
             <TableRow>
               <TableCell colSpan={colSpan} className="h-32 text-center text-muted-foreground">

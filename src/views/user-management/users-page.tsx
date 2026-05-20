@@ -16,67 +16,29 @@ import {
   Select,
   Typography,
 } from '@mui/material'
-import {
-  DataGrid,
-  GridToolbarContainer,
-  useGridApiRef,
-  type GridColDef,
-  type GridRowId,
-  type GridRowSelectionModel,
-} from '@mui/x-data-grid'
 import { MoreVertical, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import AddIcon from '@mui/icons-material/Add'
 import { Badge } from '@/components/ui/badge'
-import {
-  UM_GRID_CELL_MUTED,
-  UM_GRID_CELL_PRIMARY,
-  userManagementDataGridDefaults,
-  userManagementDataGridSx,
-} from '@/src/components/user-management/user-management-data-grid-defaults'
+import { ExplorerListTableProvider } from '@/components/tables/explorer-list-table-context'
+import { USER_LIST_COLUMNS } from '@/lib/explorer-list-table/user-management-columns'
+import { UserManagementExplorerTable } from '@/src/components/user-management/user-management-explorer-table'
 import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
-import { gridColDefsToFilterColumns } from '@/src/lib/user-management/grid-filter-columns'
 import { UserFormModal, type UserFormSubmitPayload } from '@/src/components/modals/user-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
-import { EnterpriseDataGridSurface } from '@/src/components/tables/enterprise-data-grid-surface'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
+import { getUserRowCellValue } from '@/src/lib/user-management/user-row-values'
 import { MOCK_USERS } from '@/src/mock-data/users'
 import type { UserRow, UserStatus } from '@/src/types/user-management'
 
-function NoRowsOverlay({ emptySearch }: { emptySearch: boolean }) {
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        height: '100%',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 1,
-        px: 2,
-        py: 6,
-        textAlign: 'center',
-      }}
-    >
-      <Typography variant="subtitle2" fontWeight={600} color="text.primary">
-        {emptySearch ? 'No users match your filters' : 'No users yet'}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 360 }}>
-        Adjust search or filters, or add a new user to populate this directory.
-      </Typography>
-    </Box>
-  )
-}
-
 export function UsersPage() {
   const { showMessage } = useAdminSnackbar()
-  const apiRef = useGridApiRef()
   const [rows, setRows] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | UserStatus>('all')
-  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [menuUser, setMenuUser] = useState<UserRow | null>(null)
   const [userModal, setUserModal] = useState<{
@@ -116,7 +78,7 @@ export function UsersPage() {
     })
   }, [rows, search, statusFilter])
 
-  const selectedCount = selectionModel.length
+  const selectedCount = selectedIds.length
 
   const closeMenu = () => {
     setMenuAnchor(null)
@@ -132,13 +94,12 @@ export function UsersPage() {
   )
 
   const handleRowClick = useCallback(
-    (user: UserRow, event: MouseEvent) => {
+    (user: UserRow, event: MouseEvent<HTMLTableRowElement>) => {
       const target = event.target as HTMLElement
       if (
-        target.closest('[data-field="actions"]') ||
-        target.closest('.MuiDataGrid-cellCheckbox') ||
-        target.closest('.MuiCheckbox-root') ||
-        target.closest('button')
+        target.closest('[data-um-actions]') ||
+        target.closest('button') ||
+        target.closest('[role="checkbox"]')
       ) {
         return
       }
@@ -191,86 +152,12 @@ export function UsersPage() {
     [showMessage]
   )
 
-  const columns: GridColDef<UserRow>[] = useMemo(
-    () => [
-      {
-        field: 'userName',
-        headerName: 'User Name',
-        flex: 1,
-        minWidth: 160,
-        cellClassName: UM_GRID_CELL_PRIMARY,
-      },
-      { field: 'email', headerName: 'Email', flex: 1.2, minWidth: 200, cellClassName: UM_GRID_CELL_MUTED },
-      { field: 'age', headerName: 'Age', width: 80, type: 'number', cellClassName: UM_GRID_CELL_MUTED },
-      {
-        field: 'mobileNumber',
-        headerName: 'Mobile Number',
-        flex: 1,
-        minWidth: 140,
-        cellClassName: UM_GRID_CELL_MUTED,
-      },
-      { field: 'role', headerName: 'Role', flex: 0.9, minWidth: 130, cellClassName: UM_GRID_CELL_MUTED },
-      { field: 'group', headerName: 'Group', flex: 1, minWidth: 140, cellClassName: UM_GRID_CELL_MUTED },
-      { field: 'location', headerName: 'Location', flex: 1, minWidth: 140, cellClassName: UM_GRID_CELL_MUTED },
-      {
-        field: 'status',
-        headerName: 'Status',
-        width: 120,
-        renderCell: (params) => {
-          const status = params.value as UserStatus
-          return (
-            <Badge
-              variant="secondary"
-              className={
-                status === 'Active'
-                  ? 'border-live/30 bg-live/20 text-live'
-                  : status === 'Pending'
-                    ? 'border-warning/30 bg-warning/20 text-warning'
-                    : 'border-border bg-muted/50 text-muted-foreground'
-              }
-            >
-              {status}
-            </Badge>
-          )
-        },
-      },
-      {
-        field: 'actions',
-        headerName: 'Actions',
-        sortable: false,
-        filterable: false,
-        hideable: false,
-        disableColumnMenu: true,
-        width: 96,
-        align: 'right',
-        headerAlign: 'right',
-        renderCell: (params) => (
-          <IconButton
-            size="small"
-            aria-label="Row actions"
-            sx={{ color: 'text.secondary' }}
-            onClick={(e) => {
-              e.stopPropagation()
-              setMenuUser(params.row)
-              setMenuAnchor(e.currentTarget)
-            }}
-          >
-            <MoreVertical className="size-4" />
-          </IconButton>
-        ),
-      },
-    ],
-    []
-  )
-
-  const filterableColumns = useMemo(() => gridColDefsToFilterColumns(columns), [columns])
-
   const bulkDelete = () => {
-    const ids = selectionModel as GridRowId[]
-    setRows((prev) => prev.filter((r) => !ids.includes(r.id)))
-    setSelectionModel([])
+    const idSet = new Set(selectedIds)
+    setRows((prev) => prev.filter((r) => !idSet.has(r.id)))
+    setSelectedIds([])
     setConfirmBulk(false)
-    showMessage(`${ids.length} user(s) removed`, 'info')
+    showMessage(`${idSet.size} user(s) removed`, 'info')
   }
 
   const requestDeleteUser = useCallback((user: UserRow) => {
@@ -281,10 +168,62 @@ export function UsersPage() {
   const confirmDeleteUser = useCallback(() => {
     if (!confirmSingle) return
     setRows((prev) => prev.filter((r) => r.id !== confirmSingle.id))
-    setSelectionModel((prev) => prev.filter((id) => id !== confirmSingle.id))
+    setSelectedIds((prev) => prev.filter((id) => id !== confirmSingle.id))
     showMessage('User deleted', 'info')
     setConfirmSingle(null)
   }, [confirmSingle, showMessage])
+
+  const renderCell = useCallback((row: UserRow, columnId: string) => {
+    switch (columnId) {
+      case 'userName':
+        return <span className="truncate">{row.userName}</span>
+      case 'email':
+        return <span className="truncate">{row.email}</span>
+      case 'age':
+        return row.age
+      case 'mobileNumber':
+        return row.mobileNumber
+      case 'role':
+        return row.role
+      case 'group':
+        return row.group
+      case 'location':
+        return row.location
+      case 'status':
+        return (
+          <Badge
+            variant="secondary"
+            className={
+              row.status === 'Active'
+                ? 'border-live/30 bg-live/20 text-live'
+                : row.status === 'Pending'
+                  ? 'border-warning/30 bg-warning/20 text-warning'
+                  : 'border-border bg-muted/50 text-muted-foreground'
+            }
+          >
+            {row.status}
+          </Badge>
+        )
+      case 'actions':
+        return (
+          <IconButton
+            size="small"
+            aria-label="Row actions"
+            data-um-actions
+            sx={{ color: 'text.secondary' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              setMenuUser(row)
+              setMenuAnchor(e.currentTarget)
+            }}
+          >
+            <MoreVertical className="size-4" />
+          </IconButton>
+        )
+      default:
+        return null
+    }
+  }, [])
 
   return (
     <UserManagementPageShell
@@ -300,79 +239,68 @@ export function UsersPage() {
         </Button>
       }
     >
-      <UserManagementTableToolbar
-        apiRef={apiRef}
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Search users…"
-        filterStorageKey="user-management:users"
-        filterableColumns={filterableColumns}
-        resultCount={filteredRows.length}
-        resultLabel="user"
-        filtersSlot={
-          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
-            <InputLabel id="users-status-filter-label">Status</InputLabel>
-            <Select
-              labelId="users-status-filter-label"
-              label="Status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | UserStatus)}
-            >
-              <MenuItem value="all">All statuses</MenuItem>
-              <MenuItem value="Active">Active</MenuItem>
-              <MenuItem value="Inactive">Inactive</MenuItem>
-              <MenuItem value="Pending">Pending</MenuItem>
-            </Select>
-          </FormControl>
-        }
-      />
+      <ExplorerListTableProvider storageKey="explorer-list-table:users" columns={USER_LIST_COLUMNS}>
+        <UserManagementTableToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search users…"
+          resultCount={filteredRows.length}
+          resultLabel="user"
+          filtersSlot={
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+              <InputLabel id="users-status-filter-label">Status</InputLabel>
+              <Select
+                labelId="users-status-filter-label"
+                label="Status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | UserStatus)}
+              >
+                <MenuItem value="all">All statuses</MenuItem>
+                <MenuItem value="Active">Active</MenuItem>
+                <MenuItem value="Inactive">Inactive</MenuItem>
+                <MenuItem value="Pending">Pending</MenuItem>
+              </Select>
+            </FormControl>
+          }
+        />
 
-      <EnterpriseDataGridSurface className="min-h-[520px]">
-        <DataGrid
-          apiRef={apiRef}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+          {selectedCount > 0 ? (
+            <Button
+              variant="outlined"
+              color="error"
+              size="small"
+              startIcon={<Trash2 className="size-4" />}
+              onClick={() => setConfirmBulk(true)}
+            >
+              Delete selected ({selectedCount})
+            </Button>
+          ) : (
+            <Typography variant="caption" color="text.secondary">
+              Select rows for bulk delete
+            </Typography>
+          )}
+        </Box>
+
+        <UserManagementExplorerTable
           rows={filteredRows}
-          columns={columns}
           loading={loading}
           getRowId={(r) => r.id}
-          {...userManagementDataGridDefaults}
+          getCellValue={getUserRowCellValue}
+          renderCell={renderCell}
+          onRowClick={handleRowClick}
+          primaryColumnId="userName"
           checkboxSelection
-          disableRowSelectionOnClick
-          rowSelectionModel={selectionModel}
-          onRowSelectionModelChange={(m) => setSelectionModel([...m])}
-          onRowClick={(params, event) => handleRowClick(params.row, event)}
-          pageSizeOptions={[5, 10, 25]}
-          initialState={{ pagination: { paginationModel: { pageSize: 10 } } }}
-          slots={{
-            ...userManagementDataGridDefaults.slots,
-            toolbar: () => (
-              <GridToolbarContainer sx={{ px: 2, py: 1.5, gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                {selectedCount > 0 ? (
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    size="small"
-                    startIcon={<Trash2 className="size-4" />}
-                    onClick={() => setConfirmBulk(true)}
-                  >
-                    Delete selected ({selectedCount})
-                  </Button>
-                ) : (
-                  <Typography variant="caption" color="text.secondary">
-                    Select rows for bulk delete
-                  </Typography>
-                )}
-              </GridToolbarContainer>
-            ),
-            noRowsOverlay: () => <NoRowsOverlay emptySearch={Boolean(search) || statusFilter !== 'all'} />,
-          }}
-          sx={{
-            ...userManagementDataGridSx,
-            minHeight: 440,
-            '& .MuiDataGrid-row': { cursor: 'pointer' },
-            '& .MuiDataGrid-cellCheckbox, & [data-field="actions"]': { cursor: 'default' },
-          }}
+          selectedIds={selectedIds}
+          onSelectedIdsChange={setSelectedIds}
+          minHeight={520}
+          emptyMessage={
+            search.trim() || statusFilter !== 'all'
+              ? 'No users match your search or filters.'
+              : 'No users yet. Add a user to populate this directory.'
+          }
         />
-      </EnterpriseDataGridSurface>
+      </ExplorerListTableProvider>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
         <MenuItem
@@ -429,7 +357,6 @@ export function UsersPage() {
             : undefined
         }
       />
-
 
       <ConfirmDialog
         open={confirmBulk}

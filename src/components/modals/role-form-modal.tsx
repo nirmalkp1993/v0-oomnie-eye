@@ -51,6 +51,7 @@ export function RoleFormModal({
   onDeleteRequest,
 }: RoleFormModalProps) {
   const isCreate = mode === 'create'
+  const { isEditing, setIsEditing, readOnly } = useDialogEditMode(open, isCreate)
   const [activeTab, setActiveTab] = useState<RoleFormTab>('details')
   const [matrix, setMatrix] = useState<PermissionMatrix>(() => createEmptyPermissionMatrix())
 

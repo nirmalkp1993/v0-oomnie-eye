@@ -104,6 +104,18 @@ function buildGroupTreeNode(
   return { group, cameras: displayCameras, children: childNodes }
 }
 
+export function findCameraTableGroupNode(
+  nodes: CameraTableGroupNode[],
+  groupId: string
+): CameraTableGroupNode | null {
+  for (const node of nodes) {
+    if (node.group.id === groupId) return node
+    const found = findCameraTableGroupNode(node.children, groupId)
+    if (found) return found
+  }
+  return null
+}
+
 /** Unique cameras listed under this group or any nested subgroup */
 export function collectCameraIdsInGroupSubtree(
   groupId: string,

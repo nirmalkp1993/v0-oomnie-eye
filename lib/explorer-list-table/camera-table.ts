@@ -1,6 +1,9 @@
 import type { CameraTableGroupNode } from '@/lib/camera-store'
 import type { Camera, CameraGroup } from '@/types/camera'
-import { matchesAllExplorerFilters } from '@/lib/explorer-list-table/filter-utils'
+import {
+  hasActiveExplorerFilters,
+  matchesAllExplorerFilters,
+} from '@/lib/explorer-list-table/filter-utils'
 import type { ExplorerFilterItem, ExplorerListColumnDef } from '@/lib/explorer-list-table/types'
 
 export const CAMERA_LIST_COLUMNS: ExplorerListColumnDef[] = [
@@ -13,7 +16,14 @@ export const CAMERA_LIST_COLUMNS: ExplorerListColumnDef[] = [
   { id: 'apiBaseUrl', label: 'API Base URL' },
   { id: 'telnetUsername', label: 'Telnet Username' },
   { id: 'status', label: 'Status' },
-  { id: 'actions', label: 'Actions', hideable: false, filterable: false, headerClassName: 'text-right' },
+  {
+    id: 'actions',
+    label: 'Actions',
+    hideable: false,
+    filterable: false,
+    sortable: false,
+    headerClassName: 'text-right',
+  },
 ]
 
 export function getCameraFilterValues(camera: Camera): Record<string, string> {
@@ -52,9 +62,13 @@ export function getCameraGroupFilterValues(
   }
 }
 
-function cameraMatchesFilters(camera: Camera, filters: ExplorerFilterItem[]): boolean {
+export function cameraMatchesExplorerFilters(camera: Camera, filters: ExplorerFilterItem[]): boolean {
   const values = getCameraFilterValues(camera)
   return matchesAllExplorerFilters(filters, (id) => values[id] ?? '')
+}
+
+function cameraMatchesFilters(camera: Camera, filters: ExplorerFilterItem[]): boolean {
+  return cameraMatchesExplorerFilters(camera, filters)
 }
 
 function groupMatchesFilters(
@@ -64,6 +78,38 @@ function groupMatchesFilters(
 ): boolean {
   const values = getCameraGroupFilterValues(group, itemCount)
   return matchesAllExplorerFilters(filters, (id) => values[id] ?? '')
+}
+
+function groupParentIds(g: CameraGroup): string[] {
+  return g.parentGroupIds ?? []
+}
+
+function cameraGroupIds(c: Camera): string[] {
+  return c.groupIds ?? []
+}
+
+/** Whether a group card should show at the current explorer level when filters are active. */
+export function cameraGroupMatchesExplorerFilters(
+  group: CameraGroup,
+  cameras: Camera[],
+  groups: CameraGroup[],
+  filters: ExplorerFilterItem[],
+  countInSubtree: (groupId: string) => number
+): boolean {
+  if (!hasActiveExplorerFilters(filters)) return true
+  if (groupMatchesFilters(group, countInSubtree(group.id), filters)) return true
+
+  const childGroups = groups.filter((g) => groupParentIds(g).includes(group.id))
+  if (
+    childGroups.some((ch) =>
+      cameraGroupMatchesExplorerFilters(ch, cameras, groups, filters, countInSubtree)
+    )
+  ) {
+    return true
+  }
+
+  const directCameras = cameras.filter((c) => cameraGroupIds(c).includes(group.id))
+  return directCameras.some((c) => cameraMatchesFilters(c, filters))
 }
 
 export function pruneCameraTableTree(
