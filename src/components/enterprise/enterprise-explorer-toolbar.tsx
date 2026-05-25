@@ -100,11 +100,11 @@ export function EnterpriseExplorerToolbar({
             },
           }}
         >
-          <ToggleButton value="card" aria-label="Card view">
-            <ViewModuleIcon sx={{ fontSize: 18 }} />
-          </ToggleButton>
           <ToggleButton value="table" aria-label="Table view">
             <ViewListIcon sx={{ fontSize: 18 }} />
+          </ToggleButton>
+          <ToggleButton value="card" aria-label="Card view">
+            <ViewModuleIcon sx={{ fontSize: 18 }} />
           </ToggleButton>
         </ToggleButtonGroup>
 

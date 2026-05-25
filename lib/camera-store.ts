@@ -210,7 +210,7 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
   recordings: mockRecordings,
   schedules: mockSchedules,
   logs: mockLogs,
-  viewMode: 'card',
+  viewMode: 'table',
   searchQuery: '',
   selectedCamera: null,
   activeTab: 'details',

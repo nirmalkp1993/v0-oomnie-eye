@@ -74,7 +74,7 @@ export const useReportPlacemarkStore = create<ReportPlacemarkStore>((set, get) =
   placemarks: mockReportPlacemarks,
   reportGroups: mockReportGroups,
   searchQuery: '',
-  viewMode: 'card',
+  viewMode: 'table',
   reportCardExplorerStack: [],
 
   isNewRootGroupModalOpen: false,
