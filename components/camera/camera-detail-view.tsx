@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
@@ -16,11 +17,13 @@ import { ScheduleTab } from './tabs/schedule-tab'
 import { CameraLogTab } from './tabs/camera-log-tab'
 import type { CameraTab } from '@/types/camera'
 
-const DETAIL_TABS: { value: CameraTab; label: string; icon: React.ReactElement }[] = [
+const DISABLED_DETAIL_TABS = new Set<CameraTab>(['recording', 'schedule'])
+
+const DETAIL_TABS: { value: CameraTab; label: string; icon: React.ReactElement; disabled?: boolean }[] = [
   { value: 'details', label: 'Camera Details', icon: <InfoOutlinedIcon fontSize="small" /> },
   { value: 'stream', label: 'Stream Configuration', icon: <VideocamOutlinedIcon fontSize="small" /> },
-  { value: 'recording', label: 'Recording', icon: <VideoLibraryOutlinedIcon fontSize="small" /> },
-  { value: 'schedule', label: 'Stream Recording Schedule', icon: <CalendarMonthOutlinedIcon fontSize="small" /> },
+  { value: 'recording', label: 'Recording', icon: <VideoLibraryOutlinedIcon fontSize="small" />, disabled: true },
+  { value: 'schedule', label: 'Stream Recording Schedule', icon: <CalendarMonthOutlinedIcon fontSize="small" />, disabled: true },
   { value: 'logs', label: 'Camera Log', icon: <TerminalOutlinedIcon fontSize="small" /> },
 ]
 
@@ -32,6 +35,12 @@ function statusChipColor(status: string): 'success' | 'warning' | 'error' {
 
 export function CameraDetailView() {
   const { selectedCamera, setSelectedCamera, activeTab, setActiveTab } = useCameraStore()
+
+  useEffect(() => {
+    if (DISABLED_DETAIL_TABS.has(activeTab)) {
+      setActiveTab('details')
+    }
+  }, [activeTab, setActiveTab])
 
   if (!selectedCamera) return null
 

@@ -24,6 +24,7 @@ export interface Camera {
   uniqueIdentifier?: string
   status: 'live' | 'stopped' | 'connecting'
   thumbnail?: string
+  location?: string
   createdAt: Date
   updatedAt: Date
 }

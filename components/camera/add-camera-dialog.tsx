@@ -25,6 +25,7 @@ import type { Camera as CameraType } from '@/types/camera'
 
 const initialFormState = {
   name: '',
+  location: '',
   ip: '',
   type: 'RTSP' as CameraType['type'],
   cameraId: '',
@@ -45,6 +46,7 @@ export function AddCameraDialog() {
     e.preventDefault()
     addCamera({
       name: formData.name,
+      location: formData.location,
       ip: formData.ip,
       type: formData.type,
       cameraId: formData.cameraId,
@@ -104,10 +106,24 @@ export function AddCameraDialog() {
               />
             </div>
 
-            {/* Camera Image */}
+            {/* Camera Location */}
             <div className="space-y-2">
+              <Label htmlFor="location" className="text-accent">
+                Camera location
+              </Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="e.g., Building A, Floor 2"
+                className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
+              />
+            </div>
+
+            {/* Camera Image */}
+            <div className="space-y-2 sm:col-span-2">
               <Label className="text-accent">
-                Camera Image
+                Camera Location Image
               </Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -146,7 +162,7 @@ export function AddCameraDialog() {
                 value={formData.type}
                 onValueChange={(value) => setFormData({ ...formData, type: value as CameraType['type'] })}
               >
-                <SelectTrigger className="border-border bg-input text-foreground">
+                <SelectTrigger className="w-full border-border bg-input text-foreground">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-card">

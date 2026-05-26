@@ -36,6 +36,11 @@ export const enterpriseSettingsTabsSx: SxProps<Theme> = (theme) => ({
           : 'rgba(8, 145, 178, 0.08)',
       fontWeight: 600,
     },
+    '&.Mui-disabled': {
+      opacity: '0.38 !important',
+      color: `${theme.palette.text.disabled} !important`,
+      pointerEvents: 'none',
+    },
   },
   '& .MuiTabs-indicator': {
     height: 3,
@@ -48,6 +53,7 @@ export interface EnterpriseSettingsTabItem {
   value: string
   label: ReactNode
   icon?: ReactElement
+  disabled?: boolean
 }
 
 export interface EnterpriseSettingsTabsProps {
@@ -69,8 +75,8 @@ export function EnterpriseSettingsTabs({
   )
 
   const handleChange = (_: SyntheticEvent, newIndex: number) => {
-    const next = tabs[newIndex]?.value
-    if (next != null) onChange(next)
+    const tab = tabs[newIndex]
+    if (tab?.value != null && !tab.disabled) onChange(tab.value)
   }
 
   return (
@@ -87,6 +93,7 @@ export function EnterpriseSettingsTabs({
         {tabs.map((tab, i) => (
           <Tab
             key={tab.value}
+            disabled={tab.disabled}
             id={`enterprise-settings-tab-${i}`}
             aria-controls={`enterprise-settings-tabpanel-${i}`}
             label={
