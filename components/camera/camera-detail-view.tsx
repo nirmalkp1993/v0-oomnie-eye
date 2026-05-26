@@ -22,8 +22,8 @@ const DISABLED_DETAIL_TABS = new Set<CameraTab>(['recording', 'schedule'])
 const DETAIL_TABS: { value: CameraTab; label: string; icon: React.ReactElement; disabled?: boolean }[] = [
   { value: 'details', label: 'Camera Details', icon: <InfoOutlinedIcon fontSize="small" /> },
   { value: 'stream', label: 'Stream Configuration', icon: <VideocamOutlinedIcon fontSize="small" /> },
-  { value: 'recording', label: 'Recording', icon: <VideoLibraryOutlinedIcon fontSize="small" />, disabled: true },
-  { value: 'schedule', label: 'Stream Recording Schedule', icon: <CalendarMonthOutlinedIcon fontSize="small" />, disabled: true },
+  // { value: 'recording', label: 'Recording', icon: <VideoLibraryOutlinedIcon fontSize="small" />, disabled: true },
+  // { value: 'schedule', label: 'Stream Recording Schedule', icon: <CalendarMonthOutlinedIcon fontSize="small" />, disabled: true },
   { value: 'logs', label: 'Camera Log', icon: <TerminalOutlinedIcon fontSize="small" /> },
 ]
 
