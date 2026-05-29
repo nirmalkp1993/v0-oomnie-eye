@@ -1,11 +1,13 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import CloseIcon from '@mui/icons-material/Close'
 import SearchIcon from '@mui/icons-material/Search'
 import ViewListIcon from '@mui/icons-material/ViewList'
 import ViewModuleIcon from '@mui/icons-material/ViewModule'
 import {
   Box,
+  IconButton,
   InputAdornment,
   TextField,
   ToggleButton,
@@ -14,6 +16,12 @@ import {
 } from '@mui/material'
 import { ExplorerAppliedFiltersBarGate } from '@/components/tables/explorer-applied-filters'
 import { ExplorerListTableControlsGate } from '@/components/tables/explorer-list-table-controls-gate'
+import {
+  myDrawingsSearchFieldSx,
+  myDrawingsToolbarRowSx,
+  myDrawingsToolbarShellSx,
+  myDrawingsViewToggleSx,
+} from '@/src/components/tables/my-drawings-table-styles'
 
 export type ExplorerViewMode = 'card' | 'table'
 
@@ -26,6 +34,10 @@ export interface EnterpriseExplorerToolbarProps {
   viewMode: ExplorerViewMode
   onViewModeChange: (mode: ExplorerViewMode) => void
   trailingActions?: ReactNode
+  /** `drawings` matches dt_timemachine My Drawings toolbar chrome */
+  variant?: 'default' | 'drawings'
+  /** Shown on the left after search (e.g. expand/collapse) when variant is drawings */
+  leadingToolbarActions?: ReactNode
 }
 
 export function EnterpriseExplorerToolbar({
@@ -37,81 +49,132 @@ export function EnterpriseExplorerToolbar({
   viewMode,
   onViewModeChange,
   trailingActions,
+  variant = 'default',
+  leadingToolbarActions,
 }: EnterpriseExplorerToolbarProps) {
+  const isDrawings = variant === 'drawings'
+
+  const searchField = (
+    <TextField
+      size="small"
+      value={searchQuery}
+      onChange={(e) => onSearchChange(e.target.value)}
+      placeholder={searchPlaceholder}
+      slotProps={{
+        input: {
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon fontSize="small" sx={{ color: isDrawings ? '#4A5565' : 'text.secondary' }} />
+            </InputAdornment>
+          ),
+          endAdornment:
+            isDrawings && searchQuery ? (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={() => onSearchChange('')}
+                  aria-label="Clear search"
+                  sx={{ p: '4px' }}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ) : undefined,
+        },
+      }}
+      sx={isDrawings ? myDrawingsSearchFieldSx : { width: { xs: '100%', sm: 280 } }}
+    />
+  )
+
+  const viewToggle = (
+    <ToggleButtonGroup
+      exclusive
+      size="small"
+      value={viewMode}
+      onChange={(_, next) => {
+        if (next === 'card' || next === 'table') onViewModeChange(next)
+      }}
+      aria-label="Toggle view mode"
+      sx={
+        isDrawings
+          ? myDrawingsViewToggleSx
+          : {
+              bgcolor: 'secondary.main',
+              p: 0.5,
+              borderRadius: 2,
+              '& .MuiToggleButton-root': {
+                border: 0,
+                borderRadius: 1.5,
+                px: 1,
+                py: 0.75,
+                color: 'text.secondary',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText',
+                  '&:hover': { bgcolor: 'primary.dark' },
+                },
+              },
+            }
+      }
+    >
+      <ToggleButton value="table" aria-label="Table view" title="List view">
+        <ViewListIcon fontSize="small" />
+      </ToggleButton>
+      <ToggleButton value="card" aria-label="Card view" title="Grid view">
+        <ViewModuleIcon fontSize="small" />
+      </ToggleButton>
+    </ToggleButtonGroup>
+  )
+
+  if (isDrawings) {
+    return (
+      <Box sx={myDrawingsToolbarShellSx}>
+        <Box sx={myDrawingsToolbarRowSx}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+            {searchField}
+            {leadingToolbarActions}
+            <ExplorerListTableControlsGate showColumns={viewMode === 'table'} variant="drawings" />
+            {viewToggle}
+          </Box>
+          {trailingActions ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+              {trailingActions}
+            </Box>
+          ) : null}
+        </Box>
+        <Box sx={{ ...myDrawingsToolbarRowSx, py: 0.5, minHeight: 0, borderTop: 0 }}>
+          <ExplorerAppliedFiltersBarGate variant="drawings" />
+        </Box>
+      </Box>
+    )
+  }
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: { xs: 'column', sm: 'row' },
-        alignItems: { sm: 'center' },
-        justifyContent: 'space-between',
-        gap: 2,
-      }}
-    >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <TextField
-          size="small"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={searchPlaceholder}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={{ width: { xs: '100%', sm: 280 } }}
-        />
-        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-          {resultCount} {resultLabel}
-          {resultCount !== 1 ? 's' : ''}
-        </Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { sm: 'center' },
+          justifyContent: 'space-between',
+          gap: 2,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {searchField}
+          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+            {resultCount} {resultLabel}
+            {resultCount !== 1 ? 's' : ''}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+          <ExplorerListTableControlsGate showColumns={viewMode === 'table'} />
+          {viewToggle}
+          {trailingActions}
+        </Box>
       </Box>
-
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
-        <ExplorerListTableControlsGate showColumns={viewMode === 'table'} />
-
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          value={viewMode}
-          onChange={(_, next) => {
-            if (next === 'card' || next === 'table') onViewModeChange(next)
-          }}
-          sx={{
-            bgcolor: 'secondary.main',
-            p: 0.5,
-            borderRadius: 2,
-            '& .MuiToggleButton-root': {
-              border: 0,
-              borderRadius: 1.5,
-              px: 1,
-              py: 0.75,
-              color: 'text.secondary',
-              '&.Mui-selected': {
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                '&:hover': { bgcolor: 'primary.dark' },
-              },
-            },
-          }}
-        >
-          <ToggleButton value="table" aria-label="Table view">
-            <ViewListIcon sx={{ fontSize: 18 }} />
-          </ToggleButton>
-          <ToggleButton value="card" aria-label="Card view">
-            <ViewModuleIcon sx={{ fontSize: 18 }} />
-          </ToggleButton>
-        </ToggleButtonGroup>
-
-        {trailingActions}
-      </Box>
-    </Box>
-    <ExplorerAppliedFiltersBarGate />
+      <ExplorerAppliedFiltersBarGate />
     </Box>
   )
 }

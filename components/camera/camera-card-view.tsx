@@ -1,21 +1,18 @@
 'use client'
 
 import Image from 'next/image'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Box,
   Breadcrumbs,
   Card,
-  CardContent,
-  Chip,
-  IconButton,
   Link,
+  Tooltip,
   Typography,
 } from '@mui/material'
-import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
-import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import FolderIcon from '@mui/icons-material/Folder'
+import FolderOpenIcon from '@mui/icons-material/FolderOpen'
+import HomeIcon from '@mui/icons-material/Home'
 import MonitorOutlinedIcon from '@mui/icons-material/MonitorOutlined'
 import {
   countCamerasInGroupSubtree,
@@ -25,7 +22,20 @@ import {
 import { applyCameraListFilters } from '@/lib/explorer-list-table/camera-table'
 import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
 import type { Camera, CameraGroup } from '@/types/camera'
-import { enterpriseExplorerTileSx } from '@/src/components/enterprise'
+import {
+  MY_DRAWINGS_GRID,
+  myDrawingsBreadcrumbCurrentSx,
+  myDrawingsBreadcrumbLinkSx,
+  myDrawingsBreadcrumbsSx,
+  myDrawingsGridCardSx,
+  myDrawingsGridContainerSx,
+  myDrawingsGridItemSx,
+  myDrawingsGridMetaSx,
+  myDrawingsGridNameSx,
+  myDrawingsGridThumbSx,
+  myDrawingsGridWrapSx,
+} from '@/src/components/tables/my-drawings-table-styles'
+import { MyDrawingsGridCardChrome } from '@/src/components/tables/my-drawings-grid-card-chrome'
 
 function camGroupIds(c: Camera): string[] {
   return c.groupIds ?? []
@@ -41,16 +51,10 @@ function directChildCount(folderId: string, groups: CameraGroup[], cameras: Came
   return subfolders + cams
 }
 
-function statusChipColor(status: Camera['status']): 'success' | 'warning' | 'error' {
-  if (status === 'live') return 'success'
-  if (status === 'connecting') return 'warning'
-  return 'error'
-}
-
 function statusLabel(status: Camera['status']): string {
-  if (status === 'live') return 'LIVE'
-  if (status === 'connecting') return 'CONNECTING'
-  return 'STOPPED'
+  if (status === 'live') return 'Live'
+  if (status === 'connecting') return 'Connecting'
+  return 'Stopped'
 }
 
 export function CameraCardView() {
@@ -64,11 +68,13 @@ export function CameraCardView() {
   const setSelectedCamera = useCameraStore((s) => s.setSelectedCamera)
 
   const { filters } = useExplorerListTable()
+  const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null)
 
   const currentFolderId =
     cardExplorerStack.length > 0 ? cardExplorerStack[cardExplorerStack.length - 1] : null
 
-  const displayLevel = cardExplorerStack.length + 1
+  const folderDepth = cardExplorerStack.length
+  const displayLevel = folderDepth + 1
 
   const { folderCards, cameraCards } = useMemo(() => {
     const raw = getCameraTableTree()
@@ -100,276 +106,225 @@ export function CameraCardView() {
   const totalItems = folderCards.length + cameraCards.length
 
   const breadcrumbItems = useMemo(() => {
-    const items: { label: string; index: number }[] = [{ label: 'Root', index: 0 }]
+    const items: { label: string; index: number; isRoot: boolean }[] = [
+      { label: 'Root', index: 0, isRoot: true },
+    ]
     cardExplorerStack.forEach((id, i) => {
       const g = cameraGroups.find((x) => x.id === id)
-      items.push({ label: g?.name ?? id, index: i + 1 })
+      items.push({ label: g?.name ?? id, index: i + 1, isRoot: false })
     })
     return items
   }, [cardExplorerStack, cameraGroups])
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Breadcrumbs
-        separator={<ChevronRightIcon sx={{ fontSize: 14, color: 'text.secondary' }} />}
-        sx={{
-          px: 1.5,
-          py: 1,
-          borderRadius: 1,
-          border: 1,
-          borderColor: 'divider',
-          bgcolor: 'action.hover',
-        }}
-      >
-        {breadcrumbItems.map((item, i) => {
-          const isLast = i === breadcrumbItems.length - 1
-          if (isLast) {
-            return (
-              <Typography
-                key={`${item.label}-${i}`}
-                variant="body2"
-                fontWeight={600}
-                color="text.primary"
-                noWrap
-                sx={{ maxWidth: { xs: 200, sm: 320 } }}
-              >
-                {item.label}
-              </Typography>
-            )
-          }
-          return (
-            <Link
-              key={`${item.label}-${i}`}
-              component="button"
-              type="button"
-              variant="body2"
-              underline="hover"
-              color="text.secondary"
-              onClick={() => navigateCardExplorerToSegmentIndex(item.index)}
-              sx={{ maxWidth: { xs: 160, sm: 240 }, overflow: 'hidden', textOverflow: 'ellipsis' }}
-            >
-              {item.label}
-            </Link>
-          )
-        })}
-      </Breadcrumbs>
-
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: 'repeat(2, 1fr)',
-            sm: 'repeat(3, 1fr)',
-            md: 'repeat(4, 1fr)',
-            lg: 'repeat(5, 1fr)',
-            xl: 'repeat(6, 1fr)',
-          },
-          gap: 1.5,
-        }}
-      >
-        {folderCards.map((group) => {
-          const n = directChildCount(group.id, cameraGroups, cameras)
-          return (
-            <Card
-              key={group.id}
-              elevation={0}
-              role="button"
-              tabIndex={0}
-              onClick={() => pushCardExplorerFolder(group.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  pushCardExplorerFolder(group.id)
-                }
-              }}
-              sx={enterpriseExplorerTileSx}
-            >
-              <Box
-                sx={{
-                  position: 'relative',
-                  display: 'flex',
-                  height: 96,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: (theme) =>
-                    `linear-gradient(180deg, ${theme.palette.action.hover} 0%, ${theme.palette.background.default} 100%)`,
-                }}
-              >
-                <Box sx={{ position: 'absolute', left: 8, top: 8, display: 'flex', gap: 0.5 }}>
-                  <Chip label={`L${displayLevel}`} size="small" color="warning" sx={{ height: 20, fontSize: 10, fontWeight: 700 }} />
-                  <Box
-                    sx={{
-                      width: 20,
-                      height: 20,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '50%',
-                      border: 1,
-                      borderColor: 'divider',
-                      bgcolor: 'background.paper',
-                    }}
-                  >
-                    <ExpandMoreIcon sx={{ fontSize: 12, color: 'text.secondary' }} />
-                  </Box>
-                </Box>
-                <VideocamOutlinedIcon sx={{ fontSize: 44, color: 'primary.main' }} />
-              </Box>
-              <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 }, borderTop: 1, borderColor: 'divider' }}>
-                <Typography variant="subtitle2" fontWeight={600} noWrap title={group.name}>
-                  {group.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {n} item{n === 1 ? '' : 's'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: 11 }}>
-                  Type: group
-                </Typography>
-                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, borderTop: 1, borderColor: 'divider', pt: 1 }}>
-                  <Box
-                    sx={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: '50%',
-                      bgcolor: 'primary.main',
-                      color: 'primary.contrastText',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 10,
-                      fontWeight: 700,
-                    }}
-                  >
-                    G
-                  </Box>
-                  <Typography variant="caption" color="text.secondary" noWrap>
-                    Camera group
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          )
-        })}
-
-        {cameraCards.map((camera) => (
-          <Card
-            key={camera.id}
-            elevation={0}
-            sx={enterpriseExplorerTileSx}
-            onClick={() => setSelectedCamera(camera)}
-          >
-            <Box sx={{ position: 'relative', height: { xs: 80, sm: 96 }, overflow: 'hidden', cursor: 'pointer' }}>
-              <Box sx={{ position: 'absolute', left: 8, top: 8, zIndex: 2, display: 'flex', gap: 0.5 }}>
-                <Chip label={`L${displayLevel}`} size="small" color="warning" sx={{ height: 20, fontSize: 10, fontWeight: 700 }} />
-              </Box>
-              {camera.thumbnail ? (
-                <Image src={camera.thumbnail} alt={camera.name} fill className="object-cover" />
-              ) : (
-                <Box sx={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', bgcolor: 'action.hover' }}>
-                  <MonitorOutlinedIcon sx={{ fontSize: 36, color: 'text.disabled' }} />
-                </Box>
-              )}
-              <Chip
-                label={statusLabel(camera.status)}
-                size="small"
-                color={statusChipColor(camera.status)}
-                sx={{
-                  position: 'absolute',
-                  right: 8,
-                  top: 8,
-                  zIndex: 2,
-                  height: 18,
-                  fontSize: 9,
-                  fontWeight: 700,
-                }}
-              />
-              <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.75))' }} />
-              <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2, p: 1 }}>
-                <Typography variant="caption" fontWeight={600} color="common.white" noWrap>
-                  {camera.name}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)', fontSize: 10 }} noWrap>
-                  {camera.ip}
-                </Typography>
-              </Box>
-            </Box>
-            <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography variant="subtitle2" fontWeight={600} noWrap>
-                {camera.name}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Items —
-              </Typography>
-              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: 11 }}>
-                Type: camera
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pt: 0.5 }}>
-                <Chip label={camera.type} size="small" variant="outlined" sx={{ height: 20, fontSize: 10, borderColor: 'primary.light', color: 'primary.main' }} />
-                <IconButton
-                  size="small"
-                  aria-label="Camera settings"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedCamera(camera)
-                  }}
-                  sx={{ color: 'text.secondary' }}
-                >
-                  <SettingsOutlinedIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Box>
-              <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, borderTop: 1, borderColor: 'divider', pt: 1 }}>
-                <Box
+    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+      <Box sx={{ px: 1, pt: 0.5, pb: 1 }}>
+        <Breadcrumbs aria-label="breadcrumb" separator="›" sx={myDrawingsBreadcrumbsSx}>
+          {breadcrumbItems.map((item, i) => {
+            const isLast = i === breadcrumbItems.length - 1
+            if (isLast) {
+              return (
+                <Typography
+                  key={`${item.label}-${i}`}
+                  variant="body2"
+                  noWrap
+                  title={item.label}
                   sx={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    bgcolor: 'secondary.main',
-                    color: 'text.primary',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 10,
-                    fontWeight: 700,
+                    ...myDrawingsBreadcrumbCurrentSx,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: 300,
+                    ...(item.isRoot && { gap: 0.5 }),
                   }}
                 >
-                  C
-                </Box>
-                <Typography variant="caption" color="text.secondary">
-                  Camera
+                  {item.isRoot && <HomeIcon sx={{ fontSize: 20, flexShrink: 0 }} />}
+                  {item.label}
                 </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        ))}
+              )
+            }
+            return (
+              <Link
+                key={`${item.label}-${i}`}
+                component="button"
+                type="button"
+                variant="body2"
+                underline={item.isRoot ? 'none' : 'hover'}
+                title={item.label}
+                onClick={() => navigateCardExplorerToSegmentIndex(item.index)}
+                sx={
+                  item.isRoot
+                    ? {
+                        ...myDrawingsBreadcrumbCurrentSx,
+                        cursor: 'pointer',
+                        textDecoration: 'none',
+                        maxWidth: 200,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        '&:hover': {
+                          color: MY_DRAWINGS_GRID.textPrimary,
+                          bgcolor: 'transparent',
+                        },
+                      }
+                    : myDrawingsBreadcrumbLinkSx
+                }
+              >
+                {item.isRoot && <HomeIcon sx={{ fontSize: 20, flexShrink: 0 }} />}
+                {item.label}
+              </Link>
+            )
+          })}
+        </Breadcrumbs>
       </Box>
 
-      {totalItems === 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            height: 176,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 2,
-            border: 1,
-            borderStyle: 'dashed',
-            borderColor: 'divider',
-            bgcolor: 'action.hover',
-          }}
-        >
-          <Box sx={{ textAlign: 'center' }}>
-            <VideocamOutlinedIcon sx={{ fontSize: 36, color: 'text.disabled' }} />
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              This folder is empty
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {searchQuery.trim()
-                ? 'No groups or cameras match your search here.'
-                : 'Open another folder from the path above or add cameras and groups.'}
+      <Box sx={myDrawingsGridContainerSx}>
+        <Box sx={myDrawingsGridWrapSx}>
+          {folderCards.map((group) => {
+            const n = directChildCount(group.id, cameraGroups, cameras)
+            const isHovered = hoveredFolderId === group.id
+            return (
+              <Box key={group.id} sx={myDrawingsGridItemSx(folderDepth)}>
+                <Card
+                  elevation={0}
+                  role="button"
+                  tabIndex={0}
+                  onMouseEnter={() => setHoveredFolderId(group.id)}
+                  onMouseLeave={() => setHoveredFolderId(null)}
+                  onClick={() => pushCardExplorerFolder(group.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      pushCardExplorerFolder(group.id)
+                    }
+                  }}
+                  sx={myDrawingsGridCardSx({ depth: folderDepth })}
+                >
+                  <MyDrawingsGridCardChrome
+                    level={displayLevel}
+                    isFolder
+                    folderLabel={group.name}
+                    onFolderOpen={() => pushCardExplorerFolder(group.id)}
+                  />
+
+                  <Box
+                    sx={{
+                      p: '24px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      height: '100%',
+                    }}
+                  >
+                    <Box sx={myDrawingsGridThumbSx}>
+                      {isHovered ? (
+                        <FolderOpenIcon sx={{ fontSize: 120, color: '#2932E5' }} />
+                      ) : (
+                        <FolderIcon sx={{ fontSize: 120, color: '#4A5565' }} />
+                      )}
+                    </Box>
+
+                    <Tooltip title={group.name} placement="top">
+                      <span style={{ display: 'inline-flex', width: '100%' }}>
+                        <Typography variant="body2" sx={myDrawingsGridNameSx}>
+                          {group.name}
+                        </Typography>
+                      </span>
+                    </Tooltip>
+
+                    <Typography variant="caption" sx={myDrawingsGridMetaSx}>
+                      {n} item{n === 1 ? '' : 's'}
+                    </Typography>
+                  </Box>
+                </Card>
+              </Box>
+            )
+          })}
+
+          {cameraCards.map((camera) => (
+            <Box key={camera.id} sx={myDrawingsGridItemSx(folderDepth)}>
+              <Card
+                elevation={0}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedCamera(camera)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setSelectedCamera(camera)
+                  }
+                }}
+                sx={myDrawingsGridCardSx({ depth: folderDepth })}
+              >
+                <MyDrawingsGridCardChrome level={displayLevel} />
+
+                <Box
+                  sx={{
+                    p: '24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    height: '100%',
+                  }}
+                >
+                  <Box sx={{ ...myDrawingsGridThumbSx, position: 'relative' }}>
+                    {camera.thumbnail ? (
+                      <Image
+                        src={camera.thumbnail}
+                        alt={camera.name}
+                        width={200}
+                        height={200}
+                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                      />
+                    ) : (
+                      <MonitorOutlinedIcon sx={{ fontSize: 64, color: '#4A5565' }} />
+                    )}
+                  </Box>
+
+                  <Tooltip title={camera.name} placement="top">
+                    <span style={{ display: 'inline-flex', width: '100%' }}>
+                      <Typography variant="body2" sx={myDrawingsGridNameSx}>
+                        {camera.name}
+                      </Typography>
+                    </span>
+                  </Tooltip>
+
+                  <Typography variant="caption" sx={myDrawingsGridMetaSx}>
+                    {statusLabel(camera.status)}
+                    {camera.ip ? ` · ${camera.ip}` : ''}
+                  </Typography>
+                </Box>
+              </Card>
+            </Box>
+          ))}
+        </Box>
+
+        {totalItems === 0 && (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
+              height: '100%',
+              width: '100%',
+              py: 6,
+            }}
+          >
+            <FolderIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
+            <Typography
+              variant="body1"
+              sx={{
+                color: '#4A5565',
+                fontFamily: 'Roboto, sans-serif',
+              }}
+            >
+              {searchQuery.trim() ? 'No cameras found' : 'This folder is empty'}
             </Typography>
           </Box>
-        </Box>
-      )}
+        )}
+      </Box>
     </Box>
   )
 }

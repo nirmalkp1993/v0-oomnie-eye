@@ -5,6 +5,8 @@ import { useCameraStore } from '@/lib/camera-store'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Box } from '@mui/material'
+import { PlacemarkSettingsCard } from '@/src/components/earth/placemark-card/placemark-settings-card'
 import { cn } from '@/lib/utils'
 import {
   Trash2,
@@ -139,25 +141,14 @@ export function CameraLogTab() {
   if (!selectedCamera) return null
 
   return (
-    <div className="space-y-5">
-      {/* Diagnostic Tools */}
-      <section className="rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex gap-3 border-b border-border bg-primary/5 p-5">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-            <Terminal className="size-5" />
-          </div>
-
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-accent">
-              Camera Diagnostic Tools
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Run diagnostics and maintenance actions for the selected camera
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-3 p-5">
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <PlacemarkSettingsCard
+        title="Camera Diagnostic Tools"
+        tooltip="Run diagnostics and maintenance actions for the selected camera"
+        headerIcon={<Terminal className="size-10" />}
+        accentColor="#0288d1"
+      >
+        <div className="flex flex-wrap gap-3">
           {diagnosticTools.map((tool) => {
             const Icon = tool.icon
 
@@ -175,58 +166,42 @@ export function CameraLogTab() {
             )
           })}
         </div>
-      </section>
+      </PlacemarkSettingsCard>
 
-      {/* Console Output */}
-      <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        {/* Header */}
-        <div className="border-b border-border bg-primary/5 px-5 py-4">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-                <Activity className="size-5" />
-              </div>
+      <PlacemarkSettingsCard
+        title="Console Output"
+        tooltip="Live diagnostic logs and camera system activity"
+        headerIcon={<Activity className="size-10" />}
+        accentColor="#1976d2"
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Badge
+              variant="outline"
+              className="rounded-lg border-border/60 bg-background px-3 py-2"
+            >
+              <Wifi className="mr-2 size-4 text-emerald-400" />
+              Network Connected
+            </Badge>
 
-              <div className="space-y-1">
-                <h2 className="text-lg font-semibold text-accent">
-                  Console Output
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Live diagnostic logs and camera system activity
-                </p>
-              </div>
-            </div>
+            <Badge
+              variant="outline"
+              className="rounded-lg border-border/60 bg-background px-3 py-2"
+            >
+              <PlayCircle className="mr-2 size-4 text-sky-400" />
+              FFmpeg Ready
+            </Badge>
 
-            <div className="flex flex-wrap gap-2">
-              <Badge
-                variant="outline"
-                className="rounded-lg border-border/60 bg-background px-3 py-2"
-              >
-                <Wifi className="mr-2 size-4 text-emerald-400" />
-                Network Connected
-              </Badge>
-
-              <Badge
-                variant="outline"
-                className="rounded-lg border-border/60 bg-background px-3 py-2"
-              >
-                <PlayCircle className="mr-2 size-4 text-sky-400" />
-                FFmpeg Ready
-              </Badge>
-
-              <Badge
-                variant="outline"
-                className="rounded-lg border-border/60 bg-background px-3 py-2"
-              >
-                <Power className="mr-2 size-4 text-amber-400" />
-                Uptime 12h 34m
-              </Badge>
-            </div>
+            <Badge
+              variant="outline"
+              className="rounded-lg border-border/60 bg-background px-3 py-2"
+            >
+              <Power className="mr-2 size-4 text-amber-400" />
+              Uptime 12h 34m
+            </Badge>
           </div>
-        </div>
-
-        {/* Terminal */}
-        <div className="overflow-hidden border-t border-black/50 bg-[#0a0a0a]">
+        }
+      >
+        <div className="overflow-hidden rounded-lg border border-black/50 bg-[#0a0a0a]">
           <div className="flex items-center gap-3 border-b border-white/5 bg-[#161616] px-4 py-2">
             <div className="flex gap-1.5">
               <span className="size-2.5 rounded-full bg-[#ff5f57]" aria-hidden />
@@ -291,7 +266,7 @@ export function CameraLogTab() {
             </div>
           </ScrollArea>
         </div>
-      </section>
-    </div>
+      </PlacemarkSettingsCard>
+    </Box>
   )
 }

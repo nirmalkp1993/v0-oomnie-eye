@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo } from 'react'
 import {
   useCameraStore,
   countCamerasInGroupSubtree,
@@ -8,32 +8,34 @@ import {
 } from '@/lib/camera-store'
 import type { Camera, CameraGroup } from '@/types/camera'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
-  Trash2,
-  Settings,
-  Play,
-  Square,
-  ChevronRight,
-  ChevronDown,
-  Folder,
-  Video,
-  FolderPlus,
-  Camera as CameraIcon,
-} from 'lucide-react'
+  Box,
+  IconButton,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import FolderIcon from '@mui/icons-material/Folder'
+import FolderOpenIcon from '@mui/icons-material/FolderOpen'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import StopIcon from '@mui/icons-material/Stop'
+import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight'
+import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
+import { FolderPlus, Camera as CameraIconLucide } from 'lucide-react'
 import { ExplorerTableHeaderRow } from '@/components/tables/explorer-table-header-row'
 import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
 import {
@@ -42,11 +44,20 @@ import {
   getCameraGroupFilterValues,
 } from '@/lib/explorer-list-table/camera-table'
 import { getSortedTreeSiblings } from '@/lib/explorer-list-table/tree-sort'
-import { cn } from '@/lib/utils'
-import { Box, Paper } from '@mui/material'
 import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
+import { MyDrawingsTreeDepthIndicators } from '@/src/components/tables/my-drawings-tree-depth-indicators'
+import {
+  MY_DRAWINGS_TABLE,
+  myDrawingsBodyPrimaryTypographySx,
+  myDrawingsBodyRowSx,
+  myDrawingsBodySecondaryTypographySx,
+  myDrawingsTableBodySx,
+  myDrawingsTableCellSx,
+  myDrawingsTableHeadSx,
+  myDrawingsTableSx,
+} from '@/src/components/tables/my-drawings-table-styles'
 
-const CELL_DASH = '-'
+const CELL_DASH = '—'
 
 function collectAllGroupIds(nodes: CameraTableGroupNode[]): string[] {
   const ids: string[] = []
@@ -58,8 +69,44 @@ function collectAllGroupIds(nodes: CameraTableGroupNode[]): string[] {
   return ids
 }
 
-function nameIndent(depth: number) {
-  return depth > 0 ? { marginLeft: 8 + depth * 16 } : undefined
+function NameCellShell({
+  depth,
+  isFolder = false,
+  children,
+}: {
+  depth: number
+  isFolder?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1,
+        pl: depth > 0 ? `${depth * 24}px` : 0,
+        position: 'relative',
+        minWidth: 0,
+      }}
+    >
+      <MyDrawingsTreeDepthIndicators depth={depth} isFolder={isFolder} />
+      {children}
+    </Box>
+  )
+}
+
+function SecondaryCellText({ children }: { children: React.ReactNode }) {
+  return (
+    <Typography variant="body2" noWrap sx={myDrawingsBodySecondaryTypographySx}>
+      {children}
+    </Typography>
+  )
+}
+
+function statusColor(status: Camera['status']): string {
+  if (status === 'live') return '#16a34a'
+  if (status === 'connecting') return '#ed6c02'
+  return '#6b7280'
 }
 
 export function CameraListView() {
@@ -72,15 +119,15 @@ export function CameraListView() {
 
   const rawTree = useMemo(
     () => getCameraTableTree(),
-    [getCameraTableTree, cameras, cameraGroups, searchQuery]
+    [getCameraTableTree, cameras, cameraGroups, searchQuery],
   )
 
   const { rootTrees, rootCameras } = useMemo(
     () =>
       applyCameraListFilters(rawTree.rootTrees, rawTree.rootCameras, filters, (groupId) =>
-        countCamerasInGroupSubtree(groupId, cameras, cameraGroups)
+        countCamerasInGroupSubtree(groupId, cameras, cameraGroups),
       ),
-    [rawTree, filters, cameras, cameraGroups]
+    [rawTree, filters, cameras, cameraGroups],
   )
 
   const getSortedSiblings = useCallback(
@@ -95,9 +142,9 @@ export function CameraListView() {
             ? (getCameraGroupFilterValues(node.group, count)[sort.columnId] ?? '')
             : ''
         },
-        (c) => (sort ? (getCameraFilterValues(c)[sort.columnId] ?? '') : '')
+        (c) => (sort ? (getCameraFilterValues(c)[sort.columnId] ?? '') : ''),
       ),
-    [sort, cameras, cameraGroups]
+    [sort, cameras, cameraGroups],
   )
 
   const setSelectedCamera = useCameraStore((s) => s.setSelectedCamera)
@@ -108,25 +155,26 @@ export function CameraListView() {
   const setSubgroupModalParentId = useCameraStore((s) => s.setSubgroupModalParentId)
   const setAddCamerasModalGroupId = useCameraStore((s) => s.setAddCamerasModalGroupId)
   const updateCamera = useCameraStore((s) => s.updateCamera)
-
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const listGroupExpanded = useCameraStore((s) => s.listGroupExpanded)
+  const toggleListGroupExpanded = useCameraStore((s) => s.toggleListGroupExpanded)
 
   const colSpan = visibleColumns.length
 
   useEffect(() => {
     if (!searchQuery.trim()) return
-    setExpanded((prev) => {
-      const next = { ...prev }
-      for (const id of collectAllGroupIds(rootTrees)) {
-        next[id] = true
-      }
-      return next
-    })
+    const { listGroupExpanded: expanded, setListGroupExpanded: setExpanded } =
+      useCameraStore.getState()
+    for (const id of collectAllGroupIds(rootTrees)) {
+      if (!expanded[id]) setExpanded(id, true)
+    }
   }, [searchQuery, rootTrees])
 
-  const toggleGroup = useCallback((groupId: string) => {
-    setExpanded((prev) => ({ ...prev, [groupId]: !prev[groupId] }))
-  }, [])
+  const toggleGroup = useCallback(
+    (groupId: string) => {
+      toggleListGroupExpanded(groupId)
+    },
+    [toggleListGroupExpanded],
+  )
 
   const handleDeleteCamera = (camera: Camera, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -151,121 +199,126 @@ export function CameraListView() {
     switch (columnId) {
       case 'name':
         return (
-          <TableCell key={columnId} className="font-medium text-foreground">
-            <div
-              className={cn(
-                'flex items-center gap-2 pl-1',
-                depth > 0 && 'border-l border-border pl-3'
-              )}
-              style={nameIndent(depth)}
-            >
-              <Video className="size-4 shrink-0 text-muted-foreground" />
-              {camera.name}
-            </div>
+          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+            <NameCellShell depth={depth}>
+              <Box
+                sx={{
+                  width: 28,
+                  minWidth: 28,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <SubdirectoryArrowRightIcon sx={{ fontSize: 14, color: MY_DRAWINGS_TABLE.border }} />
+              </Box>
+              <VideocamOutlinedIcon
+                sx={{ fontSize: 20, color: MY_DRAWINGS_TABLE.folderClosed, flexShrink: 0 }}
+              />
+              <Typography variant="body2" noWrap sx={myDrawingsBodyPrimaryTypographySx}>
+                {camera.name}
+              </Typography>
+            </NameCellShell>
           </TableCell>
         )
       case 'ip':
+      case 'cameraId':
+      case 'port':
+      case 'telnetUsername':
         return (
-          <TableCell key={columnId} className="text-muted-foreground">
-            {camera.ip}
+          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+            <SecondaryCellText>
+              {columnId === 'ip'
+                ? camera.ip
+                : columnId === 'cameraId'
+                  ? camera.cameraId
+                  : columnId === 'port'
+                    ? camera.port
+                    : camera.telnetUsername}
+            </SecondaryCellText>
           </TableCell>
         )
       case 'items':
         return (
-          <TableCell key={columnId} className="text-center text-muted-foreground">
-            {CELL_DASH}
+          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+            <SecondaryCellText>{CELL_DASH}</SecondaryCellText>
           </TableCell>
         )
       case 'type':
         return (
-          <TableCell key={columnId} className="text-muted-foreground">
-            camera
-          </TableCell>
-        )
-      case 'cameraId':
-        return (
-          <TableCell key={columnId} className="text-muted-foreground">
-            {camera.cameraId}
-          </TableCell>
-        )
-      case 'port':
-        return (
-          <TableCell key={columnId} className="text-muted-foreground">
-            {camera.port}
+          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+            <SecondaryCellText>camera</SecondaryCellText>
           </TableCell>
         )
       case 'apiBaseUrl':
         return (
-          <TableCell
-            key={columnId}
-            className="max-w-[200px] truncate font-mono text-xs text-muted-foreground"
-          >
-            {camera.apiBaseUrl}
-          </TableCell>
-        )
-      case 'telnetUsername':
-        return (
-          <TableCell key={columnId} className="text-muted-foreground">
-            {camera.telnetUsername}
+          <TableCell key={columnId} sx={{ ...myDrawingsTableCellSx, maxWidth: 200 }}>
+            <Typography
+              variant="body2"
+              noWrap
+              sx={{
+                ...myDrawingsBodySecondaryTypographySx,
+                fontFamily: 'Roboto Mono, monospace',
+                fontSize: '12px',
+              }}
+            >
+              {camera.apiBaseUrl}
+            </Typography>
           </TableCell>
         )
       case 'status':
         return (
-          <TableCell key={columnId}>
-            <Badge
-              variant="secondary"
-              className={
-                camera.status === 'live'
-                  ? 'border-live/30 bg-live/20 text-live'
-                  : camera.status === 'connecting'
-                    ? 'border-warning/30 bg-warning/20 text-warning'
-                    : 'border-stopped/30 bg-stopped/20 text-stopped'
-              }
+          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontFamily: 'Roboto, sans-serif',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: statusColor(camera.status),
+              }}
             >
               {camera.status === 'live'
                 ? 'LIVE'
                 : camera.status === 'connecting'
                   ? 'CONNECTING'
                   : 'STOPPED'}
-            </Badge>
+            </Typography>
           </TableCell>
         )
       case 'actions':
         return (
-          <TableCell key={columnId} className="text-right">
-            <div className="flex items-center justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="icon-sm"
+          <TableCell key={columnId} align="right" sx={{ ...myDrawingsTableCellSx, width: 120, minWidth: 120 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.25 }}>
+              <IconButton
+                size="small"
                 onClick={(e) => toggleStatus(camera, e)}
-                className="text-muted-foreground hover:text-primary"
+                sx={{ color: MY_DRAWINGS_TABLE.folderClosed }}
               >
                 {camera.status === 'live' ? (
-                  <Square className="size-4" />
+                  <StopIcon fontSize="small" />
                 ) : (
-                  <Play className="size-4" />
+                  <PlayArrowIcon fontSize="small" />
                 )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
+              </IconButton>
+              <IconButton
+                size="small"
                 onClick={(e) => {
                   e.stopPropagation()
                   setSelectedCamera(camera)
                 }}
-                className="text-muted-foreground hover:text-primary"
+                sx={{ color: MY_DRAWINGS_TABLE.folderClosed }}
               >
-                <Settings className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
+                <SettingsOutlinedIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                size="small"
                 onClick={(e) => handleDeleteCamera(camera, e)}
-                className="text-muted-foreground hover:text-destructive"
+                sx={{ color: MY_DRAWINGS_TABLE.folderClosed }}
               >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </Box>
           </TableCell>
         )
       default:
@@ -278,79 +331,84 @@ export function CameraListView() {
     node: CameraTableGroupNode,
     depth: number,
     count: number,
-    isOpen: boolean
+    isOpen: boolean,
   ) => {
     switch (columnId) {
       case 'name':
         return (
-          <TableCell key={columnId} className="font-medium text-foreground">
-            <div
-              className={cn(
-                'flex items-center gap-2 pl-1',
-                depth > 0 && 'border-l border-border pl-3'
-              )}
-              style={nameIndent(depth)}
-            >
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+            <NameCellShell depth={depth} isFolder>
+              <IconButton
+                size="small"
                 onClick={(e) => {
                   e.stopPropagation()
                   toggleGroup(node.group.id)
                 }}
+                aria-label={isOpen ? `Collapse ${node.group.name}` : `Expand ${node.group.name}`}
+                sx={{
+                  width: 28,
+                  minWidth: 28,
+                  maxWidth: 28,
+                  height: 28,
+                  p: 0.25,
+                  mr: 0.5,
+                }}
               >
                 {isOpen ? (
-                  <ChevronDown className="size-4" />
+                  <ExpandMoreIcon fontSize="small" sx={{ color: MY_DRAWINGS_TABLE.folderOpen }} />
                 ) : (
-                  <ChevronRight className="size-4" />
+                  <ChevronRightIcon fontSize="small" sx={{ color: MY_DRAWINGS_TABLE.folderClosed }} />
                 )}
-              </Button>
-              <Folder className="size-4 shrink-0 text-primary" />
-              <span>{node.group.name}</span>
-            </div>
+              </IconButton>
+              {isOpen ? (
+                <FolderOpenIcon sx={{ fontSize: 20, color: MY_DRAWINGS_TABLE.folderOpen, flexShrink: 0 }} />
+              ) : (
+                <FolderIcon sx={{ fontSize: 20, color: MY_DRAWINGS_TABLE.folderClosed, flexShrink: 0 }} />
+              )}
+              <Typography variant="body2" noWrap sx={myDrawingsBodyPrimaryTypographySx}>
+                {node.group.name}
+              </Typography>
+            </NameCellShell>
           </TableCell>
         )
       case 'ip':
-        return (
-          <TableCell key={columnId} className="text-muted-foreground">
-            {CELL_DASH}
-          </TableCell>
-        )
-      case 'items':
-        return (
-          <TableCell key={columnId} className="text-center text-muted-foreground">
-            {count}
-          </TableCell>
-        )
-      case 'type':
-        return (
-          <TableCell key={columnId} className="text-muted-foreground">
-            group
-          </TableCell>
-        )
       case 'cameraId':
       case 'port':
       case 'apiBaseUrl':
       case 'telnetUsername':
       case 'status':
         return (
-          <TableCell key={columnId} className="text-muted-foreground">
-            {CELL_DASH}
+          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+            <SecondaryCellText>{CELL_DASH}</SecondaryCellText>
+          </TableCell>
+        )
+      case 'items':
+        return (
+          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+            <SecondaryCellText>{count}</SecondaryCellText>
+          </TableCell>
+        )
+      case 'type':
+        return (
+          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+            <SecondaryCellText>group</SecondaryCellText>
           </TableCell>
         )
       case 'actions':
         return (
-          <TableCell key={columnId} className="text-right" onClick={(e) => e.stopPropagation()}>
-            <Button
-              variant="ghost"
-              size="icon-sm"
+          <TableCell
+            key={columnId}
+            align="right"
+            sx={{ ...myDrawingsTableCellSx, width: 120, minWidth: 120 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <IconButton
+              size="small"
               onClick={(e) => handleDeleteGroup(node.group, e)}
-              className="text-muted-foreground hover:text-destructive"
+              sx={{ color: MY_DRAWINGS_TABLE.folderClosed }}
             >
-              <Trash2 className="size-4" />
-            </Button>
+              <DeleteOutlineIcon fontSize="small" />
+            </IconButton>
           </TableCell>
         )
       default:
@@ -361,8 +419,9 @@ export function CameraListView() {
   const renderCameraRow = (camera: Camera, depth: number, rowKey: string) => (
     <TableRow
       key={rowKey}
-      className="cursor-pointer border-border hover:bg-primary/5"
+      hover={false}
       onClick={() => setSelectedCamera(camera)}
+      sx={myDrawingsBodyRowSx({ depth })}
     >
       {visibleColumns.map((col) => renderCameraCell(col.id, camera, depth))}
     </TableRow>
@@ -370,7 +429,7 @@ export function CameraListView() {
 
   const renderGroupNode = (node: CameraTableGroupNode, depth: number, pathKey: string): React.ReactNode => {
     const rowKey = pathKey ? `${pathKey}>${node.group.id}` : node.group.id
-    const isOpen = expanded[node.group.id] ?? true
+    const isOpen = listGroupExpanded[node.group.id] ?? true
     const count = countCamerasInGroupSubtree(node.group.id, cameras, cameraGroups)
 
     return (
@@ -378,11 +437,12 @@ export function CameraListView() {
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <TableRow
-              className="cursor-pointer border-border bg-muted/30 hover:bg-muted/50"
+              hover={false}
               onClick={() => toggleGroup(node.group.id)}
+              sx={myDrawingsBodyRowSx({ depth })}
             >
               {visibleColumns.map((col) =>
-                renderGroupCell(col.id, node, depth, count, isOpen)
+                renderGroupCell(col.id, node, depth, count, isOpen),
               )}
             </TableRow>
           </ContextMenuTrigger>
@@ -398,7 +458,7 @@ export function CameraListView() {
               className="cursor-pointer gap-2"
               onSelect={() => setAddCamerasModalGroupId(node.group.id)}
             >
-              <CameraIcon className="size-4" />
+              <CameraIconLucide className="size-4" />
               Add camera
             </ContextMenuItem>
           </ContextMenuContent>
@@ -413,7 +473,7 @@ export function CameraListView() {
               <Fragment key={`${sibling.item.id}@${rowKey}`}>
                 {renderCameraRow(sibling.item, depth + 1, `${sibling.item.id}@${rowKey}`)}
               </Fragment>
-            )
+            ),
           )}
       </Fragment>
     )
@@ -423,33 +483,45 @@ export function CameraListView() {
 
   return (
     <Paper elevation={0} sx={(theme) => ({ overflow: 'hidden', ...getEnterpriseSettingsCardSx(theme) })}>
-      <Box sx={{ overflowX: 'auto' }}>
-      <Table>
-        <TableHeader>
-          <ExplorerTableHeaderRow />
-        </TableHeader>
-        <TableBody>
-          {getSortedSiblings(rootTrees, rootCameras).map((sibling) =>
-            sibling.kind === 'group' ? (
-              <Fragment key={sibling.node.group.id}>
-                {renderGroupNode(sibling.node, 0, '')}
-              </Fragment>
-            ) : (
-              <Fragment key={sibling.item.id}>
-                {renderCameraRow(sibling.item, 0, sibling.item.id)}
-              </Fragment>
-            )
-          )}
-          {isEmpty && (
-            <TableRow>
-              <TableCell colSpan={colSpan} className="h-32 text-center text-muted-foreground">
-                No cameras found. Add a new camera or adjust search and filters.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-      </Box>
+      <TableContainer
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          overflow: 'auto',
+          overflowX: 'auto',
+          overflowY: 'auto',
+          pb: 1,
+          boxSizing: 'border-box',
+        }}
+      >
+        <Table stickyHeader size="small" sx={myDrawingsTableSx}>
+          <TableHead sx={myDrawingsTableHeadSx}>
+            <ExplorerTableHeaderRow variant="drawings" />
+          </TableHead>
+          <TableBody sx={myDrawingsTableBodySx}>
+            {getSortedSiblings(rootTrees, rootCameras).map((sibling) =>
+              sibling.kind === 'group' ? (
+                <Fragment key={sibling.node.group.id}>
+                  {renderGroupNode(sibling.node, 0, '')}
+                </Fragment>
+              ) : (
+                <Fragment key={sibling.item.id}>
+                  {renderCameraRow(sibling.item, 0, sibling.item.id)}
+                </Fragment>
+              ),
+            )}
+            {isEmpty && (
+              <TableRow hover={false}>
+                <TableCell colSpan={colSpan} sx={{ ...myDrawingsTableCellSx, height: 128, textAlign: 'center' }}>
+                  <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
+                    No cameras found. Add a new camera or adjust search and filters.
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Paper>
   )
 }

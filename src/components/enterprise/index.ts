@@ -6,6 +6,7 @@ export {
 } from './enterprise-explorer-toolbar'
 export {
   EnterpriseSettingsTabs,
+  enterprisePageTabsSx,
   enterpriseSettingsTabsSx,
   type EnterpriseSettingsTabItem,
 } from './enterprise-settings-tabs'

@@ -14,11 +14,19 @@ export type AppliedFiltersBarProps = {
   filters: ExplorerFilterItem[]
   onFiltersChange: (filters: ExplorerFilterItem[]) => void
   columns: AppliedFiltersBarColumn[]
+  variant?: 'default' | 'drawings'
 }
 
-export function AppliedFiltersBar({ filters, onFiltersChange, columns }: AppliedFiltersBarProps) {
+export function AppliedFiltersBar({
+  filters,
+  onFiltersChange,
+  columns,
+  variant = 'default',
+}: AppliedFiltersBarProps) {
   const activeFilters = getActiveExplorerFilters(filters)
   if (activeFilters.length === 0) return null
+
+  const isDrawings = variant === 'drawings'
 
   const removeFilter = (id: string) => {
     onFiltersChange(filters.filter((f) => f.id !== id))
@@ -36,9 +44,16 @@ export function AppliedFiltersBar({ filters, onFiltersChange, columns }: Applied
       <Typography
         variant="caption"
         color="text.secondary"
-        sx={{ flexShrink: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}
+        sx={{
+          flexShrink: 0,
+          fontWeight: 600,
+          textTransform: isDrawings ? 'none' : 'uppercase',
+          letterSpacing: isDrawings ? 0 : 0.4,
+          fontFamily: isDrawings ? 'Roboto, sans-serif' : undefined,
+          fontSize: isDrawings ? '12px' : undefined,
+        }}
       >
-        Applied filters
+        {isDrawings ? 'Active filters' : 'Applied filters'}
       </Typography>
       <Box
         sx={{
@@ -69,6 +84,14 @@ export function AppliedFiltersBar({ filters, onFiltersChange, columns }: Applied
               sx={{
                 flexShrink: 0,
                 maxWidth: 280,
+                fontFamily: isDrawings ? 'Roboto, sans-serif' : undefined,
+                fontSize: isDrawings ? '12px' : undefined,
+                bgcolor: isDrawings ? 'rgba(41, 50, 229, 0.08)' : undefined,
+                color: isDrawings ? '#2932E5' : undefined,
+                border: isDrawings ? '1px solid #E5E7EB' : undefined,
+                '& .MuiChip-deleteIcon': {
+                  color: isDrawings ? '#4A5565' : undefined,
+                },
                 '& .MuiChip-label': {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',

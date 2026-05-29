@@ -163,6 +163,13 @@ interface CameraStore {
   cameraToDelete: Camera | null
   groupToDelete: CameraGroup | null
 
+  /** List view: expanded state for group rows (tree) */
+  listGroupExpanded: Record<string, boolean>
+  setListGroupExpanded: (groupId: string, open: boolean) => void
+  toggleListGroupExpanded: (groupId: string) => void
+  expandAllListGroups: () => void
+  collapseAllListGroups: () => void
+
   /** Grid explorer: folder ids from root → current (empty = root) */
   cardExplorerStack: string[]
   pushCardExplorerFolder: (groupId: string) => void
@@ -222,6 +229,7 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
   isDeleteGroupDialogOpen: false,
   cameraToDelete: null,
   groupToDelete: null,
+  listGroupExpanded: {},
 
   cardExplorerStack: [],
 
@@ -241,6 +249,27 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
   setIsDeleteGroupDialogOpen: (open) => set({ isDeleteGroupDialogOpen: open }),
   setCameraToDelete: (camera) => set({ cameraToDelete: camera }),
   setGroupToDelete: (group) => set({ groupToDelete: group }),
+
+  setListGroupExpanded: (groupId, open) =>
+    set((state) => ({
+      listGroupExpanded: { ...state.listGroupExpanded, [groupId]: open },
+    })),
+  toggleListGroupExpanded: (groupId) =>
+    set((state) => ({
+      listGroupExpanded: {
+        ...state.listGroupExpanded,
+        [groupId]: !(state.listGroupExpanded[groupId] ?? true),
+      },
+    })),
+  expandAllListGroups: () =>
+    set((state) => {
+      const next = { ...state.listGroupExpanded }
+      for (const g of state.cameraGroups) {
+        next[g.id] = true
+      }
+      return { listGroupExpanded: next }
+    }),
+  collapseAllListGroups: () => set({ listGroupExpanded: {} }),
 
   pushCardExplorerFolder: (groupId) =>
     set((state) => ({ cardExplorerStack: [...state.cardExplorerStack, groupId] })),

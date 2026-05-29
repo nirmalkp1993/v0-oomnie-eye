@@ -2,12 +2,10 @@
 
 import { useEffect } from 'react'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import TerminalOutlinedIcon from '@mui/icons-material/TerminalOutlined'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
-import VideoLibraryOutlinedIcon from '@mui/icons-material/VideoLibraryOutlined'
-import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material'
+import { Box, Chip, Container, IconButton, Tooltip, Typography } from '@mui/material'
 import { useCameraStore } from '@/lib/camera-store'
 import { EnterpriseSettingsTabs } from '@/src/components/enterprise'
 import { CameraDetailsTab } from './tabs/camera-details-tab'
@@ -20,11 +18,9 @@ import type { CameraTab } from '@/types/camera'
 const DISABLED_DETAIL_TABS = new Set<CameraTab>(['recording', 'schedule'])
 
 const DETAIL_TABS: { value: CameraTab; label: string; icon: React.ReactElement; disabled?: boolean }[] = [
-  { value: 'details', label: 'Camera Details', icon: <InfoOutlinedIcon fontSize="small" /> },
-  { value: 'stream', label: 'Stream Configuration', icon: <VideocamOutlinedIcon fontSize="small" /> },
-  // { value: 'recording', label: 'Recording', icon: <VideoLibraryOutlinedIcon fontSize="small" />, disabled: true },
-  // { value: 'schedule', label: 'Stream Recording Schedule', icon: <CalendarMonthOutlinedIcon fontSize="small" />, disabled: true },
-  { value: 'logs', label: 'Camera Log', icon: <TerminalOutlinedIcon fontSize="small" /> },
+  { value: 'details', label: 'Camera Details', icon: <InfoOutlinedIcon /> },
+  { value: 'stream', label: 'Stream Configuration', icon: <VideocamOutlinedIcon /> },
+  { value: 'logs', label: 'Camera Log', icon: <TerminalOutlinedIcon /> },
 ]
 
 function statusChipColor(status: string): 'success' | 'warning' | 'error' {
@@ -46,32 +42,36 @@ export function CameraDetailView() {
 
   return (
     <Box sx={{ display: 'flex', height: '100%', flexDirection: 'column', bgcolor: 'background.default' }}>
-      <Box
+      <Container
+        maxWidth={false}
+        disableGutters
         sx={{
-          borderBottom: 1,
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
-          px: 3,
-          py: 1,
+          py: 3,
+          px: { xs: 2, sm: 3 },
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
         }}
       >
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
           <Tooltip title="Back to cameras">
             <IconButton
-              size="small"
               onClick={() => setSelectedCamera(null)}
               aria-label="Back to cameras"
-              sx={{ color: 'text.secondary' }}
+              edge="start"
+              sx={{ ml: -1, color: 'text.secondary' }}
             >
-              <ArrowBackIcon fontSize="small" />
+              <ArrowBackIcon />
             </IconButton>
           </Tooltip>
           <Typography
             variant="h4"
             component="h1"
-            color="warning.main"
+            color="warning.light"
             noWrap
-            sx={{ flex: 1, minWidth: 0, fontWeight: 700 }}
+            sx={{ flex: 1, minWidth: 0 }}
           >
             {selectedCamera.name}
           </Typography>
@@ -82,22 +82,23 @@ export function CameraDetailView() {
             sx={{ fontWeight: 700 }}
           />
         </Box>
-      </Box>
 
-      <EnterpriseSettingsTabs
-        value={activeTab}
-        onChange={(v) => setActiveTab(v as CameraTab)}
-        ariaLabel="Camera detail tabs"
-        tabs={DETAIL_TABS}
-      />
+        <EnterpriseSettingsTabs
+          value={activeTab}
+          onChange={(v) => setActiveTab(v as CameraTab)}
+          ariaLabel="Camera detail tabs"
+          tabs={DETAIL_TABS}
+          variant="page"
+        />
 
-      <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-        {activeTab === 'details' && <CameraDetailsTab />}
-        {activeTab === 'stream' && <StreamConfigTab />}
-        {activeTab === 'recording' && <RecordingTab />}
-        {activeTab === 'schedule' && <ScheduleTab />}
-        {activeTab === 'logs' && <CameraLogTab />}
-      </Box>
+        <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0, width: '100%', minWidth: 0 }}>
+          {activeTab === 'details' && <CameraDetailsTab />}
+          {activeTab === 'stream' && <StreamConfigTab />}
+          {activeTab === 'recording' && <RecordingTab />}
+          {activeTab === 'schedule' && <ScheduleTab />}
+          {activeTab === 'logs' && <CameraLogTab />}
+        </Box>
+      </Container>
     </Box>
   )
 }

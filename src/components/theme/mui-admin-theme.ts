@@ -32,7 +32,12 @@ export const muiAdminTheme = createTheme({
     },
     error: { main: '#dc2626', contrastText: '#ffffff' },
     success: { main: '#16a34a', contrastText: '#ffffff' },
-    warning: { main: accent, contrastText: '#1a1a2e' },
+    warning: {
+      main: '#ed6c02',
+      light: '#ff9800',
+      dark: '#e65100',
+      contrastText: '#ffffff',
+    },
     info: { main: primary, contrastText: '#ffffff' },
     background: {
       default: bg,
@@ -55,10 +60,10 @@ export const muiAdminTheme = createTheme({
     borderRadius: radius,
   },
   typography: {
-    fontFamily: "'Geist', 'Geist Fallback', ui-sans-serif, system-ui, sans-serif",
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
     fontSize: 14,
     htmlFontSize: 16,
-    h4: { fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.25, letterSpacing: '-0.02em', color: fg },
+    h4: { fontSize: '2.125rem', fontWeight: 300, lineHeight: 1.235, color: '#FF9800' },
     h5: { fontWeight: 700, fontSize: '1.25rem', color: fg },
     h6: { fontWeight: 600, fontSize: '1rem', color: fg },
     subtitle1: { fontWeight: 600, fontSize: '0.9375rem', color: fg },

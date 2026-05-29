@@ -2,11 +2,25 @@
 
 import { useState, type DragEvent, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown, GripVertical } from 'lucide-react'
-import { TableHead, TableRow } from '@/components/ui/table'
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
+import { Box, TableCell, TableRow, Typography } from '@mui/material'
+import { TableHead, TableRow as ShadcnTableRow } from '@/components/ui/table'
 import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
+import {
+  MY_DRAWINGS_TABLE,
+  myDrawingsHeaderTypographySx,
+} from '@/src/components/tables/my-drawings-table-styles'
 import { cn } from '@/lib/utils'
 
-export function ExplorerTableHeaderRow({ leading }: { leading?: ReactNode }) {
+export function ExplorerTableHeaderRow({
+  leading,
+  variant = 'default',
+}: {
+  leading?: ReactNode
+  variant?: 'default' | 'drawings'
+}) {
   const { visibleColumns, sort, toggleSort, reorderColumns } = useExplorerListTable()
   const [dragColumnId, setDragColumnId] = useState<string | null>(null)
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null)
@@ -51,8 +65,54 @@ export function ExplorerTableHeaderRow({ leading }: { leading?: ReactNode }) {
     setDragOverColumnId(null)
   }
 
+  if (variant === 'drawings') {
+    return (
+      <TableRow hover={false}>
+        {leading}
+        {visibleColumns.map((col) => {
+          const isSortable = col.sortable !== false && col.id !== 'actions'
+          const isSorted = sort?.columnId === col.id
+          const sortDirection = isSorted ? sort?.direction : null
+          const isDraggable = col.id !== 'actions'
+          const isDragOver = dragOverColumnId === col.id && dragColumnId !== col.id
+
+          return (
+            <TableCell
+              key={col.id}
+              onDragOver={(e) => handleDragOver(col.id, e)}
+              onDragLeave={() => {
+                if (dragOverColumnId === col.id) setDragOverColumnId(null)
+              }}
+              onDrop={(e) => handleDrop(col.id, e)}
+              onClick={isSortable ? () => toggleSort(col.id) : undefined}
+              sx={{
+                cursor: isSortable ? 'pointer' : 'default',
+                userSelect: 'none',
+                textAlign: 'left',
+                ...(isDragOver && { bgcolor: MY_DRAWINGS_TABLE.headerHoverBg }),
+                ...(isSortable && {
+                  '&:hover': { bgcolor: MY_DRAWINGS_TABLE.headerHoverBg },
+                }),
+              }}
+            >
+              <DrawingsTableHeaderCellContent
+                label={col.label}
+                isDraggable={isDraggable}
+                isSortable={isSortable}
+                sortDirection={sortDirection}
+                onSort={() => isSortable && toggleSort(col.id)}
+                onDragStart={(e) => handleDragStart(col.id, e)}
+                onDragEnd={clearDragState}
+              />
+            </TableCell>
+          )
+        })}
+      </TableRow>
+    )
+  }
+
   return (
-    <TableRow className="border-border hover:bg-transparent">
+    <ShadcnTableRow className="border-border hover:bg-transparent">
       {leading}
       {visibleColumns.map((col) => {
         const isSortable = col.sortable !== false && col.id !== 'actions'
@@ -88,7 +148,80 @@ export function ExplorerTableHeaderRow({ leading }: { leading?: ReactNode }) {
           </TableHead>
         )
       })}
-    </TableRow>
+    </ShadcnTableRow>
+  )
+}
+
+function DrawingsTableHeaderCellContent({
+  label,
+  isDraggable,
+  isSortable,
+  sortDirection,
+  onSort,
+  onDragStart,
+  onDragEnd,
+}: {
+  label: string
+  isDraggable: boolean
+  isSortable: boolean
+  sortDirection: 'asc' | 'desc' | null | undefined
+  onSort: () => void
+  onDragStart: (e: DragEvent) => void
+  onDragEnd: () => void
+}) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      {isDraggable ? (
+        <Box
+          component="span"
+          draggable
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onClick={(e) => e.stopPropagation()}
+          sx={{ display: 'inline-flex', cursor: 'grab', color: 'text.disabled' }}
+          aria-label={`Drag to reorder ${label} column`}
+        >
+          <DragIndicatorIcon sx={{ fontSize: 16 }} />
+        </Box>
+      ) : null}
+      {isSortable ? (
+        <Box
+          component="button"
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onSort()
+          }}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            border: 0,
+            bgcolor: 'transparent',
+            p: 0,
+            m: 0,
+            cursor: 'pointer',
+            minWidth: 0,
+          }}
+          aria-label={`Sort by ${label}${
+            sortDirection ? `, ${sortDirection === 'asc' ? 'ascending' : 'descending'}` : ''
+          }`}
+        >
+          <Typography variant="body2" noWrap sx={myDrawingsHeaderTypographySx}>
+            {label}
+          </Typography>
+          {sortDirection === 'asc' ? (
+            <ArrowUpwardIcon fontSize="small" sx={{ color: MY_DRAWINGS_TABLE.accent }} />
+          ) : sortDirection === 'desc' ? (
+            <ArrowDownwardIcon fontSize="small" sx={{ color: MY_DRAWINGS_TABLE.accent }} />
+          ) : null}
+        </Box>
+      ) : (
+        <Typography variant="body2" noWrap sx={myDrawingsHeaderTypographySx}>
+          {label}
+        </Typography>
+      )}
+    </Box>
   )
 }
 

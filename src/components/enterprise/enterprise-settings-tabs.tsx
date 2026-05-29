@@ -3,7 +3,27 @@
 import type { ReactElement, ReactNode, SyntheticEvent } from 'react'
 import { Box, Tab, Tabs, type SxProps, type Theme } from '@mui/material'
 
-/** Tab strip styling aligned with OomniEye GlobalSettingsDialog / Settings module */
+/** Parent page tabs — aligned with OomniEye SettingsPage / CameraDetailPage */
+export const enterprisePageTabsSx: SxProps<Theme> = {
+  borderBottom: 1,
+  borderColor: 'divider',
+  mb: 2,
+  '& .MuiTab-root': {
+    minHeight: 35,
+    fontSize: '1rem',
+    fontWeight: 500,
+    textTransform: 'none',
+  },
+  '& .MuiSvgIcon-root': {
+    fontSize: 24,
+  },
+  '& .MuiTabs-indicator': {
+    height: 4,
+    backgroundColor: 'primary.main',
+  },
+}
+
+/** Tab strip styling aligned with OomniEye GlobalSettingsDialog */
 export const enterpriseSettingsTabsSx: SxProps<Theme> = (theme) => ({
   minHeight: 64,
   borderBottom: `1px solid ${theme.palette.divider}`,
@@ -61,6 +81,8 @@ export interface EnterpriseSettingsTabsProps {
   onChange: (value: string) => void
   tabs: EnterpriseSettingsTabItem[]
   ariaLabel?: string
+  /** `page` matches SettingsPage; `dialog` matches GlobalSettingsDialog */
+  variant?: 'page' | 'dialog'
 }
 
 export function EnterpriseSettingsTabs({
@@ -68,6 +90,7 @@ export function EnterpriseSettingsTabs({
   onChange,
   tabs,
   ariaLabel = 'section tabs',
+  variant = 'dialog',
 }: EnterpriseSettingsTabsProps) {
   const index = Math.max(
     0,
@@ -79,16 +102,18 @@ export function EnterpriseSettingsTabs({
     if (tab?.value != null && !tab.disabled) onChange(tab.value)
   }
 
+  const isPageVariant = variant === 'page'
+
   return (
     <Box sx={{ borderBottom: 0 }}>
       <Tabs
         value={index}
         onChange={handleChange}
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
+        variant={isPageVariant ? 'fullWidth' : 'scrollable'}
+        scrollButtons={isPageVariant ? false : 'auto'}
+        allowScrollButtonsMobile={!isPageVariant}
         aria-label={ariaLabel}
-        sx={enterpriseSettingsTabsSx}
+        sx={isPageVariant ? enterprisePageTabsSx : enterpriseSettingsTabsSx}
       >
         {tabs.map((tab, i) => (
           <Tab
@@ -96,24 +121,30 @@ export function EnterpriseSettingsTabs({
             disabled={tab.disabled}
             id={`enterprise-settings-tab-${i}`}
             aria-controls={`enterprise-settings-tabpanel-${i}`}
+            icon={isPageVariant ? tab.icon : undefined}
+            iconPosition={isPageVariant ? 'start' : undefined}
             label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {tab.icon ? (
-                  <Box
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      color: 'inherit',
-                      '& svg': { width: 18, height: 18 },
-                    }}
-                  >
-                    {tab.icon}
+              isPageVariant ? (
+                tab.label
+              ) : (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {tab.icon ? (
+                    <Box
+                      component="span"
+                      sx={{
+                        display: 'inline-flex',
+                        color: 'inherit',
+                        '& svg': { width: 18, height: 18 },
+                      }}
+                    >
+                      {tab.icon}
+                    </Box>
+                  ) : null}
+                  <Box component="span" sx={{ fontSize: 14, fontWeight: 'inherit' }}>
+                    {tab.label}
                   </Box>
-                ) : null}
-                <Box component="span" sx={{ fontSize: 14, fontWeight: 'inherit' }}>
-                  {tab.label}
                 </Box>
-              </Box>
+              )
             }
           />
         ))}

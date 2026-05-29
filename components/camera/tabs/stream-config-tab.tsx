@@ -9,6 +9,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import {
+  Box,
+  Card,
+  CardContent,
+  CardHeader,
+  IconButton,
+  Typography,
+} from '@mui/material'
+import FullscreenIcon from '@mui/icons-material/Fullscreen'
 import { cn } from '@/lib/utils'
 import {
   Play,
@@ -108,32 +117,61 @@ export function StreamConfigTab() {
   if (!selectedCamera) return null
 
   return (
-    <div className="min-h-0 overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-border bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-            <CameraIcon className="size-5" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-accent">360 Stream Viewer</h2>
-            <p className="text-sm text-muted-foreground">
+    <Box
+      sx={{
+        width: '100%',
+        minWidth: 0,
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+      }}
+    >
+      <Card
+        elevation={0}
+        variant="outlined"
+        sx={{
+          width: '100%',
+          flex: 1,
+          borderRadius: 2,
+          boxShadow: (theme) => theme.shadows[1],
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <CardHeader
+          title={
+            <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 600 }}>
+              360 Stream Viewer
+            </Typography>
+          }
+          subheader={
+            <Typography variant="body2" color="text.secondary">
               Live preview and playback for this camera stream.
-            </p>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {selectedCamera.status === 'live' && (
-            <Badge className="bg-live text-white">
-              <span className="mr-1.5 size-2 animate-pulse rounded-full bg-white" />
-              LIVE
-            </Badge>
-          )}
-          <Badge variant="outline" className="border-border text-muted-foreground">
-            {selectedCamera.type}
-          </Badge>
-        </div>
-      </div>
-      <div className="p-0">
+            </Typography>
+          }
+          action={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {selectedCamera.status === 'live' && (
+                <Badge className="bg-live text-white">
+                  <span className="mr-1.5 size-2 animate-pulse rounded-full bg-white" />
+                  LIVE
+                </Badge>
+              )}
+              <Badge variant="outline" className="border-border text-muted-foreground">
+                {selectedCamera.type}
+              </Badge>
+              <IconButton aria-label="Fullscreen" size="small" edge="end" onClick={toggleFullscreen}>
+                <FullscreenIcon />
+              </IconButton>
+            </Box>
+          }
+          sx={{
+            pb: 0,
+            '& .MuiCardHeader-action': { alignSelf: 'center', mr: 0.5 },
+          }}
+        />
+        <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', pt: 1, pb: 2, px: { xs: 2, sm: 3 } }}>
           <div
             ref={containerRef}
             className={cn(
@@ -305,8 +343,9 @@ export function StreamConfigTab() {
               </div>
             </div>
           </div>
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+    </Box>
   )
 }
 

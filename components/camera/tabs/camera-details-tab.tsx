@@ -16,6 +16,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Box, Card, CardContent, Divider, Typography } from '@mui/material'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { cn } from '@/lib/utils'
 import { Camera, Info, Eye, EyeOff, Trash2, CloudUpload, ChevronRight } from 'lucide-react'
 import type { Camera as CameraType } from '@/types/camera'
@@ -146,10 +148,18 @@ function SectionHeader({
   tooltip: string
 }) {
   return (
-    <div className="flex items-center gap-2 border-b border-border pb-2.5">
-      <h3 className="text-sm font-semibold tracking-tight text-foreground">
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2 }}>
+      <Typography
+        component="h2"
+        variant="subtitle1"
+        sx={{
+          color: 'primary.main',
+          fontWeight: 600,
+          letterSpacing: 0.2,
+        }}
+      >
         {title}
-      </h3>
+      </Typography>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
@@ -157,14 +167,14 @@ function SectionHeader({
             className="rounded-full text-muted-foreground outline-offset-2 transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
             aria-label={`About ${title}`}
           >
-            <Info className="size-4 shrink-0" strokeWidth={2} />
+            <InfoOutlinedIcon sx={{ fontSize: 18, opacity: 0.7 }} />
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs">
           {tooltip}
         </TooltipContent>
       </Tooltip>
-    </div>
+    </Box>
   )
 }
 
@@ -254,14 +264,30 @@ export function CameraDetailsTab() {
   const datalistId = `${baseId}-api-presets`
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      <div className="grid grid-cols-1 lg:grid-cols-2 lg:items-stretch">
-        {/* Form column */}
-        <form
-          onSubmit={handleSubmit}
-          className="flex min-h-0 min-w-0 flex-col border-border lg:border-e"
-        >
-          <div className="space-y-8 p-6 sm:p-8">
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1.1fr) minmax(0, 0.9fr)' },
+        gap: 3,
+        width: '100%',
+        minWidth: 0,
+        alignItems: 'stretch',
+      }}
+    >
+      <Card
+        elevation={0}
+        variant="outlined"
+        sx={{
+          borderRadius: 2,
+          boxShadow: (theme) => theme.shadows[1],
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <form onSubmit={handleSubmit} className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <CardContent sx={{ p: 3, flex: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <section className="space-y-4">
               <SectionHeader
                 title="Camera identity"
@@ -316,6 +342,8 @@ export function CameraDetailsTab() {
               </div>
             </section>
 
+            <Divider sx={{ my: 2.5 }} />
+
             <section className="space-y-4">
               <SectionHeader
                 title="Network and API"
@@ -355,6 +383,8 @@ export function CameraDetailsTab() {
                 </datalist>
               </div>
             </section>
+
+            <Divider sx={{ my: 2.5 }} />
 
             <section className="space-y-4">
               <SectionHeader
@@ -456,9 +486,24 @@ export function CameraDetailsTab() {
                 />
               </div>
             </details>
-          </div>
+            </Box>
+          </CardContent>
 
-          <div className="mt-auto flex flex-wrap items-center justify-end gap-3 border-t border-border bg-muted/25 px-6 py-4 sm:px-8">
+          <Box
+            sx={{
+              mt: 'auto',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: 1.5,
+              borderTop: 1,
+              borderColor: 'divider',
+              bgcolor: 'action.hover',
+              px: 3,
+              py: 2,
+            }}
+          >
             <Button
               type="button"
               variant="outline"
@@ -475,15 +520,30 @@ export function CameraDetailsTab() {
             >
               Save changes
             </Button>
-          </div>
+          </Box>
         </form>
+      </Card>
 
-        {/* Image column */}
-        <aside className="flex min-h-0 min-w-0 flex-col border-t border-border bg-muted/15 p-6 sm:p-8 lg:border-t-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold tracking-tight text-foreground">
+      <Card
+        elevation={0}
+        variant="outlined"
+        sx={{
+          borderRadius: 2,
+          boxShadow: (theme) => theme.shadows[1],
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <CardContent sx={{ p: 3, flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+            <Typography
+              component="h3"
+              variant="subtitle1"
+              sx={{ color: 'primary.main', fontWeight: 600, letterSpacing: 0.2 }}
+            >
               Camera image
-            </h3>
+            </Typography>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -499,11 +559,11 @@ export function CameraDetailsTab() {
                 views. Square or 4:3 images work best.
               </TooltipContent>
             </Tooltip>
-          </div>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
             Upload a reference still for this camera. It appears in management
             views and placemark quick views.
-          </p>
+          </Typography>
 
           <div
             className={cn(
@@ -565,11 +625,11 @@ export function CameraDetailsTab() {
             </Button>
           </div>
 
-          <p className="mt-4 text-xs leading-normal text-muted-foreground">
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
             JPEG, PNG, WebP, or GIF up to 8 MB.
-          </p>
-        </aside>
-      </div>
-    </div>
+          </Typography>
+        </CardContent>
+      </Card>
+    </Box>
   )
 }

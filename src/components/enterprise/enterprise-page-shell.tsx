@@ -41,7 +41,7 @@ export function EnterprisePageShell({
         }}
       >
         <Box>
-          <Typography variant="h4" component="h1" color="warning.main" sx={{ fontWeight: 700 }}>
+          <Typography variant="h4" component="h1" color="warning.light">
             {title}
           </Typography>
           {description ? (

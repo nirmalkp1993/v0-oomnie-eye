@@ -1,7 +1,9 @@
 'use client'
 
+import FilterListIcon from '@mui/icons-material/FilterList'
+import { Box, Button as MuiButton, Tooltip } from '@mui/material'
 import { ListFilter, Plus, Trash2 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Badge as ShadcnBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,13 +15,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Tooltip as ShadcnTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { countActiveExplorerFilters, createEmptyExplorerFilter } from '@/lib/explorer-list-table/filter-utils'
 import {
   EXPLORER_FILTER_OPERATORS,
   type ExplorerFilterItem,
 } from '@/lib/explorer-list-table/types'
+import {
+  MY_DRAWINGS_TABLE,
+  myDrawingsToolbarOutlineButtonSx,
+} from '@/src/components/tables/my-drawings-table-styles'
 
 export type MultiFilterColumn = { id: string; label: string }
 
@@ -30,6 +36,7 @@ export type MultiFilterPopoverProps = {
   disabled?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  variant?: 'default' | 'drawings'
 }
 
 export function MultiFilterPopover({
@@ -39,8 +46,10 @@ export function MultiFilterPopover({
   disabled = false,
   open,
   onOpenChange,
+  variant = 'default',
 }: MultiFilterPopoverProps) {
   const activeFilterCount = countActiveExplorerFilters(filters)
+  const isDrawings = variant === 'drawings'
 
   const updateFilter = (id: string, patch: Partial<ExplorerFilterItem>) => {
     onFiltersChange(filters.map((f) => (f.id === id ? { ...f, ...patch } : f)))
@@ -57,40 +66,87 @@ export function MultiFilterPopover({
 
   const clearFilters = () => onFiltersChange([])
 
+  const triggerButton = (
+    <ShadcnTooltip>
+      <TooltipTrigger asChild>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            className={cn(
+              'gap-2 border-border',
+              open && 'border-primary bg-primary/5 text-foreground',
+            )}
+          >
+            <ListFilter className="size-4" />
+            <span>Filter</span>
+            {activeFilterCount > 0 ? (
+              <ShadcnBadge
+                variant="default"
+                className="h-5 min-w-5 justify-center px-1.5 text-[10px] font-semibold"
+              >
+                {activeFilterCount}
+              </ShadcnBadge>
+            ) : null}
+          </Button>
+        </PopoverTrigger>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">Filter rows by any column</TooltipContent>
+    </ShadcnTooltip>
+  )
+
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={disabled}
-              className={cn(
-                'gap-2 border-border',
-                open && 'border-primary bg-primary/5 text-foreground'
-              )}
-            >
-              <ListFilter className="size-4" />
-              <span>Filter</span>
-              {activeFilterCount > 0 ? (
-                <Badge
-                  variant="default"
-                  className="h-5 min-w-5 justify-center px-1.5 text-[10px] font-semibold"
-                >
-                  {activeFilterCount}
-                </Badge>
-              ) : null}
-            </Button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent side="bottom">Filter rows by any column</TooltipContent>
-      </Tooltip>
-      <PopoverContent align="end" side="bottom" sideOffset={8} className="w-[min(100vw-2rem,420px)] p-0">
-        <div className="border-b border-border px-4 py-3">
-          <p className="text-sm font-semibold text-foreground">Filters</p>
-          <p className="text-xs text-muted-foreground">All rules must match (AND).</p>
+      {isDrawings ? (
+        <Tooltip title="Filter rows by any column" arrow placement="bottom">
+          <Box component="span" sx={{ display: 'inline-flex' }}>
+            <PopoverTrigger asChild>
+              <MuiButton
+                size="small"
+                variant="outlined"
+                disabled={disabled}
+                startIcon={<FilterListIcon sx={{ fontSize: 18 }} />}
+                sx={{
+                  ...myDrawingsToolbarOutlineButtonSx,
+                  ...(open && {
+                    borderColor: MY_DRAWINGS_TABLE.accent,
+                    bgcolor: 'rgba(41, 50, 229, 0.06)',
+                    color: MY_DRAWINGS_TABLE.accent,
+                  }),
+                }}
+              >
+                Filter
+                {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </MuiButton>
+            </PopoverTrigger>
+          </Box>
+        </Tooltip>
+      ) : (
+        triggerButton
+      )}
+      <PopoverContent
+        align="end"
+        side="bottom"
+        sideOffset={8}
+        className={cn(
+          'w-[min(100vw-2rem,420px)] p-0',
+          isDrawings && 'rounded-xl border-[#E5E7EB] font-[Roboto] shadow-[0px_4px_24px_rgba(15,23,42,0.12)]',
+        )}
+      >
+        <div
+          className={cn(
+            'border-b px-4 py-3',
+            isDrawings ? 'border-[#E5E7EB]' : 'border-border',
+          )}
+        >
+          <p className={cn('text-sm font-semibold', isDrawings ? 'text-[#212121]' : 'text-foreground')}>
+            Filters
+          </p>
+          <p className={cn('text-xs', isDrawings ? 'text-[#6b7280]' : 'text-muted-foreground')}>
+            All rules must match (AND).
+          </p>
         </div>
         <div className="max-h-[min(60vh,360px)] space-y-3 overflow-y-auto p-4">
           {filters.length === 0 ? (
