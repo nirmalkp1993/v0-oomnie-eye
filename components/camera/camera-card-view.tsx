@@ -22,6 +22,7 @@ import {
 import { applyCameraListFilters } from '@/lib/explorer-list-table/camera-table'
 import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
 import type { Camera, CameraGroup } from '@/types/camera'
+import { CameraThumbnailMarkerOverlay } from './camera-thumbnail-marker-editor'
 import {
   MY_DRAWINGS_GRID,
   myDrawingsBreadcrumbCurrentSx,
@@ -57,7 +58,25 @@ function statusLabel(status: Camera['status']): string {
   return 'Stopped'
 }
 
-export function CameraCardView() {
+import type { CameraManagementMode } from './camera-management-mode'
+import type { CameraAssignRowSelection } from './camera-list-view'
+
+interface CameraCardViewProps {
+  mode: CameraManagementMode
+  scopedCameras?: Camera[]
+  embedInCard?: boolean
+  assignRowSelection?: CameraAssignRowSelection
+  panelSearchActive?: boolean
+}
+
+export function CameraCardView({
+  mode,
+  scopedCameras,
+  embedInCard = false,
+  assignRowSelection,
+  panelSearchActive = false,
+}: CameraCardViewProps) {
+  const isScopedCameraList = scopedCameras != null
   const cameras = useCameraStore((s) => s.cameras)
   const cameraGroups = useCameraStore((s) => s.cameraGroups)
   const searchQuery = useCameraStore((s) => s.searchQuery)
@@ -67,16 +86,32 @@ export function CameraCardView() {
   const navigateCardExplorerToSegmentIndex = useCameraStore((s) => s.navigateCardExplorerToSegmentIndex)
   const setSelectedCamera = useCameraStore((s) => s.setSelectedCamera)
 
+  const getFilteredCameras = useCameraStore((s) => s.getFilteredCameras)
   const { filters } = useExplorerListTable()
   const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null)
 
   const currentFolderId =
-    cardExplorerStack.length > 0 ? cardExplorerStack[cardExplorerStack.length - 1] : null
+    mode === 'groups' && cardExplorerStack.length > 0
+      ? cardExplorerStack[cardExplorerStack.length - 1]
+      : null
 
-  const folderDepth = cardExplorerStack.length
+  const folderDepth = mode === 'groups' ? cardExplorerStack.length : 0
   const displayLevel = folderDepth + 1
 
   const { folderCards, cameraCards } = useMemo(() => {
+    if (isScopedCameraList) {
+      return {
+        folderCards: [] as CameraGroup[],
+        cameraCards: scopedCameras,
+      }
+    }
+    if (mode === 'cameras') {
+      return {
+        folderCards: [] as CameraGroup[],
+        cameraCards: getFilteredCameras(),
+      }
+    }
+
     const raw = getCameraTableTree()
     const filtered = applyCameraListFilters(
       raw.rootTrees,
@@ -101,11 +136,22 @@ export function CameraCardView() {
       folderCards: node.children.map((n) => n.group),
       cameraCards: node.cameras,
     }
-  }, [getCameraTableTree, filters, currentFolderId, cameras, cameraGroups])
+  }, [
+    mode,
+    isScopedCameraList,
+    scopedCameras,
+    getCameraTableTree,
+    getFilteredCameras,
+    filters,
+    currentFolderId,
+    cameras,
+    cameraGroups,
+  ])
 
   const totalItems = folderCards.length + cameraCards.length
 
   const breadcrumbItems = useMemo(() => {
+    if (mode === 'cameras') return []
     const items: { label: string; index: number; isRoot: boolean }[] = [
       { label: 'Root', index: 0, isRoot: true },
     ]
@@ -114,13 +160,18 @@ export function CameraCardView() {
       items.push({ label: g?.name ?? id, index: i + 1, isRoot: false })
     })
     return items
-  }, [cardExplorerStack, cameraGroups])
+  }, [mode, cardExplorerStack, cameraGroups])
+
+  const rootSx = embedInCard
+    ? { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }
+    : { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <Box sx={{ px: 1, pt: 0.5, pb: 1 }}>
-        <Breadcrumbs aria-label="breadcrumb" separator="›" sx={myDrawingsBreadcrumbsSx}>
-          {breadcrumbItems.map((item, i) => {
+    <Box sx={rootSx}>
+      {mode === 'groups' && !isScopedCameraList && (
+        <Box sx={{ px: 1, pt: 0.5, pb: 1 }}>
+          <Breadcrumbs aria-label="breadcrumb" separator="›" sx={myDrawingsBreadcrumbsSx}>
+            {breadcrumbItems.map((item, i) => {
             const isLast = i === breadcrumbItems.length - 1
             if (isLast) {
               return (
@@ -175,6 +226,7 @@ export function CameraCardView() {
           })}
         </Breadcrumbs>
       </Box>
+      )}
 
       <Box sx={myDrawingsGridContainerSx}>
         <Box sx={myDrawingsGridWrapSx}>
@@ -240,20 +292,44 @@ export function CameraCardView() {
             )
           })}
 
-          {cameraCards.map((camera) => (
+          {cameraCards.map((camera) => {
+            const isAssignSelected = assignRowSelection?.selectedIds.has(camera.id) ?? false
+            return (
             <Box key={camera.id} sx={myDrawingsGridItemSx(folderDepth)}>
               <Card
                 elevation={0}
                 role="button"
                 tabIndex={0}
-                onClick={() => setSelectedCamera(camera)}
+                draggable={assignRowSelection?.isRowDraggable?.(camera) ?? false}
+                onDragStart={
+                  assignRowSelection?.onRowDragStart
+                    ? (e) => assignRowSelection.onRowDragStart!(camera, e)
+                    : undefined
+                }
+                onClick={() => {
+                  if (assignRowSelection) {
+                    assignRowSelection.onToggleSelect(camera.id)
+                    return
+                  }
+                  setSelectedCamera(camera)
+                }}
+                onDoubleClick={() => assignRowSelection?.onRowDoubleClick?.(camera)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
+                    if (assignRowSelection) {
+                      assignRowSelection.onToggleSelect(camera.id)
+                      return
+                    }
                     setSelectedCamera(camera)
                   }
                 }}
-                sx={myDrawingsGridCardSx({ depth: folderDepth })}
+                sx={{
+                  ...myDrawingsGridCardSx({ depth: folderDepth }),
+                  ...(isAssignSelected
+                    ? { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 }
+                    : {}),
+                }}
               >
                 <MyDrawingsGridCardChrome level={displayLevel} />
 
@@ -269,13 +345,16 @@ export function CameraCardView() {
                 >
                   <Box sx={{ ...myDrawingsGridThumbSx, position: 'relative' }}>
                     {camera.thumbnail ? (
-                      <Image
-                        src={camera.thumbnail}
-                        alt={camera.name}
-                        width={200}
-                        height={200}
-                        style={{ objectFit: 'cover', width: '100%', height: '100%' }}
-                      />
+                      <>
+                        <Image
+                          src={camera.thumbnail}
+                          alt={camera.name}
+                          width={200}
+                          height={200}
+                          style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                        />
+                        <CameraThumbnailMarkerOverlay marker={camera.thumbnailMarker} size={24} />
+                      </>
                     ) : (
                       <MonitorOutlinedIcon sx={{ fontSize: 64, color: '#4A5565' }} />
                     )}
@@ -296,7 +375,8 @@ export function CameraCardView() {
                 </Box>
               </Card>
             </Box>
-          ))}
+            )
+          })}
         </Box>
 
         {totalItems === 0 && (
@@ -320,7 +400,11 @@ export function CameraCardView() {
                 fontFamily: 'Roboto, sans-serif',
               }}
             >
-              {searchQuery.trim() ? 'No cameras found' : 'This folder is empty'}
+              {panelSearchActive || searchQuery.trim()
+                ? 'No cameras found'
+                : mode === 'cameras' || isScopedCameraList
+                  ? 'No cameras yet. Add a camera to get started.'
+                  : 'This folder is empty'}
             </Typography>
           </Box>
         )}

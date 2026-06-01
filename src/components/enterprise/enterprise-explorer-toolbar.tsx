@@ -17,6 +17,7 @@ import {
 import { ExplorerAppliedFiltersBarGate } from '@/components/tables/explorer-applied-filters'
 import { ExplorerListTableControlsGate } from '@/components/tables/explorer-list-table-controls-gate'
 import {
+  MY_DRAWINGS_TABLE,
   myDrawingsSearchFieldSx,
   myDrawingsToolbarRowSx,
   myDrawingsToolbarShellSx,
@@ -38,6 +39,12 @@ export interface EnterpriseExplorerToolbarProps {
   variant?: 'default' | 'drawings'
   /** Shown on the left after search (e.g. expand/collapse) when variant is drawings */
   leadingToolbarActions?: ReactNode
+  /** When false, hides list/card view toggle (e.g. dedicated multi-panel layouts). */
+  showViewModeToggle?: boolean
+  /** Column picker and filter controls (defaults to list/table view visibility). */
+  showTableControls?: boolean
+  /** `card` = compact toolbar inside a panel header (camera group tree). */
+  layout?: 'page' | 'card'
 }
 
 export function EnterpriseExplorerToolbar({
@@ -51,8 +58,13 @@ export function EnterpriseExplorerToolbar({
   trailingActions,
   variant = 'default',
   leadingToolbarActions,
+  showViewModeToggle = true,
+  showTableControls,
+  layout = 'page',
 }: EnterpriseExplorerToolbarProps) {
+  const tableControlsVisible = showTableControls ?? (showViewModeToggle && viewMode === 'table')
   const isDrawings = variant === 'drawings'
+  const isCardLayout = layout === 'card'
 
   const searchField = (
     <TextField
@@ -82,7 +94,18 @@ export function EnterpriseExplorerToolbar({
             ) : undefined,
         },
       }}
-      sx={isDrawings ? myDrawingsSearchFieldSx : { width: { xs: '100%', sm: 280 } }}
+      sx={
+        isCardLayout
+          ? {
+              ...myDrawingsSearchFieldSx,
+              flex: 1,
+              minWidth: 120,
+              width: 'auto',
+            }
+          : isDrawings
+            ? myDrawingsSearchFieldSx
+            : { width: { xs: '100%', sm: 280 } }
+      }
     />
   )
 
@@ -126,16 +149,96 @@ export function EnterpriseExplorerToolbar({
     </ToggleButtonGroup>
   )
 
+  const toolbarControlsInner = (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1,
+        flex: 1,
+        minWidth: 0,
+        flexWrap: isCardLayout ? 'wrap' : 'nowrap',
+      }}
+    >
+      {searchField}
+      {leadingToolbarActions}
+      <ExplorerListTableControlsGate
+        showColumns={tableControlsVisible}
+        variant={isDrawings ? 'drawings' : undefined}
+      />
+      {showViewModeToggle ? viewToggle : null}
+    </Box>
+  )
+
+  if (isDrawings && isCardLayout) {
+    if (tableControlsVisible) {
+      return (
+        <Box
+          sx={{
+            flexShrink: 0,
+            borderBottom: 1,
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Box
+            sx={{
+              ...myDrawingsToolbarRowSx,
+              flexWrap: 'wrap',
+              rowGap: 1,
+            }}
+          >
+            <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+              {searchField}
+              {leadingToolbarActions}
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+              <ExplorerListTableControlsGate showColumns variant="drawings" />
+              {showViewModeToggle ? viewToggle : null}
+              {trailingActions}
+            </Box>
+          </Box>
+          <Box sx={{ ...myDrawingsToolbarRowSx, py: 0.5, minHeight: 0, borderTop: 0 }}>
+            <ExplorerAppliedFiltersBarGate variant="drawings" />
+          </Box>
+        </Box>
+      )
+    }
+
+    return (
+      <Box
+        sx={{
+          flexShrink: 0,
+          borderBottom: 1,
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
+          px: 2,
+          py: 0.75,
+          minHeight: `${MY_DRAWINGS_TABLE.rowHeight}px`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          flexWrap: 'nowrap',
+        }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+          {searchField}
+          {leadingToolbarActions}
+        </Box>
+        {trailingActions ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{trailingActions}</Box>
+        ) : null}
+      </Box>
+    )
+  }
+
   if (isDrawings) {
     return (
       <Box sx={myDrawingsToolbarShellSx}>
         <Box sx={myDrawingsToolbarRowSx}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
-            {searchField}
-            {leadingToolbarActions}
-            <ExplorerListTableControlsGate showColumns={viewMode === 'table'} variant="drawings" />
-            {viewToggle}
-          </Box>
+          {toolbarControlsInner}
           {trailingActions ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
               {trailingActions}

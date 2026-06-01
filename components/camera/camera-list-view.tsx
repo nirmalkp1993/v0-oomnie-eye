@@ -109,13 +109,49 @@ function statusColor(status: Camera['status']): string {
   return '#6b7280'
 }
 
-export function CameraListView() {
+import type { CameraManagementMode } from './camera-management-mode'
+
+export interface CameraAssignRowSelection {
+  selectedIds: Set<string>
+  onToggleSelect: (cameraId: string) => void
+  onRowDoubleClick?: (camera: Camera) => void
+  isRowDraggable?: (camera: Camera) => boolean
+  onRowDragStart?: (camera: Camera, e: React.DragEvent) => void
+}
+
+interface CameraListViewProps {
+  mode: CameraManagementMode
+  /** Embedded in the camera-group assign layout (left column). */
+  embed?: boolean
+  /** Parent card supplies the outer Paper — render table only. */
+  embedInCard?: boolean
+  /** Highlights and selects folder for the assignment panels. */
+  selectedAssignGroupId?: string | null
+  onSelectAssignGroup?: (groupId: string) => void
+  /** Flat camera list for assign panels (middle / right). */
+  scopedCameras?: Camera[]
+  assignRowSelection?: CameraAssignRowSelection
+}
+
+export function CameraListView({
+  mode,
+  embed = false,
+  embedInCard = false,
+  selectedAssignGroupId = null,
+  onSelectAssignGroup,
+  scopedCameras,
+  assignRowSelection,
+}: CameraListViewProps) {
+  const assignGroupMode = mode === 'groups' && Boolean(onSelectAssignGroup)
+  const isScopedCameraList = scopedCameras != null
   const cameras = useCameraStore((s) => s.cameras)
   const cameraGroups = useCameraStore((s) => s.cameraGroups)
   const searchQuery = useCameraStore((s) => s.searchQuery)
   const getCameraTableTree = useCameraStore((s) => s.getCameraTableTree)
 
   const { visibleColumns, filters, sort } = useExplorerListTable()
+
+  const getFilteredCameras = useCameraStore((s) => s.getFilteredCameras)
 
   const rawTree = useMemo(
     () => getCameraTableTree(),
@@ -416,21 +452,54 @@ export function CameraListView() {
     }
   }
 
-  const renderCameraRow = (camera: Camera, depth: number, rowKey: string) => (
-    <TableRow
-      key={rowKey}
-      hover={false}
-      onClick={() => setSelectedCamera(camera)}
-      sx={myDrawingsBodyRowSx({ depth })}
-    >
-      {visibleColumns.map((col) => renderCameraCell(col.id, camera, depth))}
-    </TableRow>
-  )
+  const renderCameraRow = (camera: Camera, depth: number, rowKey: string) => {
+    const isAssignSelected = assignRowSelection?.selectedIds.has(camera.id) ?? false
+    return (
+      <TableRow
+        key={rowKey}
+        hover={false}
+        draggable={assignRowSelection?.isRowDraggable?.(camera) ?? false}
+        onDragStart={
+          assignRowSelection?.onRowDragStart
+            ? (e) => assignRowSelection.onRowDragStart!(camera, e)
+            : undefined
+        }
+        onClick={() => {
+          if (assignRowSelection) {
+            assignRowSelection.onToggleSelect(camera.id)
+            return
+          }
+          setSelectedCamera(camera)
+        }}
+        onDoubleClick={() => assignRowSelection?.onRowDoubleClick?.(camera)}
+        sx={{
+          ...myDrawingsBodyRowSx({ depth }),
+          ...(isAssignSelected
+            ? {
+                bgcolor: 'action.selected',
+                '&:hover': { bgcolor: 'action.selected' },
+              }
+            : {}),
+        }}
+      >
+        {visibleColumns.map((col) => renderCameraCell(col.id, camera, depth))}
+      </TableRow>
+    )
+  }
+
+  const handleGroupRowClick = (groupId: string) => {
+    if (assignGroupMode && onSelectAssignGroup) {
+      onSelectAssignGroup(groupId)
+      return
+    }
+    toggleGroup(groupId)
+  }
 
   const renderGroupNode = (node: CameraTableGroupNode, depth: number, pathKey: string): React.ReactNode => {
     const rowKey = pathKey ? `${pathKey}>${node.group.id}` : node.group.id
     const isOpen = listGroupExpanded[node.group.id] ?? true
     const count = countCamerasInGroupSubtree(node.group.id, cameras, cameraGroups)
+    const isAssignSelected = assignGroupMode && selectedAssignGroupId === node.group.id
 
     return (
       <Fragment key={rowKey}>
@@ -438,8 +507,16 @@ export function CameraListView() {
           <ContextMenuTrigger asChild>
             <TableRow
               hover={false}
-              onClick={() => toggleGroup(node.group.id)}
-              sx={myDrawingsBodyRowSx({ depth })}
+              onClick={() => handleGroupRowClick(node.group.id)}
+              sx={{
+                ...myDrawingsBodyRowSx({ depth }),
+                ...(isAssignSelected
+                  ? {
+                      bgcolor: 'action.selected',
+                      '&:hover': { bgcolor: 'action.selected' },
+                    }
+                  : {}),
+              }}
             >
               {visibleColumns.map((col) =>
                 renderGroupCell(col.id, node, depth, count, isOpen),
@@ -454,13 +531,15 @@ export function CameraListView() {
               <FolderPlus className="size-4" />
               Create subgroup
             </ContextMenuItem>
-            <ContextMenuItem
-              className="cursor-pointer gap-2"
-              onSelect={() => setAddCamerasModalGroupId(node.group.id)}
-            >
-              <CameraIconLucide className="size-4" />
-              Add camera
-            </ContextMenuItem>
+            {!assignGroupMode ? (
+              <ContextMenuItem
+                className="cursor-pointer gap-2"
+                onSelect={() => setAddCamerasModalGroupId(node.group.id)}
+              >
+                <CameraIconLucide className="size-4" />
+                Add camera
+              </ContextMenuItem>
+            ) : null}
           </ContextMenuContent>
         </ContextMenu>
         {isOpen &&
@@ -479,49 +558,100 @@ export function CameraListView() {
     )
   }
 
-  const isEmpty = rootTrees.length === 0 && rootCameras.length === 0
+  const flatCameras = useMemo(() => {
+    const cameras = scopedCameras ?? getFilteredCameras()
+    return getSortedTreeSiblings(
+      [] as CameraTableGroupNode[],
+      cameras,
+      sort,
+      () => '',
+      (c) => (sort ? (getCameraFilterValues(c)[sort.columnId] ?? '') : ''),
+    )
+      .filter((sibling) => sibling.kind === 'leaf')
+      .map((sibling) => sibling.item)
+  }, [scopedCameras, getFilteredCameras, sort])
+
+  const isEmpty = isScopedCameraList
+    ? flatCameras.length === 0
+    : mode === 'cameras'
+      ? flatCameras.length === 0
+      : rootTrees.length === 0 && rootCameras.length === 0
+
+  const tableContainerSx = {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'auto',
+    overflowX: 'auto',
+    overflowY: 'auto',
+    pb: 1,
+    boxSizing: 'border-box',
+    ...(embed || embedInCard ? { height: '100%' } : {}),
+  } as const
+
+  const tableContent = (
+    <TableContainer sx={tableContainerSx}>
+      <Table stickyHeader size="small" sx={myDrawingsTableSx}>
+        <TableHead sx={myDrawingsTableHeadSx}>
+          <ExplorerTableHeaderRow variant="drawings" />
+        </TableHead>
+        <TableBody sx={myDrawingsTableBodySx}>
+          {mode === 'cameras' || isScopedCameraList
+            ? flatCameras.map((camera) => (
+                <Fragment key={camera.id}>{renderCameraRow(camera, 0, camera.id)}</Fragment>
+              ))
+            : getSortedSiblings(rootTrees, rootCameras).map((sibling) =>
+                sibling.kind === 'group' ? (
+                  <Fragment key={sibling.node.group.id}>
+                    {renderGroupNode(sibling.node, 0, '')}
+                  </Fragment>
+                ) : (
+                  <Fragment key={sibling.item.id}>
+                    {renderCameraRow(sibling.item, 0, sibling.item.id)}
+                  </Fragment>
+                ),
+              )}
+          {isEmpty && (
+            <TableRow hover={false}>
+              <TableCell colSpan={colSpan} sx={{ ...myDrawingsTableCellSx, height: 128, textAlign: 'center' }}>
+                <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
+                  {isScopedCameraList || mode === 'cameras'
+                    ? 'No cameras found. Add a new camera or adjust search and filters.'
+                    : 'No groups or cameras found. Create a new group or adjust search and filters.'}
+                </Typography>
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+
+  if (embedInCard) {
+    return (
+      <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {tableContent}
+      </Box>
+    )
+  }
 
   return (
-    <Paper elevation={0} sx={(theme) => ({ overflow: 'hidden', ...getEnterpriseSettingsCardSx(theme) })}>
-      <TableContainer
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          overflow: 'auto',
-          overflowX: 'auto',
-          overflowY: 'auto',
-          pb: 1,
-          boxSizing: 'border-box',
-        }}
-      >
-        <Table stickyHeader size="small" sx={myDrawingsTableSx}>
-          <TableHead sx={myDrawingsTableHeadSx}>
-            <ExplorerTableHeaderRow variant="drawings" />
-          </TableHead>
-          <TableBody sx={myDrawingsTableBodySx}>
-            {getSortedSiblings(rootTrees, rootCameras).map((sibling) =>
-              sibling.kind === 'group' ? (
-                <Fragment key={sibling.node.group.id}>
-                  {renderGroupNode(sibling.node, 0, '')}
-                </Fragment>
-              ) : (
-                <Fragment key={sibling.item.id}>
-                  {renderCameraRow(sibling.item, 0, sibling.item.id)}
-                </Fragment>
-              ),
-            )}
-            {isEmpty && (
-              <TableRow hover={false}>
-                <TableCell colSpan={colSpan} sx={{ ...myDrawingsTableCellSx, height: 128, textAlign: 'center' }}>
-                  <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
-                    No cameras found. Add a new camera or adjust search and filters.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+    <Paper
+      elevation={0}
+      sx={(theme) => ({
+        overflow: 'hidden',
+        ...getEnterpriseSettingsCardSx(theme),
+        ...(embed
+          ? {
+              flex: 1,
+              minHeight: 0,
+              minWidth: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }
+          : {}),
+      })}
+    >
+      {tableContent}
     </Paper>
   )
 }

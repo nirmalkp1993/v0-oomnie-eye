@@ -17,6 +17,8 @@ import {
   UsersRound,
   ShieldCheck,
   ClipboardList,
+  FolderTree,
+  Video,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEffect, useState } from 'react'
@@ -32,6 +34,8 @@ export type AppTab =
   | 'help'
   | 'admin'
   | 'camera'
+  | 'camera-groups'
+  | 'camera-recording'
   | 'settings'
   | 'um-users'
   | 'um-groups'
@@ -40,6 +44,10 @@ export type AppTab =
 
 export function isUserManagementTab(tab: AppTab): boolean {
   return tab === 'um-users' || tab === 'um-groups' || tab === 'um-roles' || tab === 'um-role-assignment'
+}
+
+export function isCameraTab(tab: AppTab): boolean {
+  return tab === 'camera' || tab === 'camera-groups' || tab === 'camera-recording'
 }
 
 const SIDEBAR_WIDTH_EXPANDED = 240
@@ -59,7 +67,12 @@ const topMenuItems: { icon: React.ElementType; label: string; tab: AppTab }[] = 
   { icon: AlertTriangle, label: 'Alerts', tab: 'alerts' },
   { icon: HelpCircle, label: 'Help', tab: 'help' },
   { icon: Users, label: 'Admin', tab: 'admin' },
+]
+
+const cameraChildren: { icon: React.ElementType; label: string; tab: AppTab }[] = [
   { icon: Camera, label: 'Camera', tab: 'camera' },
+  { icon: FolderTree, label: 'Camera Group', tab: 'camera-groups' },
+  { icon: Video, label: 'Camera Recording', tab: 'camera-recording' },
 ]
 
 const userManagementChildren: { icon: React.ElementType; label: string; tab: AppTab }[] = [
@@ -93,11 +106,17 @@ export function AppSidebar({
   }
 
   const [userMgmtOpen, setUserMgmtOpen] = useState(true)
+  const [cameraOpen, setCameraOpen] = useState(true)
   const umActive = isUserManagementTab(activeTab)
+  const cameraActive = isCameraTab(activeTab)
 
   useEffect(() => {
     if (umActive) setUserMgmtOpen(true)
   }, [umActive])
+
+  useEffect(() => {
+    if (cameraActive) setCameraOpen(true)
+  }, [cameraActive])
 
   const renderTabButton = (tab: AppTab, icon: React.ElementType, label: string, nested?: boolean) => {
     const Icon = icon
@@ -164,6 +183,57 @@ export function AppSidebar({
 
         <nav className="flex flex-1 flex-col gap-1 px-2 py-1">
           {topMenuItems.map((item) => renderTabButton(item.tab, item.icon, item.label))}
+
+          {!expanded ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onTabChange?.('camera')}
+                  className={cn(itemClassName(cameraActive, true))}
+                >
+                  <Camera
+                    className={cn(
+                      'size-6 shrink-0',
+                      cameraActive ? 'text-chrome-icon-active' : 'text-chrome-icon-inactive'
+                    )}
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="font-chrome">
+                Camera
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <Collapsible open={cameraOpen} onOpenChange={setCameraOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm font-medium transition-colors',
+                    cameraActive
+                      ? 'text-chrome-icon-active'
+                      : 'text-chrome-foreground hover:bg-white/[0.05]'
+                  )}
+                  aria-expanded={cameraOpen}
+                >
+                  <Camera
+                    className={cn(
+                      'size-5 shrink-0',
+                      cameraActive ? 'text-chrome-icon-active' : 'text-chrome-icon-inactive'
+                    )}
+                  />
+                  <span className="min-w-0 flex-1 truncate">Camera</span>
+                  <ChevronDown
+                    className={cn('size-4 shrink-0 text-chrome-icon-inactive', !cameraOpen && '-rotate-90')}
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-0.5 pt-0.5">
+                {cameraChildren.map((c) => renderTabButton(c.tab, c.icon, c.label, true))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
           {!expanded ? (
             <Tooltip>

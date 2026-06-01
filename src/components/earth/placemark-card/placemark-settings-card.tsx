@@ -47,10 +47,10 @@ export function PlacemarkSettingsCard({
         border: 'none',
         borderRadius: CARD_DIMENSIONS.borderRadius,
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'visible',
         bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
         height: fullHeight ? '100%' : 'auto',
-        minHeight: CARD_DIMENSIONS.minHeight,
+        minHeight: fullHeight ? CARD_DIMENSIONS.minHeight : 'auto',
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -90,11 +90,12 @@ export function PlacemarkSettingsCard({
       <CardContent
         sx={{
           p: CARD_DIMENSIONS.padding,
-          flex: 1,
+          flex: fullHeight ? 1 : '0 0 auto',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
           zIndex: 1,
+          overflow: 'visible',
           '&:last-child': { pb: 2 },
         }}
       >
@@ -160,7 +161,9 @@ export function PlacemarkSettingsCard({
             {action ? <Box>{action}</Box> : null}
           </Box>
         </Box>
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>{children}</Box>
+        <Box sx={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', width: '100%' }}>
+          {children}
+        </Box>
       </CardContent>
     </Card>
   )

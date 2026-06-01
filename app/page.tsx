@@ -1,9 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { AppSidebar, type AppTab, isUserManagementTab } from '@/components/camera/app-sidebar'
+import { AppSidebar, type AppTab, isCameraTab, isUserManagementTab } from '@/components/camera/app-sidebar'
 import { AppHeader } from '@/components/camera/app-header'
 import { CameraManagement } from '@/components/camera/camera-management'
+import { CameraRecordingPlaceholder } from '@/components/camera/camera-recording-placeholder'
 import { EarthView } from '@/components/earth/earth-view'
 import { ReportManagement } from '@/components/report/report-management'
 import { MuiAdminProvider } from '@/src/components/providers/mui-admin-provider'
@@ -13,7 +14,7 @@ import { RolesPermissionsPage } from '@/src/views/user-management/roles-permissi
 import { UsersPage } from '@/src/views/user-management/users-page'
 
 function usesEnterpriseTheme(tab: AppTab): boolean {
-  return tab === 'camera' || tab === 'reports' || isUserManagementTab(tab)
+  return isCameraTab(tab) || tab === 'reports' || isUserManagementTab(tab)
 }
 
 export default function Home() {
@@ -38,14 +39,16 @@ export default function Home() {
   const mainContent = (
     <>
       {activeTab === 'earth' && <EarthView />}
-      {activeTab === 'camera' && <CameraManagement />}
+      {activeTab === 'camera' && <CameraManagement mode="cameras" />}
+      {activeTab === 'camera-groups' && <CameraManagement mode="groups" />}
+      {activeTab === 'camera-recording' && <CameraRecordingPlaceholder />}
       {activeTab === 'reports' && <ReportManagement />}
       {activeTab === 'um-users' && <UsersPage />}
       {activeTab === 'um-groups' && <GroupsPage />}
       {activeTab === 'um-roles' && <RolesPermissionsPage />}
       {activeTab === 'um-role-assignment' && <RoleAssignmentPage />}
       {activeTab !== 'earth' &&
-        activeTab !== 'camera' &&
+        !isCameraTab(activeTab) &&
         activeTab !== 'reports' &&
         !isUserManagementTab(activeTab) && (
           <div className="flex h-full items-center justify-center">

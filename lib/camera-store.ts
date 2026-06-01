@@ -158,6 +158,8 @@ interface CameraStore {
   isNewRootGroupModalOpen: boolean
   subgroupModalParentId: string | null
   addCamerasModalGroupId: string | null
+  /** Camera Group module: selected folder for 3-panel assignment UI */
+  selectedAssignGroupId: string | null
   isDeleteDialogOpen: boolean
   isDeleteGroupDialogOpen: boolean
   cameraToDelete: Camera | null
@@ -183,6 +185,7 @@ interface CameraStore {
   setIsNewRootGroupModalOpen: (open: boolean) => void
   setSubgroupModalParentId: (parentId: string | null) => void
   setAddCamerasModalGroupId: (groupId: string | null) => void
+  setSelectedAssignGroupId: (groupId: string | null) => void
   setIsDeleteDialogOpen: (open: boolean) => void
   setIsDeleteGroupDialogOpen: (open: boolean) => void
   setCameraToDelete: (camera: Camera | null) => void
@@ -194,7 +197,12 @@ interface CameraStore {
 
   createRootGroup: (name: string) => void
   createSubgroupUnder: (parentId: string, name: string) => void
-  addCamerasToParentGroup: (parentId: string, cameraIds: string[]) => void
+  addCamerasToParentGroup: (
+    parentId: string,
+    cameraIds: string[],
+    options?: { closeAddModal?: boolean },
+  ) => void
+  removeCamerasFromParentGroup: (parentId: string, cameraIds: string[]) => void
   deleteGroup: (groupId: string) => void
 
   addSchedule: (schedule: Omit<Schedule, 'id' | 'createdAt'>) => void
@@ -225,6 +233,7 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
   isNewRootGroupModalOpen: false,
   subgroupModalParentId: null,
   addCamerasModalGroupId: null,
+  selectedAssignGroupId: null,
   isDeleteDialogOpen: false,
   isDeleteGroupDialogOpen: false,
   cameraToDelete: null,
@@ -239,12 +248,17 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
       ...(mode === 'table' ? { cardExplorerStack: [] } : {}),
     })),
   setSearchQuery: (query) => set({ searchQuery: query }),
-  setSelectedCamera: (camera) => set({ selectedCamera: camera, activeTab: 'stream' }),
+  setSelectedCamera: (camera) =>
+    set({
+      selectedCamera: camera,
+      ...(camera ? { activeTab: 'details' as const } : {}),
+    }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setIsAddDialogOpen: (open) => set({ isAddDialogOpen: open }),
   setIsNewRootGroupModalOpen: (open) => set({ isNewRootGroupModalOpen: open }),
   setSubgroupModalParentId: (parentId) => set({ subgroupModalParentId: parentId }),
   setAddCamerasModalGroupId: (groupId) => set({ addCamerasModalGroupId: groupId }),
+  setSelectedAssignGroupId: (groupId) => set({ selectedAssignGroupId: groupId }),
   setIsDeleteDialogOpen: (open) => set({ isDeleteDialogOpen: open }),
   setIsDeleteGroupDialogOpen: (open) => set({ isDeleteGroupDialogOpen: open }),
   setCameraToDelete: (camera) => set({ cameraToDelete: camera }),
@@ -363,10 +377,11 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
     }))
   },
 
-  addCamerasToParentGroup: (parentId, cameraIds) => {
+  addCamerasToParentGroup: (parentId, cameraIds, options) => {
     if (!parentId || cameraIds.length === 0) return
     const now = new Date()
     const idSet = new Set(cameraIds)
+    const closeAddModal = options?.closeAddModal !== false
     set((state) => ({
       cameras: state.cameras.map((c) =>
         idSet.has(c.id)
@@ -377,7 +392,24 @@ export const useCameraStore = create<CameraStore>((set, get) => ({
             }
           : c,
       ),
-      addCamerasModalGroupId: null,
+      ...(closeAddModal ? { addCamerasModalGroupId: null } : {}),
+    }))
+  },
+
+  removeCamerasFromParentGroup: (parentId, cameraIds) => {
+    if (!parentId || cameraIds.length === 0) return
+    const now = new Date()
+    const idSet = new Set(cameraIds)
+    set((state) => ({
+      cameras: state.cameras.map((c) =>
+        idSet.has(c.id)
+          ? {
+              ...c,
+              groupIds: cameraGroupIds(c).filter((id) => id !== parentId),
+              updatedAt: now,
+            }
+          : c,
+      ),
     }))
   },
 

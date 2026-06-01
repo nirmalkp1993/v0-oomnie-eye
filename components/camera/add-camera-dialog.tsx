@@ -1,27 +1,48 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import CloseIcon from '@mui/icons-material/Close'
+import CheckIcon from '@mui/icons-material/Check'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
+import RouterOutlinedIcon from '@mui/icons-material/RouterOutlined'
+import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
+import {
+  Box,
+  Button,
+  IconButton,
+  InputAdornment,
+  MenuItem,
+  Stack,
+  Typography,
+} from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import { useCameraStore } from '@/lib/camera-store'
+import { EarthDialogShell } from '@/src/components/modals/earth-dialog-shell'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Upload, Camera, ArrowLeft } from 'lucide-react'
-import type { Camera as CameraType } from '@/types/camera'
+  PlacemarkLabeledSelect,
+  PlacemarkSettingsCard,
+  PlacemarkTextFieldWithInfo,
+} from '@/src/components/earth/placemark-card'
+import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
+import { CameraDialogHeaderIcon } from './camera-dialog-header-icon'
+import { CameraThumbnailMarkerEditor } from './camera-thumbnail-marker-editor'
+import type { Camera as CameraType, CameraThumbnailMarker } from '@/types/camera'
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024
+const ACCEPT_IMAGE = 'image/jpeg,image/png,image/webp,image/gif'
+
+const API_BASE_PRESETS = [
+  '/osc/commands/execute',
+  '/onvif/device_service',
+  '/api/v1/commands',
+  '/cgi-bin/hi3510/param.cgi',
+]
 
 const initialFormState = {
   name: '',
@@ -29,263 +50,407 @@ const initialFormState = {
   ip: '',
   type: 'RTSP' as CameraType['type'],
   cameraId: '',
-  port: '',
+  port: '554',
   apiBaseUrl: '',
   telnetUsername: '',
   telnetPassword: '',
   cameraPassword: '',
   mediaMtxUrl: '',
   thumbnail: '',
+  thumbnailMarker: null as CameraThumbnailMarker | null,
 }
 
 export function AddCameraDialog() {
+  const theme = useTheme()
   const { isAddDialogOpen, setIsAddDialogOpen, addCamera } = useCameraStore()
   const [formData, setFormData] = useState(initialFormState)
+  const [showTelnetPassword, setShowTelnetPassword] = useState(false)
+  const [showCameraPassword, setShowCameraPassword] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const hasImage = Boolean(formData.thumbnail?.length)
+  const datalistId = 'add-camera-api-presets'
+
+  const handleClose = () => {
+    setIsAddDialogOpen(false)
+    setFormData(initialFormState)
+    setImageError(null)
+    setShowTelnetPassword(false)
+    setShowCameraPassword(false)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     addCamera({
       name: formData.name,
-      location: formData.location,
+      location: formData.location || undefined,
       ip: formData.ip,
       type: formData.type,
       cameraId: formData.cameraId,
-      port: parseInt(formData.port) || 554,
+      port: parseInt(formData.port, 10) || 554,
       apiBaseUrl: formData.apiBaseUrl,
       telnetUsername: formData.telnetUsername,
       telnetPassword: formData.telnetPassword,
       cameraPassword: formData.cameraPassword,
-      mediaMtxUrl: formData.mediaMtxUrl,
-      thumbnail: formData.thumbnail,
+      mediaMtxUrl: formData.mediaMtxUrl || undefined,
+      thumbnail: formData.thumbnail || undefined,
+      thumbnailMarker: formData.thumbnailMarker ?? undefined,
     })
     setFormData(initialFormState)
+    setImageError(null)
   }
 
-  const handleClose = () => {
-    setIsAddDialogOpen(false)
-    setFormData(initialFormState)
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setImageError('Please choose a JPEG, PNG, WebP, or GIF file.')
+      return
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError('File is too large. Maximum size is 8 MB.')
+      return
+    }
+    setImageError(null)
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result === 'string') {
+        setFormData((prev) => ({ ...prev, thumbnail: result, thumbnailMarker: null }))
+      }
+    }
+    reader.readAsDataURL(file)
   }
+
+  const removeImage = () => {
+    setFormData((prev) => ({ ...prev, thumbnail: '', thumbnailMarker: null }))
+    setImageError(null)
+  }
+
+  if (!isAddDialogOpen) return null
+
+  const footer = (
+    <>
+      <Button type="button" variant="outlined" startIcon={<CloseIcon />} onClick={handleClose}>
+        Cancel
+      </Button>
+      <Button type="submit" form="add-camera-form" variant="contained" startIcon={<CheckIcon />}>
+        Save
+      </Button>
+    </>
+  )
 
   return (
-    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-      <DialogContent className="max-w-xl border-border bg-card">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClose}
-              className="text-muted-foreground"
-            >
-              <ArrowLeft className="size-4" />
-            </Button>
-            <DialogTitle className="flex items-center gap-2 text-foreground">
-              <Camera className="size-5 text-primary" />
-              Add Camera
-            </DialogTitle>
-          </div>
-          <DialogDescription className="sr-only">
-            Add a new camera to the surveillance system
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Camera Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-accent">
-                Camera Name<span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
+    <EarthDialogShell
+      open
+      onClose={handleClose}
+      title="Add Camera"
+      description="Register a new surveillance camera in the system"
+      headerIcon={<CameraDialogHeaderIcon variant="edit" />}
+      maxWidth="4xl"
+      showOpacityControl
+      footer={footer}
+    >
+      <Box
+        component="form"
+        id="add-camera-form"
+        onSubmit={handleSubmit}
+        sx={{
+          px: 3,
+          py: 2,
+          pb: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3,
+          width: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+            gap: 3,
+            alignItems: 'start',
+          }}
+        >
+          <PlacemarkSettingsCard
+            title="Camera identity"
+            tooltip="Basic identifiers used across management views, exports, and integrations"
+            headerIcon={<EditOutlinedIcon />}
+            accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
+            fullHeight
+          >
+            <Stack spacing={2}>
+              <PlacemarkTextFieldWithInfo
+                label="Camera name"
+                tooltip="Display name shown in lists and the earth map"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., CAM-01"
+                onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
                 required
-                className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
+                autoComplete="off"
               />
-            </div>
-
-            {/* Camera Location */}
-            <div className="space-y-2">
-              <Label htmlFor="location" className="text-accent">
-                Camera location
-              </Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g., Building A, Floor 2"
-                className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-              />
-            </div>
-
-            {/* Camera Image */}
-            <div className="space-y-2 sm:col-span-2">
-              <Label className="text-accent">
-                Camera Location Image
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={formData.thumbnail}
-                  onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-                  placeholder="Image URL"
-                  className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-                />
-                <Button type="button" variant="outline" size="icon" className="shrink-0 border-border">
-                  <Upload className="size-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* IP */}
-            <div className="space-y-2">
-              <Label htmlFor="ip" className="text-accent">
-                IP<span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="ip"
-                value={formData.ip}
-                onChange={(e) => setFormData({ ...formData, ip: e.target.value })}
-                placeholder="192.168.1.100"
-                required
-                className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-              />
-            </div>
-
-            {/* Type */}
-            <div className="space-y-2">
-              <Label htmlFor="type" className="text-accent">
-                Type<span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value as CameraType['type'] })}
-              >
-                <SelectTrigger className="w-full border-border bg-input text-foreground">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-card">
-                  <SelectItem value="RTSP">RTSP</SelectItem>
-                  <SelectItem value="ONVIF">ONVIF</SelectItem>
-                  <SelectItem value="USB">USB</SelectItem>
-                  <SelectItem value="HTTP">HTTP</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* API Base URL */}
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="apiBaseUrl" className="text-accent">
-                API Base URL<span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="apiBaseUrl"
-                value={formData.apiBaseUrl}
-                onChange={(e) => setFormData({ ...formData, apiBaseUrl: e.target.value })}
-                placeholder="/osc/commands/execute"
-                required
-                className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-              />
-            </div>
-
-            {/* Port */}
-            <div className="space-y-2">
-              <Label htmlFor="port" className="text-accent">
-                Port<span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="port"
-                type="number"
-                value={formData.port}
-                onChange={(e) => setFormData({ ...formData, port: e.target.value })}
-                placeholder="554"
-                required
-                className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-              />
-            </div>
-
-            {/* Camera ID */}
-            <div className="space-y-2">
-              <Label htmlFor="cameraId" className="text-accent">
-                Camera ID<span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="cameraId"
+              <PlacemarkTextFieldWithInfo
+                label="Camera ID"
+                tooltip="Unique device identifier from the camera or your inventory"
                 value={formData.cameraId}
-                onChange={(e) => setFormData({ ...formData, cameraId: e.target.value })}
-                placeholder="admin"
+                onChange={(e) => setFormData((p) => ({ ...p, cameraId: e.target.value }))}
                 required
-                className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
+                autoComplete="off"
               />
-            </div>
+              <PlacemarkLabeledSelect
+                label="Type"
+                tooltip="Connection protocol for this camera"
+                value={formData.type}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    type: e.target.value as CameraType['type'],
+                  }))
+                }
+              >
+                <MenuItem value="RTSP">RTSP</MenuItem>
+                <MenuItem value="ONVIF">ONVIF</MenuItem>
+                <MenuItem value="USB">USB</MenuItem>
+                <MenuItem value="HTTP">HTTP</MenuItem>
+              </PlacemarkLabeledSelect>
+            </Stack>
+          </PlacemarkSettingsCard>
 
-            {/* Telnet Username */}
-            <div className="space-y-2">
-              <Label htmlFor="telnetUsername" className="text-accent">
-                Telnet Username<span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="telnetUsername"
-                value={formData.telnetUsername}
-                onChange={(e) => setFormData({ ...formData, telnetUsername: e.target.value })}
-                placeholder="root"
+          <PlacemarkSettingsCard
+            title="Location"
+            tooltip="Physical or logical placement of this camera"
+            headerIcon={<PlaceOutlinedIcon />}
+            accentColor={EARTH_DIALOG_SECTION_ACCENTS.success}
+            fullHeight
+          >
+            <Stack spacing={2}>
+              <PlacemarkTextFieldWithInfo
+                label="Camera location"
+                tooltip="e.g. Building A, Floor 2, North entrance"
+                value={formData.location}
+                onChange={(e) => setFormData((p) => ({ ...p, location: e.target.value }))}
+                autoComplete="off"
+              />
+            </Stack>
+          </PlacemarkSettingsCard>
+        </Box>
+
+        <PlacemarkSettingsCard
+          title="Network and API"
+          tooltip="Connection endpoint for streaming and control commands. Port 554 is typical for RTSP"
+          headerIcon={<RouterOutlinedIcon />}
+          accentColor={EARTH_DIALOG_SECTION_ACCENTS.info}
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              gap: 2,
+              maxWidth: { md: '100%' },
+            }}
+          >
+            <PlacemarkTextFieldWithInfo
+              label="IP"
+              value={formData.ip}
+              onChange={(e) => setFormData((p) => ({ ...p, ip: e.target.value }))}
+              required
+              autoComplete="off"
+            />
+            <PlacemarkTextFieldWithInfo
+              label="Port"
+              value={formData.port}
+              onChange={(e) => setFormData((p) => ({ ...p, port: e.target.value }))}
+              required
+              inputMode="numeric"
+              autoComplete="off"
+            />
+            <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+              <PlacemarkTextFieldWithInfo
+                label="API base URL"
+                tooltip="Path used for ONVIF, OSC, or vendor HTTP APIs"
+                value={formData.apiBaseUrl}
+                onChange={(e) => setFormData((p) => ({ ...p, apiBaseUrl: e.target.value }))}
                 required
-                className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
+                autoComplete="off"
+                inputProps={{ list: datalistId }}
+                sx={{ '& input': { fontFamily: 'Roboto Mono, monospace', fontSize: '0.875rem' } }}
               />
-            </div>
+              <datalist id={datalistId}>
+                {API_BASE_PRESETS.map((p) => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+            </Box>
+          </Box>
+        </PlacemarkSettingsCard>
 
-            {/* Telnet Password */}
-            <div className="space-y-2">
-              <Label htmlFor="telnetPassword" className="text-accent">
-                Telnet Password<span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="telnetPassword"
-                type="password"
-                value={formData.telnetPassword}
-                onChange={(e) => setFormData({ ...formData, telnetPassword: e.target.value })}
-                placeholder="••••••••"
-                required
-                className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
+        <PlacemarkSettingsCard
+          title="Access credentials"
+          tooltip="Credentials for telnet maintenance and the camera web or API login"
+          headerIcon={<LockOutlinedIcon />}
+          accentColor={EARTH_DIALOG_SECTION_ACCENTS.secondary}
+        >
+          <Stack spacing={2} sx={{ maxWidth: { md: 480 } }}>
+            <PlacemarkTextFieldWithInfo
+              label="Telnet username"
+              value={formData.telnetUsername}
+              onChange={(e) => setFormData((p) => ({ ...p, telnetUsername: e.target.value }))}
+              required
+              autoComplete="username"
+            />
+            <PlacemarkTextFieldWithInfo
+              label="Telnet password"
+              type={showTelnetPassword ? 'text' : 'password'}
+              value={formData.telnetPassword}
+              onChange={(e) => setFormData((p) => ({ ...p, telnetPassword: e.target.value }))}
+              required
+              autoComplete="new-password"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => setShowTelnetPassword((s) => !s)}
+                      aria-label={showTelnetPassword ? 'Hide password' : 'Show password'}
+                      edge="end"
+                    >
+                      {showTelnetPassword ? (
+                        <VisibilityOffOutlinedIcon fontSize="small" />
+                      ) : (
+                        <VisibilityOutlinedIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <PlacemarkTextFieldWithInfo
+              label="Camera password"
+              type={showCameraPassword ? 'text' : 'password'}
+              value={formData.cameraPassword}
+              onChange={(e) => setFormData((p) => ({ ...p, cameraPassword: e.target.value }))}
+              required
+              autoComplete="new-password"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => setShowCameraPassword((s) => !s)}
+                      aria-label={showCameraPassword ? 'Hide password' : 'Show password'}
+                      edge="end"
+                    >
+                      {showCameraPassword ? (
+                        <VisibilityOffOutlinedIcon fontSize="small" />
+                      ) : (
+                        <VisibilityOutlinedIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Stack>
+        </PlacemarkSettingsCard>
+
+        <PlacemarkSettingsCard
+          title="Camera image"
+          tooltip="Reference still shown in camera lists, cards, and placemark quick views"
+          headerIcon={<ImageOutlinedIcon />}
+          accentColor={theme.palette.success.main}
+        >
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Upload a reference still, then click on the image to mark where this camera is located.
+          </Typography>
+
+          {hasImage ? (
+            <Box sx={{ mb: 2 }}>
+              <CameraThumbnailMarkerEditor
+                imageUrl={formData.thumbnail}
+                marker={formData.thumbnailMarker}
+                onMarkerChange={(thumbnailMarker) =>
+                  setFormData((p) => ({ ...p, thumbnailMarker }))
+                }
+                minHeight={220}
               />
-            </div>
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                display: 'flex',
+                minHeight: 200,
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 2,
+                border: '2px dashed',
+                borderColor: 'divider',
+                bgcolor: 'action.hover',
+                px: 2,
+                py: 4,
+                textAlign: 'center',
+                mb: 2,
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                No image uploaded yet.
+              </Typography>
+            </Box>
+          )}
 
-            {/* Camera Password */}
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="cameraPassword" className="text-accent">
-                Camera Password<span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="cameraPassword"
-                type="password"
-                value={formData.cameraPassword}
-                onChange={(e) => setFormData({ ...formData, cameraPassword: e.target.value })}
-                placeholder="••••••••"
-                required
-                className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-              />
-            </div>
-          </div>
+          <PlacemarkTextFieldWithInfo
+            label="Image URL"
+            tooltip="Optional direct link if you are not uploading a file"
+            value={formData.thumbnail.startsWith('data:') ? '' : formData.thumbnail}
+            onChange={(e) =>
+              setFormData((p) => ({
+                ...p,
+                thumbnail: e.target.value,
+                thumbnailMarker: null,
+              }))
+            }
+            autoComplete="off"
+            placeholder="https://…"
+          />
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          {imageError ? (
+            <Typography variant="body2" color="error" sx={{ mt: 1.5 }} role="alert">
+              {imageError}
+            </Typography>
+          ) : null}
+
+          <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+            <input ref={fileRef} type="file" accept={ACCEPT_IMAGE} hidden onChange={handleFile} />
             <Button
               type="button"
-              variant="outline"
-              onClick={handleClose}
-              className="border-border text-muted-foreground hover:text-foreground"
+              variant="contained"
+              size="small"
+              startIcon={<CloudUploadOutlinedIcon />}
+              onClick={() => fileRef.current?.click()}
             >
-              Cancel
+              Upload image
             </Button>
             <Button
-              type="submit"
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              type="button"
+              variant="outlined"
+              size="small"
+              disabled={!hasImage}
+              startIcon={<DeleteOutlineOutlinedIcon />}
+              onClick={removeImage}
             >
-              Save
+              Remove image
             </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </Box>
+
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
+            JPEG, PNG, WebP, or GIF up to 8 MB.
+          </Typography>
+        </PlacemarkSettingsCard>
+      </Box>
+    </EarthDialogShell>
   )
 }

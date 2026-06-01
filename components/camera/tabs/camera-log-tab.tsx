@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { useCameraStore } from '@/lib/camera-store'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Box } from '@mui/material'
+import { Box, Button } from '@mui/material'
 import { PlacemarkSettingsCard } from '@/src/components/earth/placemark-card/placemark-settings-card'
+import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
+import TerminalOutlinedIcon from '@mui/icons-material/TerminalOutlined'
+import MonitorHeartOutlinedIcon from '@mui/icons-material/MonitorHeartOutlined'
 import { cn } from '@/lib/utils'
 import {
   Trash2,
@@ -16,8 +18,6 @@ import {
   FileText,
   User,
   Settings,
-  Terminal,
-  Activity,
 } from 'lucide-react'
 
 const diagnosticTools = [
@@ -145,8 +145,8 @@ export function CameraLogTab() {
       <PlacemarkSettingsCard
         title="Camera Diagnostic Tools"
         tooltip="Run diagnostics and maintenance actions for the selected camera"
-        headerIcon={<Terminal className="size-10" />}
-        accentColor="#0288d1"
+        headerIcon={<TerminalOutlinedIcon />}
+        accentColor={EARTH_DIALOG_SECTION_ACCENTS.info}
       >
         <div className="flex flex-wrap gap-3">
           {diagnosticTools.map((tool) => {
@@ -155,12 +155,12 @@ export function CameraLogTab() {
             return (
               <Button
                 key={tool.id}
-                variant="outline"
+                variant="outlined"
+                size="small"
                 onClick={() => handleDiagnostic(tool.id)}
                 disabled={isRunning}
-                className="border-border text-muted-foreground hover:text-foreground disabled:opacity-50"
+                startIcon={<Icon className="size-4" />}
               >
-                <Icon className="mr-2 size-4" />
                 {tool.label}
               </Button>
             )
@@ -171,8 +171,8 @@ export function CameraLogTab() {
       <PlacemarkSettingsCard
         title="Console Output"
         tooltip="Live diagnostic logs and camera system activity"
-        headerIcon={<Activity className="size-10" />}
-        accentColor="#1976d2"
+        headerIcon={<MonitorHeartOutlinedIcon />}
+        accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
         action={
           <div className="flex flex-wrap gap-2">
             <Badge

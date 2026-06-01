@@ -1,3 +1,8 @@
+export interface CameraThumbnailMarker {
+  xPercent: number
+  yPercent: number
+}
+
 export interface CameraGroup {
   id: string
   name: string
@@ -24,6 +29,8 @@ export interface Camera {
   uniqueIdentifier?: string
   status: 'live' | 'stopped' | 'connecting'
   thumbnail?: string
+  /** Camera icon position on thumbnail image (0–100% of visible image area). */
+  thumbnailMarker?: CameraThumbnailMarker
   location?: string
   createdAt: Date
   updatedAt: Date
