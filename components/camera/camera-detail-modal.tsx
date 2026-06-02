@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import ScheduleOutlinedIcon from '@mui/icons-material/ScheduleOutlined'
 import TerminalOutlinedIcon from '@mui/icons-material/TerminalOutlined'
 import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
 import { CameraDialogHeaderIcon } from './camera-dialog-header-icon'
@@ -10,6 +11,7 @@ import { useCameraStore } from '@/lib/camera-store'
 import { EarthDialogShell } from '@/src/components/modals/earth-dialog-shell'
 import { CameraDetailsTab } from './tabs/camera-details-tab'
 import { StreamConfigTab } from './tabs/stream-config-tab'
+import { ScheduleRecordingTab } from './tabs/schedule-recording-tab'
 import { CameraLogTab } from './tabs/camera-log-tab'
 import type { CameraTab } from '@/types/camera'
 import {
@@ -29,7 +31,12 @@ function statusChipColor(status: string): 'success' | 'warning' | 'error' {
 }
 
 function isCameraDetailTab(tab: CameraTab): tab is CameraDetailTabId {
-  return tab === 'details' || tab === 'stream' || tab === 'logs'
+  return (
+    tab === 'details' ||
+    tab === 'stream' ||
+    tab === 'scheduleRecording' ||
+    tab === 'logs'
+  )
 }
 
 export function CameraDetailModal() {
@@ -62,7 +69,7 @@ export function CameraDetailModal() {
       title={selectedCamera.name}
       description={`${selectedCamera.type} camera · ${selectedCamera.ip}`}
       headerIcon={<CameraDialogHeaderIcon />}
-      maxWidth="4xl"
+      maxWidth={resolvedTab === 'scheduleRecording' ? '5xl' : '4xl'}
       showOpacityControl
     >
       <Box sx={{ px: 3, pt: 0, pb: 2, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -84,16 +91,22 @@ export function CameraDetailModal() {
         >
           <Tab icon={<InfoOutlinedIcon />} label="Camera Details" iconPosition="start" />
           <Tab icon={<VideocamOutlinedIcon />} label="Stream Configuration" iconPosition="start" />
+          <Tab
+            icon={<ScheduleOutlinedIcon />}
+            label="Schedule Recording"
+            iconPosition="start"
+          />
           <Tab icon={<TerminalOutlinedIcon />} label="Camera Log" iconPosition="start" />
         </Tabs>
 
         <Box
           sx={{
             minHeight: 400,
-            maxHeight: 'min(520px, 58vh)',
+            maxHeight:
+              resolvedTab === 'scheduleRecording' ? 'min(720px, 72vh)' : 'min(520px, 58vh)',
             overflow: 'auto',
-            mx: -0.5,
-            px: 0.5,
+            mx: resolvedTab === 'scheduleRecording' ? -1 : -0.5,
+            px: resolvedTab === 'scheduleRecording' ? 1 : 0.5,
           }}
         >
           <CameraEarthTabPanel value={tabIndex} index={0}>
@@ -103,6 +116,9 @@ export function CameraDetailModal() {
             <StreamConfigTab />
           </CameraEarthTabPanel>
           <CameraEarthTabPanel value={tabIndex} index={2}>
+            <ScheduleRecordingTab />
+          </CameraEarthTabPanel>
+          <CameraEarthTabPanel value={tabIndex} index={3}>
             <CameraLogTab />
           </CameraEarthTabPanel>
         </Box>

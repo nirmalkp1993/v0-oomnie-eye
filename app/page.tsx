@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { AppSidebar, type AppTab, isCameraTab, isUserManagementTab } from '@/components/camera/app-sidebar'
 import { AppHeader } from '@/components/camera/app-header'
 import { CameraManagement } from '@/components/camera/camera-management'
-import { CameraRecordingPlaceholder } from '@/components/camera/camera-recording-placeholder'
+import { CameraRecordingView } from '@/components/camera/camera-recording-view'
 import { EarthView } from '@/components/earth/earth-view'
 import { ReportManagement } from '@/components/report/report-management'
 import { MuiAdminProvider } from '@/src/components/providers/mui-admin-provider'
@@ -41,7 +41,7 @@ export default function Home() {
       {activeTab === 'earth' && <EarthView />}
       {activeTab === 'camera' && <CameraManagement mode="cameras" />}
       {activeTab === 'camera-groups' && <CameraManagement mode="groups" />}
-      {activeTab === 'camera-recording' && <CameraRecordingPlaceholder />}
+      {activeTab === 'camera-recording' && <CameraRecordingView />}
       {activeTab === 'reports' && <ReportManagement />}
       {activeTab === 'um-users' && <UsersPage />}
       {activeTab === 'um-groups' && <GroupsPage />}

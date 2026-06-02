@@ -12,6 +12,11 @@ export interface CameraGroup {
   updatedAt: Date
 }
 
+export type RecordingMode = 'continuous' | 'scheduled'
+export type StorageTarget = 'local' | 'nas'
+export type RecordingScheduleDayKey = 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat'
+export type RecordingScheduleSlots = Record<RecordingScheduleDayKey, boolean[]>
+
 export interface Camera {
   id: string
   name: string
@@ -32,6 +37,10 @@ export interface Camera {
   /** Camera icon position on thumbnail image (0–100% of visible image area). */
   thumbnailMarker?: CameraThumbnailMarker
   location?: string
+  recordingEnabled?: boolean
+  recordingMode?: RecordingMode
+  storageTarget?: StorageTarget
+  recordingScheduleSlots?: RecordingScheduleSlots
   createdAt: Date
   updatedAt: Date
 }
@@ -72,4 +81,10 @@ export interface LogEntry {
 
 export type ViewMode = 'table' | 'card'
 
-export type CameraTab = 'details' | 'stream' | 'recording' | 'schedule' | 'logs'
+export type CameraTab =
+  | 'details'
+  | 'stream'
+  | 'scheduleRecording'
+  | 'recording'
+  | 'schedule'
+  | 'logs'

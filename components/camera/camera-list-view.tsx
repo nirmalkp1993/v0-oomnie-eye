@@ -119,6 +119,12 @@ export interface CameraAssignRowSelection {
   onRowDragStart?: (camera: Camera, e: React.DragEvent) => void
 }
 
+/** Single-select camera for recording history (camera recording module). */
+export interface CameraRecordingRowSelection {
+  selectedCameraId: string | null
+  onSelectCamera: (camera: Camera) => void
+}
+
 interface CameraListViewProps {
   mode: CameraManagementMode
   /** Embedded in the camera-group assign layout (left column). */
@@ -131,6 +137,7 @@ interface CameraListViewProps {
   /** Flat camera list for assign panels (middle / right). */
   scopedCameras?: Camera[]
   assignRowSelection?: CameraAssignRowSelection
+  recordingSelection?: CameraRecordingRowSelection
 }
 
 export function CameraListView({
@@ -141,6 +148,7 @@ export function CameraListView({
   onSelectAssignGroup,
   scopedCameras,
   assignRowSelection,
+  recordingSelection,
 }: CameraListViewProps) {
   const assignGroupMode = mode === 'groups' && Boolean(onSelectAssignGroup)
   const isScopedCameraList = scopedCameras != null
@@ -454,6 +462,7 @@ export function CameraListView({
 
   const renderCameraRow = (camera: Camera, depth: number, rowKey: string) => {
     const isAssignSelected = assignRowSelection?.selectedIds.has(camera.id) ?? false
+    const isRecordingSelected = recordingSelection?.selectedCameraId === camera.id
     return (
       <TableRow
         key={rowKey}
@@ -465,6 +474,10 @@ export function CameraListView({
             : undefined
         }
         onClick={() => {
+          if (recordingSelection) {
+            recordingSelection.onSelectCamera(camera)
+            return
+          }
           if (assignRowSelection) {
             assignRowSelection.onToggleSelect(camera.id)
             return
@@ -474,7 +487,7 @@ export function CameraListView({
         onDoubleClick={() => assignRowSelection?.onRowDoubleClick?.(camera)}
         sx={{
           ...myDrawingsBodyRowSx({ depth }),
-          ...(isAssignSelected
+          ...(isAssignSelected || isRecordingSelected
             ? {
                 bgcolor: 'action.selected',
                 '&:hover': { bgcolor: 'action.selected' },

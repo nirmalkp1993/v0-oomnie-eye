@@ -36,15 +36,21 @@ export function CameraEarthTabPanel({
   )
 }
 
-export type CameraDetailTabId = 'details' | 'stream' | 'logs'
+export type CameraDetailTabId = 'details' | 'stream' | 'scheduleRecording' | 'logs'
 
 export const CAMERA_DETAIL_TAB_INDEX: Record<CameraDetailTabId, number> = {
   details: 0,
   stream: 1,
-  logs: 2,
+  scheduleRecording: 2,
+  logs: 3,
 }
 
-export const CAMERA_DETAIL_TAB_IDS: CameraDetailTabId[] = ['details', 'stream', 'logs']
+export const CAMERA_DETAIL_TAB_IDS: CameraDetailTabId[] = [
+  'details',
+  'stream',
+  'scheduleRecording',
+  'logs',
+]
 
 export function cameraDetailTabIndex(tab: CameraDetailTabId): number {
   return CAMERA_DETAIL_TAB_INDEX[tab]

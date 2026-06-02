@@ -9,6 +9,8 @@ export const earthDialogMaxWidthPx = {
   '2xl': EARTH_DIALOG_WIDTH_PX,
   '3xl': EARTH_DIALOG_WIDTH_PX,
   '4xl': EARTH_DIALOG_WIDTH_PX,
+  /** Wide layout for weekly recording schedule grid */
+  '5xl': 960,
 } as const
 
 export type EarthDialogMaxWidth = keyof typeof earthDialogMaxWidthPx

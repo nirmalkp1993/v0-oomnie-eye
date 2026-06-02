@@ -16,7 +16,7 @@ import { CameraListView } from './camera-list-view'
 import { CameraToolbar } from './camera-toolbar'
 import { CameraAssignCamerasPanel } from './camera-assign-cameras-panel'
 import { CameraAssignPanelHeader } from './camera-assign-panel-header'
-import type { CameraAssignRowSelection } from './camera-list-view'
+import type { CameraAssignRowSelection, CameraRecordingRowSelection } from './camera-list-view'
 
 export type CameraAssignPanelId = 'groups' | 'in-folder' | 'all'
 
@@ -24,16 +24,20 @@ function camInGroup(c: Camera, groupId: string): boolean {
   return (c.groupIds ?? []).includes(groupId)
 }
 
-function CameraGroupTreeCard({
+export function CameraGroupTreeCard({
   selectedAssignGroupId,
   onSelectAssignGroup,
   isFullscreen,
   onToggleFullscreen,
+  recordingSelection,
+  groupsSubtitle = 'Select a folder to assign cameras',
 }: {
   selectedAssignGroupId: string | null
   onSelectAssignGroup: (groupId: string) => void
   isFullscreen: boolean
   onToggleFullscreen: () => void
+  recordingSelection?: CameraRecordingRowSelection
+  groupsSubtitle?: string
 }) {
   return (
     <Paper
@@ -51,7 +55,7 @@ function CameraGroupTreeCard({
     >
       <CameraAssignPanelHeader
         title="Groups"
-        subtitle="Select a folder to assign cameras"
+        subtitle={groupsSubtitle}
         isFullscreen={isFullscreen}
         onToggleFullscreen={onToggleFullscreen}
       />
@@ -62,6 +66,7 @@ function CameraGroupTreeCard({
         embedInCard
         selectedAssignGroupId={selectedAssignGroupId}
         onSelectAssignGroup={onSelectAssignGroup}
+        recordingSelection={recordingSelection}
       />
     </Paper>
   )
