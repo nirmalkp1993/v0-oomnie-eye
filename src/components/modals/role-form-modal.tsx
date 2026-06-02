@@ -1,227 +1,218 @@
 'use client'
 
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Pencil, Shield } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
-import { Box } from '@mui/material'
-import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS } from '@/src/components/modals/app-dialog'
-import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
-import { useDialogEditMode } from '@/src/hooks/use-dialog-edit-mode'
-import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
-import { DialogEarthTabs, TabsContent, type DialogEarthTabConfig } from '@/src/components/modals/dialog-earth-tabs'
-import { PermissionMatrixEditor } from '@/src/components/user-management/permission-matrix-editor'
+import { useCallback, useEffect, useState } from 'react'
 import {
-  clonePermissionMatrix,
-  createEmptyPermissionMatrix,
-  type PermissionMatrix,
-} from '@/src/constants/permissions-matrix'
-import { MOCK_ROLE_PERMISSIONS } from '@/src/mock-data/roles'
-import type { RoleRow } from '@/src/types/user-management'
-import { roleFormSchema, type RoleFormValues } from '@/src/utils/validation'
+  Box,
+  FormControlLabel,
+  MenuItem,
+  Select,
+  Switch,
+  TextField,
+  Typography,
+} from '@mui/material'
+import { Shield } from 'lucide-react'
+import { AppDialog, DialogFormField } from '@/src/components/modals/app-dialog'
+import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
+import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
+import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
+import { DataScopePicker } from '@/src/components/user-management/roles/data-scope-picker'
+import { PermissionsEditor } from '@/src/components/user-management/roles/permissions-editor'
+import { DEFAULT_TENANT_NAME, INITIAL_CREATE_ROLE_FORM } from '@/src/constants/role-catalog'
+import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
+import {
+  buildRoleListItemFromForm,
+  roleToFormValues,
+  validateCreateRoleForm,
+} from '@/src/lib/user-management/add-role-form.utils'
+import type { CreateRoleFormValues, DataScopeId, RoleListItem, RoleStatus } from '@/src/types/user-management'
 
-export type RoleFormTab = 'details' | 'permissions'
+const outlineFieldSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } } as const
 
 interface RoleFormModalProps {
   open: boolean
   mode: 'create' | 'edit'
-  roleRow?: RoleRow | null
-  roleId?: string | null
-  initial?: { roleName: string; description?: string }
-  initialMatrix?: PermissionMatrix | null
-  initialTab?: RoleFormTab
+  initial?: RoleListItem | null
   onClose: () => void
-  onSubmit: (values: RoleFormValues, matrix: PermissionMatrix) => void
+  onSubmit: (role: RoleListItem) => void
   onDeleteRequest?: () => void
 }
 
 export function RoleFormModal({
   open,
   mode,
-  roleRow,
-  roleId,
   initial,
-  initialMatrix,
-  initialTab = 'details',
   onClose,
   onSubmit,
   onDeleteRequest,
 }: RoleFormModalProps) {
-  const isCreate = mode === 'create'
-  const { isEditing, setIsEditing, readOnly } = useDialogEditMode(open, isCreate)
-  const [activeTab, setActiveTab] = useState<RoleFormTab>('details')
-  const [matrix, setMatrix] = useState<PermissionMatrix>(() => createEmptyPermissionMatrix())
+  const { showMessage } = useAdminSnackbar()
+  const isEdit = mode === 'edit' && initial != null
+  const [form, setForm] = useState<CreateRoleFormValues>(INITIAL_CREATE_ROLE_FORM)
+  const [submitting, setSubmitting] = useState(false)
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<RoleFormValues>({
-    resolver: zodResolver(roleFormSchema),
-    defaultValues: { roleName: '', description: '' },
-  })
+  const reset = useCallback(() => setForm(INITIAL_CREATE_ROLE_FORM), [])
 
   useEffect(() => {
     if (!open) return
-    if (initial) {
-      reset({ roleName: initial.roleName, description: initial.description ?? '' })
-      if (initialMatrix) {
-        setMatrix(clonePermissionMatrix(initialMatrix))
-      } else if (roleId && MOCK_ROLE_PERMISSIONS[roleId]) {
-        setMatrix(clonePermissionMatrix(MOCK_ROLE_PERMISSIONS[roleId]))
-      } else {
-        setMatrix(createEmptyPermissionMatrix())
-      }
-    } else {
-      reset({ roleName: '', description: '' })
-      setMatrix(createEmptyPermissionMatrix())
-    }
-    setActiveTab(initialTab)
-  }, [open, initial, initialMatrix, roleId, reset, initialTab, isCreate])
+    if (initial) setForm(roleToFormValues(initial))
+    else reset()
+  }, [open, initial, reset])
 
-  const resetToInitial = () => {
-    if (initial) {
-      reset({ roleName: initial.roleName, description: initial.description ?? '' })
-      if (initialMatrix) {
-        setMatrix(clonePermissionMatrix(initialMatrix))
-      } else if (roleId && MOCK_ROLE_PERMISSIONS[roleId]) {
-        setMatrix(clonePermissionMatrix(MOCK_ROLE_PERMISSIONS[roleId]))
-      } else {
-        setMatrix(createEmptyPermissionMatrix())
-      }
+  const update = <K extends keyof CreateRoleFormValues>(key: K, value: CreateRoleFormValues[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const togglePermission = (key: string) => {
+    setForm((prev) => ({
+      ...prev,
+      selectedPermissions: prev.selectedPermissions.includes(key)
+        ? prev.selectedPermissions.filter((k) => k !== key)
+        : [...prev.selectedPermissions, key],
+    }))
+  }
+
+  const setModulePermissions = (_moduleId: string, keys: string[], selected: boolean) => {
+    setForm((prev) => {
+      const set = new Set(prev.selectedPermissions)
+      keys.forEach((k) => (selected ? set.add(k) : set.delete(k)))
+      return { ...prev, selectedPermissions: [...set] }
+    })
+  }
+
+  const toggleScope = (scopeId: DataScopeId) => {
+    setForm((prev) => ({
+      ...prev,
+      dataScopeIds: prev.dataScopeIds.includes(scopeId)
+        ? prev.dataScopeIds.filter((id) => id !== scopeId)
+        : [...prev.dataScopeIds, scopeId],
+    }))
+  }
+
+  const handleClose = () => {
+    if (!submitting) {
+      reset()
+      onClose()
     }
   }
 
-  const submit = handleSubmit((vals) => {
-    onSubmit(vals, matrix)
-    if (!isCreate) setIsEditing(false)
-  })
-
-  const handleFooterClose = () => {
-    if (!isCreate && isEditing) {
-      resetToInitial()
-      setIsEditing(false)
+  const handleSubmit = async () => {
+    if (validateCreateRoleForm(form)) {
+      showMessage('Role name is required', 'warning')
       return
     }
-    onClose()
+    setSubmitting(true)
+    try {
+      onSubmit(buildRoleListItemFromForm(form, initial ?? undefined))
+      reset()
+      onClose()
+    } finally {
+      setSubmitting(false)
+    }
   }
-
-  const tabs = useMemo(
-    (): DialogEarthTabConfig[] => [
-      { value: 'details', label: 'Details', icon: Pencil },
-      { value: 'permissions', label: 'Permissions', icon: Shield },
-    ],
-    []
-  )
-
-  const dialogFooter = (
-    <DialogFormFooter
-      isCreate={isCreate}
-      isEditing={isEditing}
-      onClose={handleFooterClose}
-      onEdit={() => setIsEditing(true)}
-      onSave={submit}
-      onDelete={onDeleteRequest}
-      deleteLabel="Delete role"
-    />
-  )
 
   return (
     <AppDialog
       open={open}
-      onClose={onClose}
-      title={isCreate ? 'Add role' : roleRow ? `Role — ${roleRow.roleName}` : 'Edit role'}
+      onClose={handleClose}
+      title={isEdit ? 'Edit role' : 'Add role'}
+      description={`${DEFAULT_TENANT_NAME} · RBAC catalog`}
       icon={Shield}
       maxWidth="4xl"
-      footer={dialogFooter}
+      footer={
+        <DialogFormFooter
+          isCreate={!isEdit}
+          isEditing
+          onClose={handleClose}
+          onEdit={() => {}}
+          onSave={() => void handleSubmit()}
+          onDelete={onDeleteRequest}
+          deleteLabel="Delete role"
+        />
+      }
     >
-      <DialogEarthTabs
-        value={activeTab}
-        onValueChange={(v) => setActiveTab(v as RoleFormTab)}
-        tabs={tabs}
-        contentClassName="max-h-[min(460px,55vh)]"
-      >
-        <TabsContent value="details" className="mt-0">
-          <EarthDialogSectionCard
-            title="Role details"
-            icon={Pencil}
-            tooltip="Name, description, and role metadata"
-            accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, maxHeight: 'min(68vh, 640px)', overflowY: 'auto', py: 1 }}>
+        <EarthDialogSectionCard
+          title="Role details"
+          icon={Shield}
+          accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              columnGap: 2.5,
+              rowGap: 2.5,
+            }}
           >
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {roleRow && !isCreate ? (
-                <Box
-                  component="dl"
-                  sx={{
-                    display: 'grid',
-                    gap: 1,
-                    p: 1.5,
-                    borderRadius: 1,
-                    border: 1,
-                    borderColor: 'divider',
-                    bgcolor: 'action.hover',
-                    gridTemplateColumns: { sm: '1fr 1fr 1fr' },
-                    fontSize: '0.875rem',
-                    '& dt': { color: 'text.secondary', m: 0 },
-                    '& dd': { fontWeight: 600, color: 'text.primary', m: 0 },
-                  }}
-                >
-                  <Box>
-                    <Box component="dt">Users</Box>
-                    <Box component="dd">{roleRow.userCount}</Box>
-                  </Box>
-                  <Box>
-                    <Box component="dt">Created</Box>
-                    <Box component="dd">{roleRow.createdDate}</Box>
-                  </Box>
-                  <Box>
-                    <Box component="dt">Role ID</Box>
-                    <Box component="dd">{roleRow.id}</Box>
-                  </Box>
+            <DialogFormField label="Role name" htmlFor="roleName" required>
+              <TextField
+                id="roleName"
+                fullWidth
+                autoFocus
+                value={form.name}
+                onChange={(e) => update('name', e.target.value)}
+                sx={outlineFieldSx}
+              />
+            </DialogFormField>
+            <DialogFormField label="Status" htmlFor="roleStatus">
+              <Select
+                id="roleStatus"
+                fullWidth
+                value={form.status}
+                onChange={(e) => update('status', e.target.value as RoleStatus)}
+                sx={outlineFieldSx}
+              >
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+            </DialogFormField>
+            <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+              <DialogFormField label="Description" htmlFor="roleDescription">
+                <TextField
+                  id="roleDescription"
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  value={form.description}
+                  onChange={(e) => update('description', e.target.value)}
+                  sx={outlineFieldSx}
+                />
+              </DialogFormField>
+            </Box>
+          </Box>
+          <Box sx={{ mt: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 2, py: 1.5 }}>
+            <FormControlLabel
+              control={
+                <Switch checked={form.highRisk} onChange={(e) => update('highRisk', e.target.checked)} color="primary" />
+              }
+              label={
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    High-risk role
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Requires additional approval for assignment changes.
+                  </Typography>
                 </Box>
-              ) : null}
-              <Controller
-                name="roleName"
-                control={control}
-                render={({ field }) => (
-                  <DialogFormField label="Role Name" htmlFor="roleName" error={errors.roleName?.message} required>
-                    <Input id="roleName" {...field} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
-                  </DialogFormField>
-                )}
-              />
-              <Controller
-                name="description"
-                control={control}
-                render={({ field }) => (
-                  <DialogFormField label="Description" htmlFor="roleDescription" error={errors.description?.message}>
-                    <Textarea id="roleDescription" {...field} rows={3} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
-                  </DialogFormField>
-                )}
-              />
-            </Box>
-          </EarthDialogSectionCard>
-        </TabsContent>
+              }
+              sx={{ alignItems: 'flex-start', m: 0 }}
+            />
+          </Box>
+        </EarthDialogSectionCard>
 
-        <TabsContent value="permissions" className="mt-0">
-          <EarthDialogSectionCard
-            title="Permission matrix"
-            icon={Shield}
-            tooltip="Fine-grained RBAC across platform modules"
-            accentColor={EARTH_DIALOG_SECTION_ACCENTS.success}
-          >
-            <Box component="p" sx={{ mb: 2, fontSize: '0.875rem', color: 'text.secondary', m: 0 }}>
-              Fine-grained RBAC across platform modules. Changes apply when you save the role.
-            </Box>
-            <Box sx={{ pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.85 : 1 }}>
-              <PermissionMatrixEditor value={matrix} onChange={setMatrix} />
-            </Box>
-          </EarthDialogSectionCard>
-        </TabsContent>
-      </DialogEarthTabs>
+        <PermissionsEditor
+          selectedPermissions={form.selectedPermissions}
+          onTogglePermission={togglePermission}
+          onSetModulePermissions={setModulePermissions}
+          disabled={submitting}
+        />
+
+        <DataScopePicker
+          selectedScopeIds={form.dataScopeIds}
+          onToggleScope={toggleScope}
+          disabled={submitting}
+        />
+      </Box>
     </AppDialog>
   )
 }

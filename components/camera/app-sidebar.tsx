@@ -40,10 +40,10 @@ export type AppTab =
   | 'um-users'
   | 'um-groups'
   | 'um-roles'
-  | 'um-role-assignment'
+  | 'um-permissions'
 
 export function isUserManagementTab(tab: AppTab): boolean {
-  return tab === 'um-users' || tab === 'um-groups' || tab === 'um-roles' || tab === 'um-role-assignment'
+  return tab === 'um-users' || tab === 'um-groups' || tab === 'um-roles' || tab === 'um-permissions'
 }
 
 export function isCameraTab(tab: AppTab): boolean {
@@ -78,8 +78,8 @@ const cameraChildren: { icon: React.ElementType; label: string; tab: AppTab }[] 
 const userManagementChildren: { icon: React.ElementType; label: string; tab: AppTab }[] = [
   { icon: User, label: 'Users', tab: 'um-users' },
   { icon: UsersRound, label: 'Groups', tab: 'um-groups' },
-  { icon: ShieldCheck, label: 'Roles & Permissions', tab: 'um-roles' },
-  { icon: ClipboardList, label: 'Role Assignment', tab: 'um-role-assignment' },
+  { icon: ShieldCheck, label: 'Roles', tab: 'um-roles' },
+  { icon: ClipboardList, label: 'Permissions', tab: 'um-permissions' },
 ]
 
 function itemClassName(isActive: boolean, collapsed: boolean) {

@@ -2,7 +2,7 @@ export const USER_MANAGEMENT_ROUTES = {
   users: '/user-management/users',
   groups: '/user-management/groups',
   roles: '/user-management/roles',
-  roleAssignment: '/user-management/role-assignment',
+  permissions: '/user-management/permissions',
 } as const
 
 export type UserManagementHref =

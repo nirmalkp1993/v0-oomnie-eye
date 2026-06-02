@@ -1,75 +1,88 @@
-import type { PermissionMatrix } from '@/src/constants/permissions-matrix'
-import { createEmptyPermissionMatrix } from '@/src/constants/permissions-matrix'
-import type { RoleRow } from '@/src/types/user-management'
+import type { RoleListItem } from '@/src/types/user-management'
+import { createEmptyPermissionMatrix, type PermissionMatrix } from '@/src/constants/permissions-matrix'
 
-export const MOCK_ROLES: RoleRow[] = [
+export const MOCK_ROLES: RoleListItem[] = [
   {
-    id: 'r1',
-    roleName: 'Super Admin',
-    description: 'Full platform access including billing and org settings.',
+    id: 'role-super-admin',
+    name: 'Super Admin',
+    description: 'Platform-wide access across all tenants.',
+    badges: ['system', 'high-risk'],
+    iconVariant: 'shield-danger',
+    userCount: 0,
+    groupCount: 0,
+    permissionCount: 48,
+    dataScope: 'Global (all tenants)',
+    status: 'active',
+    lastUpdated: '2026-05-15',
+  },
+  {
+    id: 'role-tenant-admin',
+    name: 'Tenant Admin',
+    description: 'Full control within this tenant.',
+    badges: ['system'],
+    iconVariant: 'shield-danger',
+    userCount: 1,
+    groupCount: 1,
+    permissionCount: 32,
+    dataScope: 'All tenant data',
+    status: 'active',
+    lastUpdated: '2026-05-14',
+  },
+  {
+    id: 'role-operations-manager',
+    name: 'Operations Manager',
+    description: 'Manages day-to-day operations within their business unit.',
+    badges: [],
+    iconVariant: 'hexagon',
+    userCount: 2,
+    groupCount: 1,
+    permissionCount: 18,
+    dataScope: 'Business unit',
+    status: 'active',
+    lastUpdated: '2026-05-13',
+  },
+  {
+    id: 'role-viewer',
+    name: 'Viewer',
+    description: 'Read-only access to assigned resources.',
+    badges: [],
+    iconVariant: 'hexagon',
     userCount: 3,
-    createdDate: '2023-11-02',
+    groupCount: 2,
+    permissionCount: 8,
+    dataScope: 'Own records',
+    status: 'active',
+    lastUpdated: '2026-05-12',
   },
   {
-    id: 'r2',
-    roleName: 'Security Admin',
-    description: 'Manage users, cameras, and patrol policies.',
-    userCount: 11,
-    createdDate: '2023-11-15',
+    id: 'role-finance-country',
+    name: 'Finance Manager - Country',
+    description: 'Finance scope limited to assigned countries.',
+    badges: [],
+    iconVariant: 'hexagon',
+    userCount: 1,
+    groupCount: 0,
+    permissionCount: 14,
+    dataScope: 'Country',
+    status: 'active',
+    lastUpdated: '2026-05-11',
   },
   {
-    id: 'r3',
-    roleName: 'Operator',
-    description: 'Live monitoring, incident acknowledgement, and exports.',
-    userCount: 42,
-    createdDate: '2023-12-01',
-  },
-  {
-    id: 'r4',
-    roleName: 'Auditor',
-    description: 'Read-only access to logs and compliance dashboards.',
-    userCount: 8,
-    createdDate: '2024-01-20',
+    id: 'role-auditor',
+    name: 'Auditor',
+    description: 'Read-only access for audit and compliance review.',
+    badges: [],
+    iconVariant: 'hexagon',
+    userCount: 0,
+    groupCount: 0,
+    permissionCount: 6,
+    dataScope: 'All tenant data',
+    status: 'inactive',
+    lastUpdated: '2026-04-28',
   },
 ]
 
-function seedMatrix(partial: Partial<Record<string, Partial<Record<string, boolean>>>>): PermissionMatrix {
-  const base = createEmptyPermissionMatrix()
-  for (const [mod, cols] of Object.entries(partial)) {
-    if (!cols) continue
-    for (const [col, val] of Object.entries(cols)) {
-      const m = mod as keyof PermissionMatrix
-      const c = col as keyof PermissionMatrix[typeof m]
-      if (base[m] && c in base[m]) {
-        base[m][c] = Boolean(val)
-      }
-    }
-  }
-  return base
-}
-
-/** Mock permission presets keyed by role id */
-export const MOCK_ROLE_PERMISSIONS: Record<string, PermissionMatrix> = {
-  r1: seedMatrix({
-    Earth: { Create: true, View: true, Update: true, Delete: true, Export: true, Assign: true },
-    'User Management': { Create: true, View: true, Update: true, Delete: true, Export: true, Assign: true },
-    'Camera Management': { Create: true, View: true, Update: true, Delete: true, Export: true, Assign: true },
-  }),
-  r2: seedMatrix({
-    Earth: { View: true, Update: true, Export: true },
-    'User Management': { View: true, Update: true, Assign: true },
-    'Camera Management': { Create: true, View: true, Update: true, Export: true, Assign: true },
-    'Patrol Management': { Create: true, View: true, Update: true, Assign: true },
-  }),
-  r3: seedMatrix({
-    Earth: { View: true, Export: true },
-    'Camera Management': { View: true, Export: true },
-    'Patrol Management': { View: true, Update: true },
-  }),
-  r4: seedMatrix({
-    Earth: { View: true },
-    'User Management': { View: true, Export: true },
-    'Camera Management': { View: true },
-    'Asset Management': { View: true, Export: true },
-  }),
-}
+/** Per-role permission matrices for the role form modal */
+export const MOCK_ROLE_PERMISSIONS: Record<string, PermissionMatrix> = Object.fromEntries(
+  MOCK_ROLES.map((r) => [r.id, createEmptyPermissionMatrix()])
+)

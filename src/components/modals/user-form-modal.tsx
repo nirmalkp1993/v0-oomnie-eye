@@ -1,657 +1,281 @@
 'use client'
 
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useCallback, useEffect, useState } from 'react'
 import {
-  ChevronDown,
-  Eye,
-  EyeOff,
-  Info,
-  Lock,
-  MapPin,
-  Pencil,
-  Shield,
-  UserRound,
-} from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
-import { Box } from '@mui/material'
-import { Button } from '@/components/ui/button'
+  Box,
+  MenuItem,
+  Select,
+  TextField,
+  type SelectChangeEvent,
+} from '@mui/material'
+import { Briefcase, UserRound } from 'lucide-react'
+import { AppDialog, DialogFormField } from '@/src/components/modals/app-dialog'
 import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
+import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from '@/components/ui/input-group'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+  BUSINESS_UNIT_OPTIONS,
+  COUNTRY_OPTIONS,
+  CUSTOM_ATTRIBUTES_PLACEHOLDER,
+  DEFAULT_TENANT_NAME,
+  DEPARTMENT_OPTIONS,
+  INITIAL_CREATE_USER_FORM,
+  JOB_TITLE_OPTIONS,
+  REGION_OPTIONS,
+  SELECT_EMPTY_VALUE,
+  TERRITORY_OPTIONS,
+  USER_STATUS_FORM_OPTIONS,
+} from '@/src/constants/add-user'
+import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { cn } from '@/lib/utils'
-import { AppDialog, DialogFormField, DIALOG_INPUT_CLASS } from '@/src/components/modals/app-dialog'
-import { useDialogEditMode } from '@/src/hooks/use-dialog-edit-mode'
-import { DialogEarthTabs, TabsContent, type DialogEarthTabConfig } from '@/src/components/modals/dialog-earth-tabs'
-import {
-  EARTH_DIALOG_DROPDOWN_Z_CLASS,
-  EARTH_DIALOG_SECTION_ACCENTS,
-} from '@/src/components/modals/earth-dialog-constants'
-import { GeoLocationSelector } from '@/src/components/user-management/GeoLocationSelector'
-import {
-  GeoLocationPreviewMap,
-  type GeoMapFocusTarget,
-  type GeoMapPin,
-} from '@/src/components/user-management/geo-location-preview-map'
-import { getGeoCoordinates } from '@/src/mock-data/geo-coordinates'
-import { GEO_TREE_ROOT } from '@/src/mock-data/geo-tree'
-import { MOCK_GROUPS } from '@/src/mock-data/groups'
-import { MOCK_ROLE_OPTIONS } from '@/src/mock-data/users'
-import type { UserRow } from '@/src/types/user-management'
-import { geoLabelMap } from '@/src/utils/geo-labels'
-import {
-  userCreateFormSchema,
-  userEditFormSchema,
-  type UserCreateFormValues,
-  type UserEditFormValues,
-} from '@/src/utils/validation'
-
-type Mode = 'create' | 'edit'
-
-export type UserFormTab = 'basic' | 'security' | 'access' | 'location'
-
-export interface UserFormSubmitPayload {
-  userName: string
-  email: string
-  age: number
-  mobileNumber: string
-  role: string
-  groupLabels: string[]
-  status: UserRow['status']
-  locationLabel: string
-  password?: string
-}
+  buildUserListItemFromForm,
+  userToFormValues,
+  validateCreateUserForm,
+} from '@/src/lib/user-management/add-user-form.utils'
+import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
 
 interface UserFormModalProps {
   open: boolean
-  mode: Mode
-  initial?: UserRow | null
-  initialTab?: UserFormTab
-  initialFocus?: 'role' | 'groups'
-  /** When true, edit dialog opens with fields editable (e.g. row action "Edit") */
-  startInEditMode?: boolean
+  mode: 'create' | 'edit'
+  initial?: UserListItem | null
   onClose: () => void
-  onSubmit: (payload: UserFormSubmitPayload) => void
+  onSubmit: (user: UserListItem) => void
   onDeleteRequest?: () => void
 }
 
-const groupOptions = MOCK_GROUPS.map((g) => ({ id: g.id, label: g.groupName }))
-
-function PasswordField({
-  id,
-  label,
-  value,
-  onChange,
-  error,
-  show,
-  onToggleShow,
-  readOnly,
-}: {
-  id: string
-  label: string
-  value: string
-  onChange: (v: string) => void
-  error?: string
-  show: boolean
-  onToggleShow: () => void
-  readOnly?: boolean
-}) {
-  return (
-    <DialogFormField label={label} htmlFor={id} error={error}>
-      <InputGroup className={cn('border-border bg-input', error && 'border-destructive', readOnly && 'opacity-80')}>
-        <InputGroupInput
-          id={id}
-          type={show ? 'text' : 'password'}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="text-foreground"
-          readOnly={readOnly}
-          disabled={readOnly}
-        />
-        <InputGroupAddon align="inline-end">
-          <InputGroupButton
-            type="button"
-            aria-label={show ? 'Hide password' : 'Show password'}
-            onClick={onToggleShow}
-            disabled={readOnly}
-          >
-            {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </InputGroupButton>
-        </InputGroupAddon>
-      </InputGroup>
-    </DialogFormField>
-  )
-}
-
-const DIALOG_SELECT_CLASS = cn('w-full', DIALOG_INPUT_CLASS)
-const DIALOG_DROPDOWN_CONTENT_CLASS = cn('border-border bg-card', EARTH_DIALOG_DROPDOWN_Z_CLASS)
+const outlineFieldSx = {
+  '& .MuiOutlinedInput-root': { borderRadius: 2 },
+} as const
 
 export function UserFormModal({
   open,
   mode,
   initial,
-  initialTab = 'basic',
-  initialFocus,
-  startInEditMode = false,
   onClose,
   onSubmit,
   onDeleteRequest,
 }: UserFormModalProps) {
-  const [activeTab, setActiveTab] = useState<UserFormTab>('basic')
-  const [geoSelected, setGeoSelected] = useState<Set<string>>(new Set())
-  const [geoMapFocus, setGeoMapFocus] = useState<{ id: string; name: string } | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [groupsOpen, setGroupsOpen] = useState(false)
-  const labelsByGeoId = useMemo(() => geoLabelMap(GEO_TREE_ROOT), [])
+  const { showMessage } = useAdminSnackbar()
+  const isEdit = mode === 'edit' && initial != null
+  const [form, setForm] = useState<CreateUserFormValues>(INITIAL_CREATE_USER_FORM)
+  const [submitting, setSubmitting] = useState(false)
 
-  const geoMapPins = useMemo((): GeoMapPin[] => {
-    return [...geoSelected]
-      .map((id) => {
-        const coord = getGeoCoordinates(id)
-        const name = labelsByGeoId[id]
-        if (!coord || !name) return null
-        return {
-          id,
-          name,
-          latitude: coord.latitude,
-          longitude: coord.longitude,
-        }
-      })
-      .filter((p): p is GeoMapPin => p !== null)
-  }, [geoSelected, labelsByGeoId])
-
-  const geoMapFocusTarget = useMemo((): GeoMapFocusTarget | null => {
-    if (!geoMapFocus) return null
-    const coord = getGeoCoordinates(geoMapFocus.id)
-    if (!coord) return null
-    return {
-      id: geoMapFocus.id,
-      name: geoMapFocus.name,
-      latitude: coord.latitude,
-      longitude: coord.longitude,
-      zoom: coord.zoom,
-    }
-  }, [geoMapFocus])
-
-  const isCreate = mode === 'create'
-  const { isEditing, setIsEditing, readOnly } = useDialogEditMode(
-    open,
-    isCreate,
-    startInEditMode || Boolean(initialFocus)
-  )
-  const resolver = useMemo(
-    () => zodResolver(isCreate ? userCreateFormSchema : userEditFormSchema),
-    [isCreate]
-  )
-
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<UserCreateFormValues | UserEditFormValues>({
-    resolver,
-    defaultValues: {
-      userName: '',
-      email: '',
-      age: 28,
-      mobileNumber: '',
-      password: '',
-      confirmPassword: '',
-      role: '',
-      groupIds: [],
-      status: 'Active',
-      locationLabel: '',
-    },
-  })
+  const reset = useCallback(() => {
+    setForm(INITIAL_CREATE_USER_FORM)
+  }, [])
 
   useEffect(() => {
     if (!open) return
-    if (initial && !isCreate) {
-      const matched = groupOptions.filter((g) => initial.group.split(',').map((s) => s.trim()).includes(g.label))
-      reset({
-        userName: initial.userName,
-        email: initial.email,
-        age: initial.age,
-        mobileNumber: initial.mobileNumber,
-        password: '',
-        confirmPassword: '',
-        role: initial.role,
-        groupIds: matched.map((g) => g.id),
-        status: initial.status,
-        locationLabel: initial.location,
-      })
-      setGeoSelected(new Set())
-      setGeoMapFocus(null)
-    } else if (isCreate) {
-      reset({
-        userName: '',
-        email: '',
-        age: 28,
-        mobileNumber: '',
-        password: '',
-        confirmPassword: '',
-        role: MOCK_ROLE_OPTIONS[1] ?? '',
-        groupIds: [],
-        status: 'Active',
-        locationLabel: '',
-      })
-      setGeoSelected(new Set())
-      setGeoMapFocus(null)
-    }
-    const tab = initialFocus ? 'access' : initialTab
-    setActiveTab(tab)
-  }, [open, initial, isCreate, reset, initialTab, initialFocus])
+    if (initial) setForm(userToFormValues(initial))
+    else reset()
+  }, [open, initial, reset])
 
-  useEffect(() => {
-    if (!open) {
-      setShowPassword(false)
-      setShowConfirmPassword(false)
-      setGroupsOpen(false)
-    }
-  }, [open])
+  const update = <K extends keyof CreateUserFormValues>(key: K, value: CreateUserFormValues[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+  }
 
-  useEffect(() => {
-    if (!open || !initialFocus) return
-    if (initialFocus === 'groups') {
-      setActiveTab('access')
-      setGroupsOpen(true)
-      return
-    }
-    setActiveTab('access')
-    const t = window.setTimeout(() => {
-      document.querySelector('[data-initial-focus="true"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, 150)
-    return () => window.clearTimeout(t)
-  }, [open, initialFocus])
-
-  const resetToInitial = () => {
-    if (initial && !isCreate) {
-      const matched = groupOptions.filter((g) => initial.group.split(',').map((s) => s.trim()).includes(g.label))
-      reset({
-        userName: initial.userName,
-        email: initial.email,
-        age: initial.age,
-        mobileNumber: initial.mobileNumber,
-        password: '',
-        confirmPassword: '',
-        role: initial.role,
-        groupIds: matched.map((g) => g.id),
-        status: initial.status,
-        locationLabel: initial.location,
-      })
-      setGeoSelected(new Set())
-      setGeoMapFocus(null)
+  const handleClose = () => {
+    if (!submitting) {
+      reset()
+      onClose()
     }
   }
 
-  const submit = handleSubmit((values) => {
-    const groupLabels = groupOptions.filter((g) => values.groupIds.includes(g.id)).map((g) => g.label)
-    const geoLabels = [...geoSelected].map((id) => labelsByGeoId[id]).filter(Boolean)
-    const locationLabel =
-      geoLabels.length > 0 ? geoLabels.join(', ') : values.locationLabel || initial?.location || ''
-
-    onSubmit({
-      userName: values.userName,
-      email: values.email,
-      age: values.age,
-      mobileNumber: values.mobileNumber,
-      role: values.role,
-      groupLabels,
-      status: values.status,
-      locationLabel,
-      password: isCreate ? (values as UserCreateFormValues).password : (values as UserEditFormValues).password || undefined,
-    })
-    if (!isCreate) setIsEditing(false)
-  })
-
-  const handleFooterClose = () => {
-    if (!isCreate && isEditing) {
-      resetToInitial()
-      setIsEditing(false)
-      return
-    }
-    onClose()
-  }
-
-  const passwordErrors = errors as {
-    password?: { message?: string }
-    confirmPassword?: { message?: string }
-  }
-
-  const tabs = useMemo(
-    (): DialogEarthTabConfig[] => [
-      { value: 'basic', label: 'Basic info', icon: Pencil },
-      { value: 'security', label: 'Security', icon: Lock },
-      { value: 'access', label: 'Access', icon: Shield },
-      { value: 'location', label: 'Location', icon: MapPin },
-    ],
-    []
+  const stringSelect = (
+    id: string,
+    label: string,
+    value: string,
+    options: readonly string[],
+    onValue: (v: string) => void
+  ) => (
+    <DialogFormField label={label} htmlFor={id}>
+      <Select
+        id={id}
+        fullWidth
+        displayEmpty
+        value={value}
+        onChange={(e: SelectChangeEvent<string>) => onValue(e.target.value)}
+        sx={outlineFieldSx}
+        renderValue={(v) =>
+          !v || v === SELECT_EMPTY_VALUE ? (
+            <Box component="span" sx={{ color: 'text.secondary' }}>
+              Select…
+            </Box>
+          ) : (
+            v
+          )
+        }
+      >
+        <MenuItem value={SELECT_EMPTY_VALUE}>Select…</MenuItem>
+        {options.map((opt) => (
+          <MenuItem key={opt} value={opt}>
+            {opt}
+          </MenuItem>
+        ))}
+      </Select>
+    </DialogFormField>
   )
 
-  const dialogFooter = (
-    <DialogFormFooter
-      isCreate={isCreate}
-      isEditing={isEditing}
-      onClose={handleFooterClose}
-      onEdit={() => setIsEditing(true)}
-      onSave={submit}
-      onDelete={onDeleteRequest}
-      deleteLabel="Delete user"
-    />
-  )
+  const handleSubmit = async () => {
+    const validationKey = validateCreateUserForm(form)
+    if (validationKey) {
+      showMessage(
+        validationKey === 'emailInvalid' ? 'Enter a valid email address' : 'Fill in required fields',
+        'warning'
+      )
+      return
+    }
+    setSubmitting(true)
+    try {
+      const user = buildUserListItemFromForm(form, initial ?? undefined)
+      onSubmit(user)
+      reset()
+      onClose()
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <AppDialog
       open={open}
-      onClose={onClose}
-      title={isCreate ? 'Add user' : initial ? `User — ${initial.userName}` : 'Edit user'}
+      onClose={handleClose}
+      title={isEdit ? 'Edit user' : 'Add user'}
+      description={`${DEFAULT_TENANT_NAME} · User directory`}
       icon={UserRound}
-      maxWidth="4xl"
-      footer={dialogFooter}
+      maxWidth="3xl"
+      footer={
+        <DialogFormFooter
+          isCreate={!isEdit}
+          isEditing
+          onClose={handleClose}
+          onEdit={() => {}}
+          onSave={() => void handleSubmit()}
+          onDelete={onDeleteRequest}
+          deleteLabel="Delete user"
+        />
+      }
     >
-      <DialogEarthTabs
-        value={activeTab}
-        onValueChange={(v) => setActiveTab(v as UserFormTab)}
-        tabs={tabs}
-        contentClassName="max-h-[min(480px,55vh)]"
-      >
-        <TabsContent value="basic" className="mt-0">
-          <EarthDialogSectionCard
-            title="Basic information"
-            icon={Pencil}
-            tooltip="Account identity and contact details"
-            accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, py: 1 }}>
+        <EarthDialogSectionCard
+          title="Identity"
+          icon={UserRound}
+          accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              columnGap: 2.5,
+              rowGap: 2.5,
+            }}
           >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Controller
-                name="userName"
-                control={control}
-                render={({ field }) => (
-                  <DialogFormField label="User Name" htmlFor="userName" error={errors.userName?.message} required>
-                    <Input id="userName" {...field} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
-                  </DialogFormField>
-                )}
+            <DialogFormField label="First name" htmlFor="firstName" required>
+              <TextField
+                id="firstName"
+                fullWidth
+                autoFocus
+                value={form.firstName}
+                onChange={(e) => update('firstName', e.target.value)}
+                sx={outlineFieldSx}
               />
-              <Controller
-                name="email"
-                control={control}
-                render={({ field }) => (
-                  <DialogFormField label="Email" htmlFor="email" error={errors.email?.message} required>
-                    <Input id="email" type="email" {...field} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
-                  </DialogFormField>
-                )}
+            </DialogFormField>
+            <DialogFormField label="Last name" htmlFor="lastName" required>
+              <TextField
+                id="lastName"
+                fullWidth
+                value={form.lastName}
+                onChange={(e) => update('lastName', e.target.value)}
+                sx={outlineFieldSx}
               />
-              <Controller
-                name="age"
-                control={control}
-                render={({ field }) => (
-                  <DialogFormField label="Age" htmlFor="age" error={errors.age?.message}>
-                    <Input
-                      id="age"
-                      type="number"
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                      className={DIALOG_INPUT_CLASS}
-                      readOnly={readOnly}
-                      disabled={readOnly}
-                    />
-                  </DialogFormField>
-                )}
+            </DialogFormField>
+            <DialogFormField label="Email" htmlFor="email" required>
+              <TextField
+                id="email"
+                fullWidth
+                type="email"
+                value={form.email}
+                onChange={(e) => update('email', e.target.value)}
+                sx={outlineFieldSx}
               />
-              <Controller
-                name="mobileNumber"
-                control={control}
-                render={({ field }) => (
-                  <DialogFormField label="Mobile Number" htmlFor="mobileNumber" error={errors.mobileNumber?.message}>
-                    <Input id="mobileNumber" {...field} className={DIALOG_INPUT_CLASS} readOnly={readOnly} disabled={readOnly} />
-                  </DialogFormField>
-                )}
+            </DialogFormField>
+            <DialogFormField label="Phone" htmlFor="phone">
+              <TextField
+                id="phone"
+                fullWidth
+                value={form.phone}
+                onChange={(e) => update('phone', e.target.value)}
+                sx={outlineFieldSx}
               />
-              <Controller
-                name="status"
-                control={control}
-                render={({ field }) => (
-                  <DialogFormField label="Account status">
-                    <Select value={field.value} onValueChange={field.onChange} disabled={readOnly}>
-                      <SelectTrigger className={DIALOG_SELECT_CLASS} disabled={readOnly}>
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent className={DIALOG_DROPDOWN_CONTENT_CLASS}>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Inactive">Inactive</SelectItem>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </DialogFormField>
-                )}
-              />
-            </div>
-          </EarthDialogSectionCard>
-        </TabsContent>
+            </DialogFormField>
+            <DialogFormField label="Status" htmlFor="status">
+              <Select
+                id="status"
+                fullWidth
+                value={form.status}
+                onChange={(e) => update('status', e.target.value as CreateUserFormValues['status'])}
+                sx={outlineFieldSx}
+              >
+                {USER_STATUS_FORM_OPTIONS.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </DialogFormField>
+          </Box>
+        </EarthDialogSectionCard>
 
-        <TabsContent value="security" className="mt-0">
-          <EarthDialogSectionCard
-            title={isCreate ? 'Account security' : 'Change password'}
-            icon={Lock}
-            tooltip={isCreate ? 'Set the initial login password' : 'Optional — leave blank to keep current password'}
-            accentColor={EARTH_DIALOG_SECTION_ACCENTS.warning}
+        <EarthDialogSectionCard
+          title="Organization"
+          icon={Briefcase}
+          accentColor={EARTH_DIALOG_SECTION_ACCENTS.secondary}
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+              columnGap: 2.5,
+              rowGap: 2.5,
+            }}
           >
-            <div className="grid gap-4 sm:grid-cols-2">
-              {isCreate ? (
-                <>
-                  <Controller
-                    name="password"
-                    control={control}
-                    render={({ field }) => (
-                      <PasswordField
-                        id="password"
-                        label="Password"
-                        value={field.value ?? ''}
-                        onChange={field.onChange}
-                        error={passwordErrors.password?.message}
-                        show={showPassword}
-                        onToggleShow={() => setShowPassword((v) => !v)}
-                      />
-                    )}
-                  />
-                  <Controller
-                    name="confirmPassword"
-                    control={control}
-                    render={({ field }) => (
-                      <PasswordField
-                        id="confirmPassword"
-                        label="Confirm Password"
-                        value={field.value ?? ''}
-                        onChange={field.onChange}
-                        error={passwordErrors.confirmPassword?.message}
-                        show={showConfirmPassword}
-                        onToggleShow={() => setShowConfirmPassword((v) => !v)}
-                      />
-                    )}
-                  />
-                </>
-              ) : (
-                <>
-                  <Controller
-                    name="password"
-                    control={control}
-                    render={({ field }) => (
-                      <PasswordField
-                        id="editPassword"
-                        label="New password (optional)"
-                        value={field.value ?? ''}
-                        onChange={field.onChange}
-                        show={showPassword}
-                        onToggleShow={() => setShowPassword((v) => !v)}
-                        readOnly={readOnly}
-                      />
-                    )}
-                  />
-                  <Controller
-                    name="confirmPassword"
-                    control={control}
-                    render={({ field }) => (
-                      <PasswordField
-                        id="editConfirmPassword"
-                        label="Confirm new password"
-                        value={field.value ?? ''}
-                        onChange={field.onChange}
-                        error={passwordErrors.confirmPassword?.message}
-                        show={showConfirmPassword}
-                        onToggleShow={() => setShowConfirmPassword((v) => !v)}
-                        readOnly={readOnly}
-                      />
-                    )}
-                  />
-                </>
-              )}
-            </div>
-            {!isCreate ? (
-              <p className="mt-3 text-sm text-muted-foreground">Leave blank to keep the current password.</p>
-            ) : null}
-          </EarthDialogSectionCard>
-        </TabsContent>
-
-        <TabsContent value="access" className="mt-0">
-          <EarthDialogSectionCard
-            title="Role & groups"
-            icon={Shield}
-            tooltip="Role assignment and group membership"
-            accentColor={EARTH_DIALOG_SECTION_ACCENTS.secondary}
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Controller
-                name="role"
-                control={control}
-                render={({ field }) => (
-                  <DialogFormField label="Select Role" error={errors.role?.message} required>
-                    <Select value={field.value} onValueChange={field.onChange} disabled={readOnly}>
-                      <SelectTrigger
-                        className={DIALOG_SELECT_CLASS}
-                        disabled={readOnly}
-                        data-initial-focus={initialFocus === 'role' ? 'true' : undefined}
-                      >
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent className={DIALOG_DROPDOWN_CONTENT_CLASS}>
-                        {MOCK_ROLE_OPTIONS.map((r) => (
-                          <SelectItem key={r} value={r}>
-                            {r}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </DialogFormField>
-                )}
-              />
-              <Controller
-                name="groupIds"
-                control={control}
-                render={({ field }) => {
-                  const selected = groupOptions.filter((g) => field.value.includes(g.id))
-                  const label =
-                    selected.length === 0
-                      ? 'Select groups'
-                      : selected.length <= 2
-                        ? selected.map((g) => g.label).join(', ')
-                        : `${selected.length} groups selected`
-
-                  return (
-                    <DialogFormField
-                      label="Select Groups"
-                      error={(errors.groupIds as { message?: string } | undefined)?.message}
-                    >
-                      <Popover open={groupsOpen && !readOnly} onOpenChange={readOnly ? undefined : setGroupsOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            disabled={readOnly}
-                            className={cn('w-full justify-between border-border font-normal', DIALOG_INPUT_CLASS)}
-                          >
-                            <span className="truncate text-left">{label}</span>
-                            <ChevronDown className="size-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          className={cn(
-                            'w-[var(--radix-popover-trigger-width)] p-2',
-                            DIALOG_DROPDOWN_CONTENT_CLASS
-                          )}
-                          align="start"
-                        >
-                          <div className="max-h-48 space-y-1 overflow-y-auto">
-                            {groupOptions.map((g) => {
-                              const checked = field.value.includes(g.id)
-                              return (
-                                <label
-                                  key={g.id}
-                                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
-                                >
-                                  <Checkbox
-                                    checked={checked}
-                                    onCheckedChange={(v) => {
-                                      const next = v
-                                        ? [...field.value, g.id]
-                                        : field.value.filter((id) => id !== g.id)
-                                      field.onChange(next)
-                                    }}
-                                  />
-                                  {g.label}
-                                </label>
-                              )
-                            })}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </DialogFormField>
-                  )
-                }}
-              />
-            </div>
-          </EarthDialogSectionCard>
-        </TabsContent>
-
-        <TabsContent value="location" className="mt-0">
-          <EarthDialogSectionCard
-            title="Geographic assignment"
-            icon={MapPin}
-            tooltip="Assign geographic regions for this user"
-            accentColor={EARTH_DIALOG_SECTION_ACCENTS.info}
-          >
-            <Box
-              className="grid gap-4 md:grid-cols-2"
-              sx={{ pointerEvents: readOnly ? 'none' : 'auto', opacity: readOnly ? 0.85 : 1 }}
-            >
-              <GeoLocationSelector
-                root={GEO_TREE_ROOT}
-                selectedIds={geoSelected}
-                onChange={setGeoSelected}
-                onLocationFocus={setGeoMapFocus}
-                titleClassName="text-accent"
-              />
-              <GeoLocationPreviewMap focusTarget={geoMapFocusTarget} pins={geoMapPins} />
+            {stringSelect('department', 'Department', form.department, DEPARTMENT_OPTIONS, (v) =>
+              update('department', v)
+            )}
+            {stringSelect('jobTitle', 'Job title', form.jobTitle, JOB_TITLE_OPTIONS, (v) =>
+              update('jobTitle', v)
+            )}
+            {stringSelect('territory', 'Territory', form.territory, TERRITORY_OPTIONS, (v) =>
+              update('territory', v)
+            )}
+            {stringSelect('country', 'Country', form.country, COUNTRY_OPTIONS, (v) =>
+              update('country', v)
+            )}
+            {stringSelect('region', 'Region', form.region, REGION_OPTIONS, (v) => update('region', v))}
+            {stringSelect(
+              'businessUnit',
+              'Business unit',
+              form.businessUnit,
+              BUSINESS_UNIT_OPTIONS,
+              (v) => update('businessUnit', v)
+            )}
+            <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+              <DialogFormField label="Custom attributes" htmlFor="customAttributes">
+                <TextField
+                  id="customAttributes"
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  value={form.customAttributes}
+                  onChange={(e) => update('customAttributes', e.target.value)}
+                  placeholder={CUSTOM_ATTRIBUTES_PLACEHOLDER}
+                  sx={outlineFieldSx}
+                />
+              </DialogFormField>
             </Box>
-          </EarthDialogSectionCard>
-        </TabsContent>
-      </DialogEarthTabs>
+          </Box>
+        </EarthDialogSectionCard>
+      </Box>
     </AppDialog>
   )
 }

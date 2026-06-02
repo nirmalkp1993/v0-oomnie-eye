@@ -56,12 +56,12 @@ export function RoleAssignmentPage() {
 
   const filteredUsers = useMemo(() => {
     const q = userQ.trim().toLowerCase()
-    return MOCK_USERS.filter((u) => !q || u.userName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+    return MOCK_USERS.filter((u) => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
   }, [userQ])
 
   const filteredGroups = useMemo(() => {
     const q = groupQ.trim().toLowerCase()
-    return MOCK_GROUPS.filter((g) => !q || g.groupName.toLowerCase().includes(q) || g.groupId.toLowerCase().includes(q))
+    return MOCK_GROUPS.filter((g) => !q || g.name.toLowerCase().includes(q) || g.id.toLowerCase().includes(q))
   }, [groupQ])
 
   const toggle = (set: Set<string>, id: string) => {
@@ -74,7 +74,7 @@ export function RoleAssignmentPage() {
   const openPermissionsDialog = (role: DialogRole) => setPermissionsDialogRole(role)
 
   const assign = () => {
-    const r = MOCK_ROLES.find((x) => x.id === roleId)?.roleName ?? 'Role'
+    const r = MOCK_ROLES.find((x) => x.id === roleId)?.name ?? 'Role'
     const overrideCount =
       [...selectedUsers].filter((id) => assignmentOverrides[`u:${id}`]).length +
       [...selectedGroups].filter((id) => assignmentOverrides[`g:${id}`]).length
@@ -141,7 +141,7 @@ export function RoleAssignmentPage() {
                   size="small"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{u.userName}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{u.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{u.email}</p>
                 </div>
               </label>
@@ -166,8 +166,8 @@ export function RoleAssignmentPage() {
                   size="small"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{g.groupName}</p>
-                  <p className="truncate text-xs text-muted-foreground">{g.groupId}</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{g.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{g.id}</p>
                 </div>
               </label>
             ))}
@@ -199,7 +199,7 @@ export function RoleAssignmentPage() {
               >
                 {MOCK_ROLES.map((r) => (
                   <MenuItem key={r.id} value={r.id}>
-                    {r.roleName}
+                    {r.name}
                   </MenuItem>
                 ))}
               </Select>
@@ -210,7 +210,7 @@ export function RoleAssignmentPage() {
             <Box sx={{ mt: 1, display: 'flex', maxHeight: 320, flexDirection: 'column', gap: 1, overflowY: 'auto', pr: 0.5 }}>
               {MOCK_ROLES.map((r) => {
                 const isSelected = roleId === r.id
-                const dialogRole = { id: r.id, name: r.roleName }
+                const dialogRole = { id: r.id, name: r.name }
                 return (
                   <div
                     key={r.id}
@@ -230,7 +230,7 @@ export function RoleAssignmentPage() {
                           !isSelected && 'hover:bg-muted/50'
                         )}
                       >
-                        <p className="text-sm font-semibold text-foreground">{r.roleName}</p>
+                        <p className="text-sm font-semibold text-foreground">{r.name}</p>
                         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{r.description}</p>
                       </button>
                       <div className="flex shrink-0 border-l border-border/60">

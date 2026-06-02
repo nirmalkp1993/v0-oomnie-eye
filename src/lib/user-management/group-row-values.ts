@@ -1,17 +1,23 @@
-import type { GroupRow } from '@/src/types/user-management'
+import type { GroupListItem } from '@/src/types/user-management'
 
-export function getGroupRowCellValue(row: GroupRow, columnId: string): string {
+export function getGroupRowCellValue(row: GroupListItem, columnId: string): string {
   switch (columnId) {
-    case 'groupId':
-      return row.groupId
-    case 'groupName':
-      return row.groupName
+    case 'name':
+      return row.name
     case 'description':
       return row.description
-    case 'assignedUsersCount':
-      return String(row.assignedUsersCount)
-    case 'createdDate':
-      return row.createdDate
+    case 'type':
+      return row.type === 'static' ? 'Static' : 'Dynamic'
+    case 'memberCount':
+      return String(row.memberCount)
+    case 'inheritedRoles':
+      return row.inheritedRoles.join(', ')
+    case 'scope':
+      return row.scope
+    case 'status':
+      return row.status
+    case 'lastUpdated':
+      return row.lastUpdated
     default:
       return ''
   }

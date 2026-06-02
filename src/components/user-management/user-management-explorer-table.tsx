@@ -1,15 +1,33 @@
 'use client'
 
 import { useMemo, type MouseEvent, type ReactNode } from 'react'
-import { Box, CircularProgress, Paper } from '@mui/material'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Box,
+  Checkbox,
+  CircularProgress,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
 import { ExplorerTableHeaderRow } from '@/components/tables/explorer-table-header-row'
 import { useExplorerListTable } from '@/components/tables/explorer-list-table-context'
 import { matchesAllExplorerFilters } from '@/lib/explorer-list-table/filter-utils'
 import { compareExplorerSortValues } from '@/lib/explorer-list-table/sort-utils'
 import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
-import { cn } from '@/lib/utils'
+import {
+  MY_DRAWINGS_TABLE,
+  myDrawingsBodyRowSx,
+  myDrawingsBodySecondaryTypographySx,
+  myDrawingsTableBodySx,
+  myDrawingsTableCellSx,
+  myDrawingsTableHeadSx,
+  myDrawingsTableSx,
+} from '@/src/components/tables/my-drawings-table-styles'
 
 export type UserManagementExplorerTableProps<TRow> = {
   rows: TRow[]
@@ -34,7 +52,7 @@ export function UserManagementExplorerTable<TRow>({
   renderCell,
   onRowClick,
   emptyMessage = 'No rows match your search or filters.',
-  primaryColumnId,
+  primaryColumnId: _primaryColumnId,
   checkboxSelection = false,
   selectedIds = [],
   onSelectedIdsChange,
@@ -61,8 +79,6 @@ export function UserManagementExplorerTable<TRow>({
   const allVisibleSelected =
     displayRows.length > 0 && displayRows.every((r) => selectedIds.includes(getRowId(r)))
 
-  const someSelected = displayRows.some((r) => selectedIds.includes(getRowId(r)))
-
   const toggleAll = () => {
     if (!onSelectedIdsChange) return
     if (allVisibleSelected) {
@@ -83,8 +99,7 @@ export function UserManagementExplorerTable<TRow>({
     }
   }
 
-  const colSpan =
-    visibleColumns.length + (checkboxSelection ? 1 : 0)
+  const colSpan = visibleColumns.length + (checkboxSelection ? 1 : 0)
 
   return (
     <Paper
@@ -93,6 +108,10 @@ export function UserManagementExplorerTable<TRow>({
         overflow: 'hidden',
         minHeight,
         position: 'relative',
+        flex: 1,
+        minWidth: 0,
+        display: 'flex',
+        flexDirection: 'column',
         ...getEnterpriseSettingsCardSx(theme),
       })}
     >
@@ -105,73 +124,72 @@ export function UserManagementExplorerTable<TRow>({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: 'action.hover',
+            bgcolor: 'rgba(255,255,255,0.6)',
           }}
         >
-          <CircularProgress size={32} />
+          <CircularProgress size={32} sx={{ color: MY_DRAWINGS_TABLE.accent }} />
         </Box>
       ) : null}
-      <Box sx={{ overflowX: 'auto' }}>
-        <Table>
-          <TableHeader>
+      <TableContainer sx={{ flex: 1, minHeight: 0, overflow: 'auto', pb: 1 }}>
+        <Table stickyHeader size="small" sx={myDrawingsTableSx}>
+          <TableHead sx={myDrawingsTableHeadSx}>
             <ExplorerTableHeaderRow
+              variant="drawings"
               leading={
                 checkboxSelection ? (
-                  <TableHead className="w-10 bg-card">
+                  <TableCell sx={{ ...myDrawingsTableCellSx, width: 48, px: 1 }}>
                     <Checkbox
+                      size="small"
                       checked={allVisibleSelected}
-                      onCheckedChange={toggleAll}
+                      indeterminate={
+                        !allVisibleSelected && displayRows.some((r) => selectedIds.includes(getRowId(r)))
+                      }
+                      onChange={toggleAll}
                       aria-label="Select all visible rows"
                     />
-                  </TableHead>
+                  </TableCell>
                 ) : undefined
               }
             />
-          </TableHeader>
-          <TableBody>
+          </TableHead>
+          <TableBody sx={myDrawingsTableBodySx}>
             {displayRows.map((row) => {
               const id = getRowId(row)
               const isSelected = selectedIds.includes(id)
               return (
                 <TableRow
                   key={id}
-                  className={cn(
-                    'border-border',
-                    onRowClick && 'cursor-pointer hover:bg-primary/5',
-                    isSelected && 'bg-primary/5'
-                  )}
+                  hover={false}
                   onClick={onRowClick ? (e) => onRowClick(row, e) : undefined}
+                  sx={{
+                    ...myDrawingsBodyRowSx({ selected: isSelected }),
+                    cursor: onRowClick ? 'pointer' : 'default',
+                  }}
                 >
                   {checkboxSelection ? (
                     <TableCell
-                      className="w-10 bg-card"
+                      sx={{ ...myDrawingsTableCellSx, width: 48, px: 1 }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Checkbox
+                        size="small"
                         checked={isSelected}
-                        onCheckedChange={() => toggleRow(id)}
+                        onChange={() => toggleRow(id)}
                         aria-label={`Select row ${id}`}
                       />
                     </TableCell>
                   ) : null}
                   {visibleColumns.map((col) => {
-                    const isPrimary = col.id === primaryColumnId
                     const isActions = col.id === 'actions'
                     return (
                       <TableCell
                         key={col.id}
-                        className={cn(
-                          isPrimary &&
-                            'sticky left-0 z-10 bg-card font-medium text-foreground',
-                          isActions &&
-                            'sticky right-0 z-10 bg-card text-right',
-                          !isPrimary && !isActions && 'text-muted-foreground'
-                        )}
-                        onClick={
-                          isActions || col.id === 'select'
-                            ? (e) => e.stopPropagation()
-                            : undefined
-                        }
+                        align={isActions ? 'right' : 'left'}
+                        sx={{
+                          ...myDrawingsTableCellSx,
+                          ...(isActions ? { width: 72, minWidth: 72 } : {}),
+                        }}
+                        onClick={isActions ? (e) => e.stopPropagation() : undefined}
                       >
                         {renderCell(row, col.id)}
                       </TableCell>
@@ -181,15 +199,17 @@ export function UserManagementExplorerTable<TRow>({
               )
             })}
             {!loading && displayRows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={colSpan} className="h-32 text-center text-muted-foreground">
-                  {emptyMessage}
+              <TableRow hover={false}>
+                <TableCell colSpan={colSpan} sx={{ ...myDrawingsTableCellSx, height: 128, textAlign: 'center' }}>
+                  <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
+                    {emptyMessage}
+                  </Typography>
                 </TableCell>
               </TableRow>
             ) : null}
           </TableBody>
         </Table>
-      </Box>
+      </TableContainer>
     </Paper>
   )
 }

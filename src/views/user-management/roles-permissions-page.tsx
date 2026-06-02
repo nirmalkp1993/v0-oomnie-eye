@@ -4,7 +4,7 @@ import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import RuleFolderOutlinedIcon from '@mui/icons-material/RuleFolderOutlined'
-import { IconButton, Menu, MenuItem, Button } from '@mui/material'
+import { IconButton, Menu, MenuItem, Button, Chip } from '@mui/material'
 import { MoreVertical } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
 import AddIcon from '@mui/icons-material/Add'
@@ -23,27 +23,27 @@ import {
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import { getRoleRowCellValue } from '@/src/lib/user-management/role-row-values'
 import { MOCK_ROLE_PERMISSIONS, MOCK_ROLES } from '@/src/mock-data/roles'
-import type { RoleRow } from '@/src/types/user-management'
+import type { RoleListItem } from '@/src/types/user-management'
 import type { RoleFormValues } from '@/src/utils/validation'
 
 export function RolesPermissionsPage() {
   const { showMessage } = useAdminSnackbar()
-  const [rows, setRows] = useState<RoleRow[]>([])
+  const [rows, setRows] = useState<RoleListItem[]>([])
   const [matrices, setMatrices] = useState<Record<string, PermissionMatrix>>({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
-  const [menuRow, setMenuRow] = useState<RoleRow | null>(null)
+  const [menuRow, setMenuRow] = useState<RoleListItem | null>(null)
   const [modal, setModal] = useState<{
     open: boolean
     mode: 'create' | 'edit'
-    row?: RoleRow | null
+    row?: RoleListItem | null
     initialTab?: RoleFormTab
   }>({
     open: false,
     mode: 'create',
   })
-  const [confirmDelete, setConfirmDelete] = useState<RoleRow | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<RoleListItem | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -65,7 +65,7 @@ export function RolesPermissionsPage() {
     const q = search.trim().toLowerCase()
     if (!q) return rows
     return rows.filter(
-      (r) => r.roleName.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
+      (r) => r.name.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
     )
   }, [rows, search])
 
@@ -74,13 +74,13 @@ export function RolesPermissionsPage() {
     setMenuRow(null)
   }
 
-  const openEdit = useCallback((row: RoleRow, initialTab: RoleFormTab = 'details') => {
+  const openEdit = useCallback((row: RoleListItem, initialTab: RoleFormTab = 'details') => {
     setModal({ open: true, mode: 'edit', row, initialTab })
     closeMenu()
   }, [])
 
   const handleRowClick = useCallback(
-    (row: RoleRow, event: MouseEvent<HTMLTableRowElement>) => {
+    (row: RoleListItem, event: MouseEvent<HTMLTableRowElement>) => {
       const target = event.target as HTMLElement
       if (target.closest('[data-um-actions]') || target.closest('button')) {
         return
@@ -90,7 +90,7 @@ export function RolesPermissionsPage() {
     [openEdit]
   )
 
-  const requestDeleteRole = useCallback((row: RoleRow) => {
+  const requestDeleteRole = useCallback((row: RoleListItem) => {
     setModal({ open: false, mode: 'create', row: null, initialTab: undefined })
     setConfirmDelete(row)
   }, [])
@@ -112,21 +112,29 @@ export function RolesPermissionsPage() {
       if (existingId) {
         setRows((prev) =>
           prev.map((r) =>
-            r.id === existingId ? { ...r, roleName: values.roleName, description: values.description ?? '' } : r
+            r.id === existingId
+              ? { ...r, name: values.roleName, description: values.description ?? '' }
+              : r
           )
         )
         setMatrices((prev) => ({ ...prev, [existingId]: clonePermissionMatrix(matrix) }))
         showMessage('Role & permissions saved')
       } else {
-        const id = `r${Date.now()}`
+        const id = `role-${Date.now()}`
         setRows((prev) => [
           ...prev,
           {
             id,
-            roleName: values.roleName,
+            name: values.roleName,
             description: values.description ?? '',
+            badges: [],
+            iconVariant: 'hexagon',
             userCount: 0,
-            createdDate: new Date().toISOString().slice(0, 10),
+            groupCount: 0,
+            permissionCount: 0,
+            dataScope: 'Own records',
+            status: 'active',
+            lastUpdated: new Date().toISOString().slice(0, 10),
           },
         ])
         setMatrices((prev) => ({ ...prev, [id]: clonePermissionMatrix(matrix) }))
@@ -138,14 +146,15 @@ export function RolesPermissionsPage() {
   )
 
   const cloneRole = useCallback(
-    (source: RoleRow) => {
-      const id = `r${Date.now()}`
-      const clone: RoleRow = {
+    (source: RoleListItem) => {
+      const id = `role-${Date.now()}`
+      const clone: RoleListItem = {
         ...source,
         id,
-        roleName: `${source.roleName} (copy)`,
+        name: `${source.name} (copy)`,
         userCount: 0,
-        createdDate: new Date().toISOString().slice(0, 10),
+        groupCount: 0,
+        lastUpdated: new Date().toISOString().slice(0, 10),
       }
       setRows((p) => [...p, clone])
       setMatrices((m) => ({
@@ -157,16 +166,38 @@ export function RolesPermissionsPage() {
     [matrices, showMessage]
   )
 
-  const renderCell = useCallback((row: RoleRow, columnId: string) => {
+  const renderCell = useCallback((row: RoleListItem, columnId: string) => {
     switch (columnId) {
-      case 'roleName':
-        return <span className="truncate">{row.roleName}</span>
+      case 'name':
+        return (
+          <span className="truncate font-medium">
+            {row.name}
+            {row.badges.includes('system') ? (
+              <Chip label="System" size="small" sx={{ ml: 1 }} variant="outlined" />
+            ) : null}
+          </span>
+        )
       case 'description':
         return <span className="line-clamp-2">{row.description}</span>
       case 'userCount':
         return row.userCount
-      case 'createdDate':
-        return row.createdDate
+      case 'groupCount':
+        return row.groupCount
+      case 'permissionCount':
+        return row.permissionCount
+      case 'dataScope':
+        return row.dataScope
+      case 'status':
+        return (
+          <Chip
+            label={row.status === 'active' ? 'Active' : 'Inactive'}
+            size="small"
+            color={row.status === 'active' ? 'success' : 'default'}
+            variant="outlined"
+          />
+        )
+      case 'lastUpdated':
+        return row.lastUpdated
       case 'actions':
         return (
           <IconButton
@@ -218,7 +249,7 @@ export function RolesPermissionsPage() {
           getCellValue={getRoleRowCellValue}
           renderCell={renderCell}
           onRowClick={handleRowClick}
-          primaryColumnId="roleName"
+          primaryColumnId="name"
           minHeight={480}
           emptyMessage={
             search.trim()
@@ -229,11 +260,7 @@ export function RolesPermissionsPage() {
       </ExplorerListTableProvider>
 
       <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
-        <MenuItem
-          onClick={() => {
-            if (menuRow) openEdit(menuRow)
-          }}
-        >
+        <MenuItem onClick={() => menuRow && openEdit(menuRow)}>
           <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Edit
         </MenuItem>
         <MenuItem
@@ -250,14 +277,10 @@ export function RolesPermissionsPage() {
             closeMenu()
           }}
         >
-          <ContentCopyOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Clone Role
+          <ContentCopyOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Clone role
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            if (menuRow) openEdit(menuRow, 'permissions')
-          }}
-        >
-          <RuleFolderOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> View Permissions
+        <MenuItem onClick={() => menuRow && openEdit(menuRow, 'permissions')}>
+          <RuleFolderOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> View permissions
         </MenuItem>
       </Menu>
 
@@ -266,20 +289,22 @@ export function RolesPermissionsPage() {
         mode={modal.mode}
         roleRow={modal.row ?? undefined}
         roleId={modal.row?.id ?? null}
-        initial={modal.row ? { roleName: modal.row.roleName, description: modal.row.description } : undefined}
+        initial={modal.row ? { roleName: modal.row.name, description: modal.row.description } : undefined}
         initialMatrix={modal.row && matrices[modal.row.id] ? matrices[modal.row.id] : null}
         initialTab={modal.initialTab}
         onClose={() => setModal({ open: false, mode: 'create', row: null, initialTab: undefined })}
         onSubmit={(vals, matrix) => saveRole(vals, matrix, modal.row?.id)}
         onDeleteRequest={
-          modal.mode === 'edit' && modal.row ? () => requestDeleteRole(modal.row as RoleRow) : undefined
+          modal.mode === 'edit' && modal.row
+            ? () => requestDeleteRole(modal.row as RoleListItem)
+            : undefined
         }
       />
 
       <ConfirmDialog
         open={Boolean(confirmDelete)}
         title="Delete role?"
-        description={`Remove ${confirmDelete?.roleName ?? ''} from the catalog?`}
+        description={`Remove ${confirmDelete?.name ?? ''} from the catalog?`}
         destructive
         confirmLabel="Delete"
         onClose={() => setConfirmDelete(null)}

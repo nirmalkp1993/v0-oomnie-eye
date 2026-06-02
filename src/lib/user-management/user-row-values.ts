@@ -1,21 +1,21 @@
-import type { UserRow } from '@/src/types/user-management'
+import type { UserListItem } from '@/src/types/user-management'
 
-export function getUserRowCellValue(row: UserRow, columnId: string): string {
+export function getUserRowCellValue(row: UserListItem, columnId: string): string {
   switch (columnId) {
-    case 'userName':
-      return row.userName
+    case 'name':
+      return row.name
     case 'email':
       return row.email
-    case 'age':
-      return String(row.age)
-    case 'mobileNumber':
-      return row.mobileNumber
-    case 'role':
-      return row.role
-    case 'group':
-      return row.group
-    case 'location':
-      return row.location
+    case 'roles':
+      return row.roles.join(', ')
+    case 'groups':
+      return row.groups.length > 0 ? row.groups.join(', ') : '—'
+    case 'department':
+      return row.department
+    case 'country':
+      return row.country
+    case 'lastLogin':
+      return row.lastLogin ?? '—'
     case 'status':
       return row.status
     default:

@@ -1,15 +1,23 @@
-import type { RoleRow } from '@/src/types/user-management'
+import type { RoleListItem } from '@/src/types/user-management'
 
-export function getRoleRowCellValue(row: RoleRow, columnId: string): string {
+export function getRoleRowCellValue(row: RoleListItem, columnId: string): string {
   switch (columnId) {
-    case 'roleName':
-      return row.roleName
+    case 'name':
+      return row.name
     case 'description':
       return row.description
     case 'userCount':
       return String(row.userCount)
-    case 'createdDate':
-      return row.createdDate
+    case 'groupCount':
+      return String(row.groupCount)
+    case 'permissionCount':
+      return String(row.permissionCount)
+    case 'dataScope':
+      return row.dataScope
+    case 'status':
+      return row.status
+    case 'lastUpdated':
+      return row.lastUpdated
     default:
       return ''
   }

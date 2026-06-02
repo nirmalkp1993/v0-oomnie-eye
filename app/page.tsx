@@ -9,8 +9,8 @@ import { EarthView } from '@/components/earth/earth-view'
 import { ReportManagement } from '@/components/report/report-management'
 import { MuiAdminProvider } from '@/src/components/providers/mui-admin-provider'
 import { GroupsPage } from '@/src/views/user-management/groups-page'
-import { RoleAssignmentPage } from '@/src/views/user-management/role-assignment-page'
-import { RolesPermissionsPage } from '@/src/views/user-management/roles-permissions-page'
+import { PermissionsPage } from '@/src/views/user-management/permissions-page'
+import { RolesPage } from '@/src/views/user-management/roles-page'
 import { UsersPage } from '@/src/views/user-management/users-page'
 
 function usesEnterpriseTheme(tab: AppTab): boolean {
@@ -45,8 +45,8 @@ export default function Home() {
       {activeTab === 'reports' && <ReportManagement />}
       {activeTab === 'um-users' && <UsersPage />}
       {activeTab === 'um-groups' && <GroupsPage />}
-      {activeTab === 'um-roles' && <RolesPermissionsPage />}
-      {activeTab === 'um-role-assignment' && <RoleAssignmentPage />}
+      {activeTab === 'um-roles' && <RolesPage />}
+      {activeTab === 'um-permissions' && <PermissionsPage />}
       {activeTab !== 'earth' &&
         !isCameraTab(activeTab) &&
         activeTab !== 'reports' &&
