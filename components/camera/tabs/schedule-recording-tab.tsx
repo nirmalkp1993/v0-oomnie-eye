@@ -110,39 +110,47 @@ export function ScheduleRecordingTab() {
         headerIcon={<ScheduleOutlinedIcon />}
         accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
       >
-        <Stack spacing={2}>
-          <Box sx={{ maxWidth: { md: 480 } }}>
-          <PlacemarkLabeledSelect
-            label="Recording"
-            tooltip="Turns recording ON/OFF for this camera. When OFF, no recording mode or schedule is applied."
-            value={form.recordingEnabled ? 'on' : 'off'}
-            onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                recordingEnabled: e.target.value === 'on',
-              }))
-            }
+        <Stack spacing={2} sx={{ width: '100%' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              maxWidth: { md: 480 },
+              width: '100%',
+            }}
           >
-            <MenuItem value="off">Off</MenuItem>
-            <MenuItem value="on">On</MenuItem>
-          </PlacemarkLabeledSelect>
-
-          {form.recordingEnabled ? (
             <PlacemarkLabeledSelect
-              label="Recording mode"
-              tooltip="Continuous records 24/7 when active. Scheduled uses the weekly grid below."
-              value={form.recordingMode}
+              label="Recording"
+              tooltip="Turns recording ON/OFF for this camera. When OFF, no recording mode or schedule is applied."
+              value={form.recordingEnabled ? 'on' : 'off'}
               onChange={(e) =>
                 setForm((prev) => ({
                   ...prev,
-                  recordingMode: e.target.value as RecordingMode,
+                  recordingEnabled: e.target.value === 'on',
                 }))
               }
             >
-              <MenuItem value="continuous">Continuous (24/7)</MenuItem>
-              <MenuItem value="scheduled">Scheduled</MenuItem>
+              <MenuItem value="off">Off</MenuItem>
+              <MenuItem value="on">On</MenuItem>
             </PlacemarkLabeledSelect>
-          ) : null}
+
+            {form.recordingEnabled ? (
+              <PlacemarkLabeledSelect
+                label="Recording mode"
+                tooltip="Continuous records 24/7 when active. Scheduled uses the weekly grid below."
+                value={form.recordingMode}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    recordingMode: e.target.value as RecordingMode,
+                  }))
+                }
+              >
+                <MenuItem value="continuous">Continuous (24/7)</MenuItem>
+                <MenuItem value="scheduled">Scheduled</MenuItem>
+              </PlacemarkLabeledSelect>
+            ) : null}
           </Box>
 
           {form.recordingEnabled && form.recordingMode === 'scheduled' ? (
@@ -202,20 +210,20 @@ export function ScheduleRecordingTab() {
             </Box>
           ) : null}
 
-          <Box sx={{ maxWidth: { md: 480 } }}>
-          <PlacemarkLabeledSelect
-            label="Storage target"
-            value={form.storageTarget}
-            onChange={(e) =>
-              setForm((prev) => ({
-                ...prev,
-                storageTarget: e.target.value as StorageTarget,
-              }))
-            }
-          >
-            <MenuItem value="nas">NAS</MenuItem>
-            <MenuItem value="local">Local</MenuItem>
-          </PlacemarkLabeledSelect>
+          <Box sx={{ maxWidth: { md: 480 }, width: '100%' }}>
+            <PlacemarkLabeledSelect
+              label="Storage target"
+              value={form.storageTarget}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  storageTarget: e.target.value as StorageTarget,
+                }))
+              }
+            >
+              <MenuItem value="nas">NAS</MenuItem>
+              <MenuItem value="local">Local</MenuItem>
+            </PlacemarkLabeledSelect>
           </Box>
         </Stack>
       </PlacemarkSettingsCard>
