@@ -18,6 +18,7 @@ import {
   RULE_MATCH_MODES,
   RULE_OPERATOR_OPTIONS,
 } from '@/src/constants/add-group'
+import { DEPARTMENT_OPTIONS } from '@/src/constants/add-user'
 import type { CreateGroupFormValues, DynamicRule, RuleMatchMode } from '@/src/types/user-management'
 import { countMatchedUsers } from '@/src/lib/user-management/add-group-form.utils'
 import { outlineFieldSx } from './add-group-modal.styles'
@@ -81,7 +82,7 @@ export function DynamicRulesEditor({
               <FormControl size="small" sx={[outlineFieldSx, { flex: 1 }]} disabled={disabled}>
                 <Select
                   value={rule.field}
-                  onChange={(e) => onUpdateRule(rule.id, { field: e.target.value })}
+                  onChange={(e) => onUpdateRule(rule.id, { field: e.target.value, value: '' })}
                 >
                   {RULE_FIELD_OPTIONS.map((f) => (
                     <MenuItem key={f} value={f}>
@@ -102,14 +103,40 @@ export function DynamicRulesEditor({
                   ))}
                 </Select>
               </FormControl>
-              <TextField
-                size="small"
-                placeholder="Value"
-                value={rule.value}
-                onChange={(e) => onUpdateRule(rule.id, { value: e.target.value })}
-                disabled={disabled}
-                sx={{ flex: 1.5, ...outlineFieldSx }}
-              />
+              {rule.field === 'Department' ? (
+                <FormControl size="small" sx={[outlineFieldSx, { flex: 1.5 }]} disabled={disabled}>
+                  <Select
+                    displayEmpty
+                    value={rule.value}
+                    onChange={(e) => onUpdateRule(rule.id, { value: e.target.value })}
+                    renderValue={(v) =>
+                      v || (
+                        <Box component="span" sx={{ color: 'text.secondary' }}>
+                          Select…
+                        </Box>
+                      )
+                    }
+                  >
+                    <MenuItem value="" disabled>
+                      Select…
+                    </MenuItem>
+                    {DEPARTMENT_OPTIONS.map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        {opt}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              ) : (
+                <TextField
+                  size="small"
+                  placeholder="Value"
+                  value={rule.value}
+                  onChange={(e) => onUpdateRule(rule.id, { value: e.target.value })}
+                  disabled={disabled}
+                  sx={{ flex: 1.5, ...outlineFieldSx }}
+                />
+              )}
               <IconButton
                 size="small"
                 aria-label="Remove rule"

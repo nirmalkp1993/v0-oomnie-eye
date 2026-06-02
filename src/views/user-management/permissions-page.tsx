@@ -5,7 +5,7 @@ import { Box, Tab, Tabs } from '@mui/material'
 import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined'
 import ViewColumnOutlinedIcon from '@mui/icons-material/ViewColumnOutlined'
 import PreviewOutlinedIcon from '@mui/icons-material/PreviewOutlined'
-import { settingsParentTabsSx } from '@/src/components/settings/settings-module-tabs.styles'
+import { settingsChildTabsSx } from '@/src/components/settings/settings-module-tabs.styles'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
 import { EffectivePreviewTab } from '@/src/components/user-management/permissions/effective-preview-tab'
 import { FieldPermissionsTab } from '@/src/components/user-management/permissions/field-permissions-tab'
@@ -24,9 +24,10 @@ export function PermissionsPage() {
         <Tabs
           value={activeTab}
           onChange={(_, value: PermissionsTabId) => setActiveTab(value)}
-          variant="fullWidth"
+          variant="scrollable"
+          scrollButtons={false}
           aria-label="Permissions sections"
-          sx={settingsParentTabsSx}
+          sx={settingsChildTabsSx}
         >
           <Tab
             value="matrix"

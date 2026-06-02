@@ -48,23 +48,20 @@ export const DATA_SCOPE_OPTIONS: {
   { id: 'assigned_records', title: 'Assigned records', description: 'Records assigned to the user' },
   { id: 'department', title: 'Department', description: 'All records in the user department' },
   { id: 'country', title: 'Country', description: 'Records in assigned countries' },
-  { id: 'region', title: 'Region', description: 'Records in assigned regions' },
   { id: 'territory', title: 'Territory', description: 'Records in assigned territories' },
-  { id: 'business_unit', title: 'Business unit', description: 'Records in the business unit' },
-  { id: 'all_tenant_data', title: 'All tenant data', description: 'Full tenant visibility' },
-  { id: 'global_all_tenants', title: 'Global (all tenants)', description: 'Cross-tenant platform access' },
-  { id: 'custom_filter', title: 'Custom filter', description: 'Rule-based custom data scope' },
 ]
+
+export const SELECTABLE_DATA_SCOPE_IDS = new Set(
+  DATA_SCOPE_OPTIONS.map((o) => o.id),
+)
 
 /** Maps list-table data scope labels to form scope ids. */
 export const DATA_SCOPE_LABEL_TO_IDS: Record<string, DataScopeId[]> = {
   "Own records": ["own_records"],
   "Assigned records": ["assigned_records"],
+  Department: ["department"],
   Country: ["country"],
-  Region: ["region"],
-  "Business unit": ["business_unit"],
-  "All tenant data": ["all_tenant_data"],
-  "Global (all tenants)": ["global_all_tenants"],
+  Territory: ["territory"],
 };
 
 export const INITIAL_CREATE_ROLE_FORM: CreateRoleFormValues = {

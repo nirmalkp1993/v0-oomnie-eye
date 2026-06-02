@@ -3,17 +3,17 @@
 import type {} from '@mui/x-data-grid/themeAugmentation'
 import { createTheme, alpha } from '@mui/material/styles'
 
-/** Mirrors `app/globals.css` :root — keeps User Management visually aligned with Camera / Earth modules */
-const bg = '#f5f5f7'
+/** Professional Light v3 — aligned with OomniEye-DigitalTwin-Frontend `professional-light` preset */
+const bg = '#fafafa'
 const paper = '#ffffff'
-const fg = '#1a1a2e'
-const mutedFg = '#6b7280'
-const border = '#d1d5db'
+const fg = 'rgba(0, 0, 0, 0.87)'
+const mutedFg = 'rgba(0, 0, 0, 0.6)'
+const border = 'rgba(0, 0, 0, 0.12)'
 const mutedBg = '#e8e8ed'
 const inputBg = '#f3f4f6'
-const primary = '#0891b2'
-const primaryDark = '#0e7490'
-const primaryLight = '#22d3ee'
+const primary = '#1976d2'
+const primaryDark = '#1565c0'
+const primaryLight = '#42a5f5'
 const accent = '#ea580c'
 const radius = 10
 
@@ -223,12 +223,16 @@ export const muiAdminTheme = createTheme({
           opacity: 1,
           '&:hover': {
             color: primary,
-            backgroundColor: alpha(primary, 0.06),
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
           },
           '&.Mui-selected': {
             color: primary,
             fontWeight: 600,
-            backgroundColor: alpha(primary, 0.08),
+            backgroundColor: 'rgba(25, 118, 210, 0.08)',
+          },
+          '&.Mui-selected:hover': {
+            color: primaryLight,
+            backgroundColor: 'rgba(25, 118, 210, 0.12)',
           },
         },
       },

@@ -11,7 +11,7 @@ export const RULE_FIELD_OPTIONS = [
   'Department',
   'Country',
   'Job title',
-  'Business unit',
+  // 'Business unit',
   'Territory',
 ] as const
 

@@ -1,34 +1,35 @@
 'use client'
 
 import type { SxProps, Theme } from '@mui/material/styles'
+import { PROFESSIONAL_LIGHT_TAB_THEME } from './professional-light-tab-theme'
+
+const PL = PROFESSIONAL_LIGHT_TAB_THEME
 
 /**
- * Parent-level page tabs — aligned with OomniEye-DigitalTwin-Frontend `SettingsPage`.
- * STANDARD-LAYOUT-012/013: tabs on page background, 4px primary indicator, 1rem labels.
+ * Parent-level page tabs — Professional Light palette.
  */
 export const settingsParentTabsSx: SxProps<Theme> = {
-  borderBottom: 1,
-  borderColor: 'divider',
+  borderBottom: `1px solid ${PL.divider}`,
   mb: 2,
   '& .MuiTab-root': {
     minHeight: 35,
     fontSize: '1rem',
     lineHeight: 1.5,
     fontWeight: 500,
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: PL.fontFamily,
     textTransform: 'none',
-    color: 'text.primary',
+    color: PL.textPrimary,
     opacity: 1,
     transition: (theme) =>
       theme.transitions.create(['color', 'background-color'], {
         duration: theme.transitions.duration.shorter,
       }),
     '&:hover': {
-      color: 'primary.main',
-      bgcolor: 'action.hover',
+      color: PL.primaryMain,
+      backgroundColor: PL.hoverBg,
     },
     '&.Mui-selected': {
-      color: 'primary.main',
+      color: PL.primaryMain,
       fontWeight: 600,
     },
   },
@@ -37,46 +38,61 @@ export const settingsParentTabsSx: SxProps<Theme> = {
   },
   '& .MuiTabs-indicator': {
     height: 4,
-    backgroundColor: 'primary.main',
+    backgroundColor: PL.primaryMain,
   },
 }
 
 /**
- * Child / nested tabs — aligned with Frontend `ThemeSettingsPage` (40px, 13px).
+ * Child tabs — Professional Light (permissions module, theme settings, etc.).
  */
 export const settingsChildTabsSx: SxProps<Theme> = {
-  borderBottom: 1,
-  borderColor: 'divider',
+  borderBottom: `1px solid ${PL.divider}`,
   mb: 2,
+  transition: 'border-color 0.3s ease',
   '& .MuiTab-root': {
     minHeight: 40,
     fontSize: '0.8125rem',
-    lineHeight: 1.43,
     fontWeight: 400,
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: PL.fontFamily,
     textTransform: 'none',
     py: 1,
-    color: 'text.secondary',
-    '&.Mui-selected': {
-      color: 'primary.main',
-      fontWeight: 500,
+    color: `${PL.textPrimary} !important`,
+    opacity: '1 !important',
+    '& .MuiTab-iconWrapper': {
+      marginRight: '8px',
+      marginBottom: '0 !important',
+      color: 'inherit',
     },
-  },
-  '& .MuiSvgIcon-root': {
-    fontSize: 18,
+    '& .MuiSvgIcon-root': {
+      fontSize: 18,
+      color: 'inherit',
+    },
+    '&:hover': {
+      color: `${PL.primaryMain} !important`,
+      backgroundColor: PL.hoverBg,
+    },
+    '&.Mui-selected': {
+      color: `${PL.primaryMain} !important`,
+      fontWeight: 600,
+      backgroundColor: `${PL.selectedBg} !important`,
+    },
+    '&.Mui-selected:hover': {
+      color: `${PL.primaryLight} !important`,
+      backgroundColor: `${PL.selectedHoverBg} !important`,
+    },
   },
   '& .MuiTabs-indicator': {
     height: 2,
-    backgroundColor: 'primary.main',
+    backgroundColor: PL.primaryMain,
   },
 }
 
 /**
  * Global Settings dialog tabs — scrollable strip (14px, 64px row).
  */
-export const globalSettingsDialogTabsSx: SxProps<Theme> = (theme) => ({
+export const globalSettingsDialogTabsSx: SxProps<Theme> = {
   minHeight: 64,
-  borderBottom: `1px solid ${theme.palette.divider}`,
+  borderBottom: `1px solid ${PL.divider}`,
   '& .MuiTabs-flexContainer': {
     gap: 0,
   },
@@ -90,44 +106,45 @@ export const globalSettingsDialogTabsSx: SxProps<Theme> = (theme) => ({
     fontWeight: 500,
     fontSize: '14px',
     lineHeight: '20px',
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    color: theme.palette.text.primary,
-    opacity: 1,
+    fontFamily: PL.fontFamily,
+    color: `${PL.textPrimary} !important`,
+    opacity: '1 !important',
     whiteSpace: 'nowrap',
     '&:hover': {
-      color: theme.palette.primary.main,
-      bgcolor: theme.palette.action.hover,
+      color: `${PL.primaryMain} !important`,
+      backgroundColor: PL.hoverBg,
     },
     '&.Mui-selected': {
-      color: theme.palette.primary.main,
+      color: `${PL.primaryMain} !important`,
       fontWeight: 600,
-      bgcolor:
-        theme.palette.mode === 'dark'
-          ? 'rgba(144, 202, 249, 0.08)'
-          : 'rgba(25, 118, 210, 0.08)',
+      backgroundColor: `${PL.selectedBg} !important`,
+    },
+    '&.Mui-selected:hover': {
+      color: `${PL.primaryLight} !important`,
+      backgroundColor: `${PL.selectedHoverBg} !important`,
     },
   },
   '& .MuiTabs-indicator': {
     height: 3,
     borderRadius: '3px 3px 0 0',
-    bgcolor: 'primary.main',
+    backgroundColor: PL.primaryMain,
   },
-})
+}
 
 /** Section heading inside a settings / permissions tab panel */
 export const settingsSectionTitleSx: SxProps<Theme> = {
   fontWeight: 600,
   mb: 0.5,
-  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+  fontFamily: PL.fontFamily,
   fontSize: '1rem',
   lineHeight: 1.5,
-  color: 'text.primary',
+  color: PL.textPrimary,
 }
 
 export const settingsSectionDescriptionSx: SxProps<Theme> = {
-  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+  fontFamily: PL.fontFamily,
   fontSize: '0.875rem',
   lineHeight: 1.43,
-  color: 'text.secondary',
+  color: PL.textSecondary,
   mb: 2,
 }

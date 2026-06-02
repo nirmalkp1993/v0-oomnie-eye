@@ -14,14 +14,11 @@ import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import {
-  BUSINESS_UNIT_OPTIONS,
   COUNTRY_OPTIONS,
-  CUSTOM_ATTRIBUTES_PLACEHOLDER,
   DEFAULT_TENANT_NAME,
   DEPARTMENT_OPTIONS,
   INITIAL_CREATE_USER_FORM,
   JOB_TITLE_OPTIONS,
-  REGION_OPTIONS,
   SELECT_EMPTY_VALUE,
   TERRITORY_OPTIONS,
   USER_STATUS_FORM_OPTIONS,
@@ -251,28 +248,6 @@ export function UserFormModal({
             {stringSelect('country', 'Country', form.country, COUNTRY_OPTIONS, (v) =>
               update('country', v)
             )}
-            {stringSelect('region', 'Region', form.region, REGION_OPTIONS, (v) => update('region', v))}
-            {stringSelect(
-              'businessUnit',
-              'Business unit',
-              form.businessUnit,
-              BUSINESS_UNIT_OPTIONS,
-              (v) => update('businessUnit', v)
-            )}
-            <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
-              <DialogFormField label="Custom attributes" htmlFor="customAttributes">
-                <TextField
-                  id="customAttributes"
-                  fullWidth
-                  multiline
-                  minRows={3}
-                  value={form.customAttributes}
-                  onChange={(e) => update('customAttributes', e.target.value)}
-                  placeholder={CUSTOM_ATTRIBUTES_PLACEHOLDER}
-                  sx={outlineFieldSx}
-                />
-              </DialogFormField>
-            </Box>
           </Box>
         </EarthDialogSectionCard>
       </Box>

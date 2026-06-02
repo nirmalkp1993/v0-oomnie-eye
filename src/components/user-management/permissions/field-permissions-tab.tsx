@@ -27,7 +27,8 @@ import {
   FIELD_ROLE_OPTIONS,
 } from '@/src/constants/field-permissions'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
-import type { FieldPermissionFlag } from '@/src/types/field-permissions'
+import type { FieldPermissionFlag, FieldPreviewPerspective } from '@/src/types/field-permissions'
+import { FieldPermissionsSidebar } from './field-permissions-sidebar'
 import { filterFormFields, getFieldsForForm, toggleFieldFlag } from '@/src/lib/user-management/field-permissions.utils'
 import { PermissionsDrawingsTableShell } from './permissions-drawings-table-shell'
 import { PermissionMatrixCell } from './permission-matrix-cell'
@@ -73,6 +74,8 @@ export function FieldPermissionsTab() {
   const [roleId, setRoleId] = useState('auditor')
   const [formId, setFormId] = useState('user_management_form')
   const [search, setSearch] = useState('')
+  const [previewUserId, setPreviewUserId] = useState('jerry')
+  const [perspective, setPerspective] = useState<FieldPreviewPerspective>('admin')
   const [grants, setGrants] = useState(() => cloneFieldGrants(AUDITOR_FIELD_GRANTS))
   const [savedSnapshot, setSavedSnapshot] = useState(() => cloneFieldGrants(AUDITOR_FIELD_GRANTS))
 
@@ -189,53 +192,73 @@ export function FieldPermissionsTab() {
         />
       </Box>
 
-      <PermissionsDrawingsTableShell maxHeight={480} aria-label="Field permissions matrix">
-        <TableHead sx={myDrawingsTableHeadSx}>
-          <TableRow hover={false}>
-            <TableCell sx={{ ...permissionsStickyModuleHeaderSx, minWidth: 200 }}>
-              <Typography variant="body2" noWrap sx={myDrawingsHeaderTypographySx}>
-                Field
-              </Typography>
-            </TableCell>
-            {FIELD_PERMISSION_COLUMNS.map((col) => (
-              <TableCell key={col.key} align="center" sx={myDrawingsTableCellSx}>
-                <Typography variant="body2" noWrap sx={myDrawingsHeaderTypographySx}>
-                  {FLAG_LABELS[col.key] ?? col.key}
-                </Typography>
-              </TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
-        <TableBody sx={myDrawingsTableBodySx}>
-          {visibleFields.map((field) => (
-            <TableRow key={field.id} hover={false} sx={myDrawingsBodyRowSx()}>
-              <TableCell sx={permissionsStickyModuleBodySx}>
-                <Typography variant="body2" sx={{ ...myDrawingsBodyPrimaryTypographySx, fontWeight: 600 }}>
-                  {field.label}
-                </Typography>
-                <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
-                  {field.key}
-                </Typography>
-              </TableCell>
-              {FIELD_PERMISSION_COLUMNS.map((col) => {
-                const flags = grants[field.id]
-                const granted = flags?.[col.key] ?? false
-                return (
-                  <TableCell key={col.key} sx={permissionsMatrixActionCellSx}>
-                    <PermissionMatrixCell
-                      granted={granted}
-                      onToggle={() =>
-                        setGrants((prev) => toggleFieldFlag(prev, field.id, col.key as FieldPermissionFlag))
-                      }
-                      label={`${FLAG_LABELS[col.key]} for ${field.label}`}
-                    />
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: 2.5,
+          alignItems: 'flex-start',
+        }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+          <PermissionsDrawingsTableShell maxHeight={480} aria-label="Field permissions matrix">
+            <TableHead sx={myDrawingsTableHeadSx}>
+              <TableRow hover={false}>
+                <TableCell sx={{ ...permissionsStickyModuleHeaderSx, minWidth: 200 }}>
+                  <Typography variant="body2" noWrap sx={myDrawingsHeaderTypographySx}>
+                    Field
+                  </Typography>
+                </TableCell>
+                {FIELD_PERMISSION_COLUMNS.map((col) => (
+                  <TableCell key={col.key} align="center" sx={myDrawingsTableCellSx}>
+                    <Typography variant="body2" noWrap sx={myDrawingsHeaderTypographySx}>
+                      {FLAG_LABELS[col.key] ?? col.key}
+                    </Typography>
                   </TableCell>
-                )
-              })}
-            </TableRow>
-          ))}
-        </TableBody>
-      </PermissionsDrawingsTableShell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody sx={myDrawingsTableBodySx}>
+              {visibleFields.map((field) => (
+                <TableRow key={field.id} hover={false} sx={myDrawingsBodyRowSx()}>
+                  <TableCell sx={permissionsStickyModuleBodySx}>
+                    <Typography variant="body2" sx={{ ...myDrawingsBodyPrimaryTypographySx, fontWeight: 600 }}>
+                      {field.label}
+                    </Typography>
+                    <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
+                      {field.key}
+                    </Typography>
+                  </TableCell>
+                  {FIELD_PERMISSION_COLUMNS.map((col) => {
+                    const flags = grants[field.id]
+                    const granted = flags?.[col.key] ?? false
+                    return (
+                      <TableCell key={col.key} sx={permissionsMatrixActionCellSx}>
+                        <PermissionMatrixCell
+                          granted={granted}
+                          onToggle={() =>
+                            setGrants((prev) => toggleFieldFlag(prev, field.id, col.key as FieldPermissionFlag))
+                          }
+                          label={`${FLAG_LABELS[col.key]} for ${field.label}`}
+                        />
+                      </TableCell>
+                    )
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </PermissionsDrawingsTableShell>
+        </Box>
+
+        <FieldPermissionsSidebar
+          fields={allFields}
+          grants={grants}
+          previewUserId={previewUserId}
+          perspective={perspective}
+          onPreviewUserChange={setPreviewUserId}
+          onPerspectiveChange={setPerspective}
+        />
+      </Box>
     </Box>
   )
 }

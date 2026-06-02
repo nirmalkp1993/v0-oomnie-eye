@@ -1,7 +1,7 @@
 import {
   DATA_SCOPE_LABEL_TO_IDS,
-  DATA_SCOPE_OPTIONS,
   ROLE_PERMISSION_MODULES,
+  SELECTABLE_DATA_SCOPE_IDS,
 } from '@/src/constants/role-catalog'
 import type { CreateRoleFormValues, DataScopeId, RoleListItem } from '@/src/types/user-management'
 
@@ -17,18 +17,36 @@ export function validateCreateRoleForm(form: CreateRoleFormValues): boolean {
   return !form.name.trim()
 }
 
+const DATA_SCOPE_DISPLAY_LABELS: Record<string, string> = {
+  own_records: 'Own records',
+  assigned_records: 'Assigned records',
+  department: 'Department',
+  country: 'Country',
+  territory: 'Territory',
+  region: 'Region',
+  business_unit: 'Business unit',
+  all_tenant_data: 'All tenant data',
+  global_all_tenants: 'Global (all tenants)',
+  custom_filter: 'Custom filter',
+}
+
 export function formatDataScopeLabel(scopeIds: DataScopeId[]): string {
   if (scopeIds.length === 0) return '—'
-  if (scopeIds.includes('global_all_tenants')) return 'Global (all tenants)'
-  if (scopeIds.includes('all_tenant_data')) return 'All tenant data'
-  if (scopeIds.includes('business_unit')) return 'Business unit'
-  if (scopeIds.includes('country')) return 'Country'
-  if (scopeIds.includes('region')) return 'Region'
-  const opt = DATA_SCOPE_OPTIONS.find((o) => scopeIds[0] === o.id)
-  if (scopeIds.length === 1 && opt) return opt.title
+  if (
+    scopeIds.length === 2 &&
+    scopeIds.includes('own_records') &&
+    scopeIds.includes('assigned_records')
+  ) {
+    return 'Own records'
+  }
   return scopeIds
-    .map((id) => DATA_SCOPE_OPTIONS.find((o) => o.id === id)?.title ?? id)
+    .map((id) => DATA_SCOPE_DISPLAY_LABELS[id] ?? id.replace(/_/g, ' '))
     .join(', ')
+}
+
+function filterSelectableScopeIds(scopeIds: DataScopeId[]): DataScopeId[] {
+  const filtered = scopeIds.filter((id) => SELECTABLE_DATA_SCOPE_IDS.has(id))
+  return filtered.length > 0 ? filtered : ['own_records', 'assigned_records']
 }
 
 function allPermissionKeys(): string[] {
@@ -54,10 +72,11 @@ const ROLE_EDIT_PERMISSION_PRESETS: Record<string, string[]> = {
 }
 
 export function roleToFormValues(role: RoleListItem): CreateRoleFormValues {
-  const scopeIds =
+  const rawScopeIds =
     role.dataScopeIds ??
     DATA_SCOPE_LABEL_TO_IDS[role.dataScope] ??
     (['own_records', 'assigned_records'] as DataScopeId[])
+  const scopeIds = filterSelectableScopeIds(rawScopeIds)
 
   const permissions = role.selectedPermissions ?? ROLE_EDIT_PERMISSION_PRESETS[role.id] ?? []
 
