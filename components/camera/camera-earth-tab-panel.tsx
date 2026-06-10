@@ -2,22 +2,16 @@
 
 import type { ReactNode, SyntheticEvent } from 'react'
 import { Box } from '@mui/material'
+import { globalSettingsDialogTabsSx } from '@/src/components/settings/settings-module-tabs.styles'
+import { PL_CARD_SPACING } from '@/src/components/theme/professional-light-theme'
 
-/** MUI tab strip — matches Earth create placemark dialog (`pin-form-dialog-body`) */
+/** MUI tab strip — Professional Light dialog tabs */
 export const cameraEarthTabsSx = {
-  borderBottom: 1,
-  borderColor: 'divider',
+  ...globalSettingsDialogTabsSx,
   mx: -3,
   px: 3,
   mb: 0,
-  '& .MuiTab-root': {
-    minHeight: 64,
-    fontSize: '1rem',
-    fontWeight: 500,
-    textTransform: 'none',
-  },
   '& .MuiSvgIcon-root': { fontSize: 24 },
-  '& .MuiTabs-indicator': { height: 4, backgroundColor: 'primary.main' },
 } as const
 
 export function CameraEarthTabPanel({
@@ -30,7 +24,7 @@ export function CameraEarthTabPanel({
   index: number
 }) {
   return (
-    <Box role="tabpanel" hidden={value !== index} sx={{ py: 3 }}>
+    <Box role="tabpanel" hidden={value !== index} sx={{ py: PL_CARD_SPACING }}>
       {value === index ? children : null}
     </Box>
   )

@@ -9,9 +9,9 @@ import { useMemo } from 'react'
 import { useCameraStore } from '@/lib/camera-store'
 import { EnterpriseExplorerToolbar } from '@/src/components/enterprise'
 import {
-  myDrawingsPrimaryButtonSx,
-  myDrawingsToolbarIconButtonSx,
-} from '@/src/components/tables/my-drawings-table-styles'
+  cameraPrimaryButtonSx,
+  cameraToolbarIconButtonSx,
+} from './camera-module.styles'
 import type { CameraManagementMode } from './camera-management-mode'
 
 interface CameraToolbarProps {
@@ -42,12 +42,12 @@ export function CameraToolbar({ mode, layout = 'page' }: CameraToolbarProps) {
     return (
       <>
         <Tooltip title="Expand all groups" arrow placement="bottom">
-          <IconButton size="small" onClick={expandAllListGroups} sx={myDrawingsToolbarIconButtonSx}>
+          <IconButton size="small" onClick={expandAllListGroups} sx={cameraToolbarIconButtonSx}>
             <FolderOpenIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Collapse all groups" arrow placement="bottom">
-          <IconButton size="small" onClick={collapseAllListGroups} sx={myDrawingsToolbarIconButtonSx}>
+          <IconButton size="small" onClick={collapseAllListGroups} sx={cameraToolbarIconButtonSx}>
             <FolderIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -63,7 +63,7 @@ export function CameraToolbar({ mode, layout = 'page' }: CameraToolbarProps) {
         size="small"
         startIcon={<VideocamOutlinedIcon />}
         onClick={() => setIsAddDialogOpen(true)}
-        sx={myDrawingsPrimaryButtonSx}
+        sx={cameraPrimaryButtonSx}
       >
         Add Camera
       </Button>
@@ -74,7 +74,7 @@ export function CameraToolbar({ mode, layout = 'page' }: CameraToolbarProps) {
         size="small"
         startIcon={<CreateNewFolderOutlinedIcon />}
         onClick={() => setIsNewRootGroupModalOpen(true)}
-        sx={myDrawingsPrimaryButtonSx}
+        sx={cameraPrimaryButtonSx}
       >
         New group
       </Button>
@@ -82,7 +82,7 @@ export function CameraToolbar({ mode, layout = 'page' }: CameraToolbarProps) {
 
   return (
     <EnterpriseExplorerToolbar
-      variant="drawings"
+      variant="default"
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
       searchPlaceholder={mode === 'cameras' ? 'Search cameras...' : 'Search groups and cameras...'}

@@ -1,16 +1,21 @@
-/** Matches PlacemarkCardPanel default width in earth pin dialogs */
-export const EARTH_DIALOG_WIDTH_PX = 760
+/**
+ * Earth / placemark dialog widths — aligned with OomniEye-DigitalTwin-Frontend:
+ * - PlacemarkCard & pin editor: maxWidth="md" → 900px
+ * - Wide layouts (schedule grid): maxWidth="lg" → 1200px
+ */
+export const EARTH_DIALOG_WIDTH_PX = 900
+export const EARTH_DIALOG_WIDTH_WIDE_PX = 1200
 
 export const earthDialogMaxWidthPx = {
-  sm: 400,
-  md: 480,
-  lg: 600,
-  xl: 700,
+  sm: 444,
+  md: 600,
+  lg: EARTH_DIALOG_WIDTH_PX,
+  xl: EARTH_DIALOG_WIDTH_PX,
   '2xl': EARTH_DIALOG_WIDTH_PX,
   '3xl': EARTH_DIALOG_WIDTH_PX,
   '4xl': EARTH_DIALOG_WIDTH_PX,
   /** Wide layout for weekly recording schedule grid */
-  '5xl': 960,
+  '5xl': EARTH_DIALOG_WIDTH_WIDE_PX,
 } as const
 
 export type EarthDialogMaxWidth = keyof typeof earthDialogMaxWidthPx

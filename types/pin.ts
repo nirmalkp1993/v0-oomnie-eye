@@ -30,5 +30,5 @@ export interface PinRecording {
   status: 'completed' | 'failed' | 'processing'
 }
 
-export type PinEditorTab = 'camera' | 'general' | 'position' | 'style'
+export type PinEditorTab = 'camera' | 'general' | 'position' | 'style' | 'permission'
 export type PinViewerTab = 'preview' | 'info' | 'recording'

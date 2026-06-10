@@ -14,6 +14,7 @@ import { StreamConfigTab } from './tabs/stream-config-tab'
 import { ScheduleRecordingTab } from './tabs/schedule-recording-tab'
 import { CameraLogTab } from './tabs/camera-log-tab'
 import type { CameraTab } from '@/types/camera'
+import { cameraModalContentSx, cameraStatusChipSx } from './camera-module.styles'
 import {
   cameraDetailTabIndex,
   cameraEarthTabsSx,
@@ -72,13 +73,13 @@ export function CameraDetailModal() {
       maxWidth={resolvedTab === 'scheduleRecording' ? '5xl' : '4xl'}
       showOpacityControl
     >
-      <Box sx={{ px: 3, pt: 0, pb: 2, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <Box sx={cameraModalContentSx}>
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 0.5 }}>
           <Chip
             label={statusLabel}
             size="small"
             color={statusChipColor(selectedCamera.status)}
-            sx={{ fontWeight: 700, fontSize: '0.75rem' }}
+            sx={cameraStatusChipSx}
           />
         </Box>
 

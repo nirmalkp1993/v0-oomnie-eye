@@ -2,19 +2,18 @@
 
 import type { SxProps, Theme } from '@mui/material/styles'
 import type { SystemStyleObject } from '@mui/system'
+import {
+  CARD_BORDER_RADIUS_PX,
+  CARD_DIMENSIONS,
+} from '@/src/components/earth/placemark-card/placemark-card-constants'
 
-export const CARD_DIMENSIONS = {
-  minHeight: 200,
-  padding: 3,
-  borderRadius: 2,
-  spacing: 2,
-} as const
+export { CARD_DIMENSIONS }
 
 /** SettingsCard / PlacemarkSettingsCard surface — used for explorer tiles and panels */
 export function getEnterpriseSettingsCardSx(theme: Theme): SystemStyleObject<Theme> {
   return {
   border: 'none',
-  borderRadius: CARD_DIMENSIONS.borderRadius,
+  borderRadius: `${CARD_BORDER_RADIUS_PX}px`,
   position: 'relative',
   overflow: 'hidden',
   bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
@@ -38,7 +37,7 @@ export const enterpriseSettingsCardSx: SxProps<Theme> = getEnterpriseSettingsCar
 export function getEnterpriseExplorerTileSx(theme: Theme): SystemStyleObject<Theme> {
   return {
   border: 'none',
-  borderRadius: CARD_DIMENSIONS.borderRadius,
+  borderRadius: `${CARD_BORDER_RADIUS_PX}px`,
   position: 'relative',
   overflow: 'hidden',
   bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',

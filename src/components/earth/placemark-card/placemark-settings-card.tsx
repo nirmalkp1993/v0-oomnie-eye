@@ -5,7 +5,11 @@ import { Box, Card, CardContent, Typography } from '@mui/material'
 import { alpha, useTheme, type SxProps, type Theme } from '@mui/material/styles'
 import { PlacemarkInfoTooltip } from './placemark-info-tooltip'
 import { usePlacemarkCardSurfaceOpacity } from './placemark-card-surface-context'
-import { CARD_DIMENSIONS } from './placemark-card-constants'
+import {
+  CARD_BORDER_RADIUS_PX,
+  CARD_DIMENSIONS,
+  CARD_ICON_BORDER_RADIUS_UNIT,
+} from './placemark-card-constants'
 
 export interface PlacemarkSettingsCardProps {
   title: string
@@ -45,9 +49,9 @@ export function PlacemarkSettingsCard({
       elevation={0}
       sx={{
         border: 'none',
-        borderRadius: CARD_DIMENSIONS.borderRadius,
+        borderRadius: `${CARD_BORDER_RADIUS_PX}px`,
         position: 'relative',
-        overflow: 'visible',
+        overflow: 'hidden',
         bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
         height: fullHeight ? '100%' : 'auto',
         minHeight: fullHeight ? CARD_DIMENSIONS.minHeight : 'auto',
@@ -78,6 +82,7 @@ export function PlacemarkSettingsCard({
               left: 0,
               right: 0,
               bottom: 0,
+              borderRadius: 'inherit',
               background: `linear-gradient(180deg, ${accent}50 0%, ${accent}00 100%)`,
               pointerEvents: 'none',
               zIndex: 0,
@@ -116,7 +121,7 @@ export function PlacemarkSettingsCard({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 2,
+                borderRadius: CARD_ICON_BORDER_RADIUS_UNIT,
                 background: accentColor
                   ? `linear-gradient(135deg, ${accent}30 0%, ${accent}20 100%)`
                   : theme.palette.mode === 'dark'

@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   Info as InfoIcon,
   Label as LabelIcon,
+  LockOutlined as LockOutlinedIcon,
   Palette as PaletteIcon,
   Place as PlaceIcon,
 } from '@mui/icons-material'
@@ -35,8 +36,10 @@ import {
   PlacemarkTextFieldWithInfo,
 } from '@/src/components/earth/placemark-card'
 import type { Camera as CameraType } from '@/types/camera'
+import { PinPermissionTab } from './pin-permission-tab'
+import type { PinEditorTab } from '@/types/pin'
 
-export type PinEditorTab = 'camera' | 'general' | 'position' | 'style'
+export type { PinEditorTab } from '@/types/pin'
 
 function TabPanel({ children, value, index }: { children: React.ReactNode; value: number; index: number }) {
   return (
@@ -120,10 +123,10 @@ export function PinFormDialogBody({
   setIsAddDialogOpen: (open: boolean) => void
 }) {
   const theme = useTheme()
-  const tabIndex = { camera: 0, general: 1, position: 2, style: 3 }[activeTab]
+  const tabIndex = { camera: 0, general: 1, position: 2, style: 3, permission: 4 }[activeTab]
 
   const handleTabChange = (_: SyntheticEvent, newValue: number) => {
-    const tabs: PinEditorTab[] = ['camera', 'general', 'position', 'style']
+    const tabs: PinEditorTab[] = ['camera', 'general', 'position', 'style', 'permission']
     setActiveTab(tabs[newValue] ?? 'camera')
   }
 
@@ -154,6 +157,7 @@ export function PinFormDialogBody({
         <Tab icon={<InfoIcon />} label="General" iconPosition="start" />
         <Tab icon={<PlaceIcon />} label="Position" iconPosition="start" />
         <Tab icon={<ImageIcon />} label="Style & Media" iconPosition="start" />
+        <Tab icon={<LockOutlinedIcon />} label="Permission" iconPosition="start" />
       </Tabs>
 
       <Box sx={{ minHeight: 400, maxHeight: 480, overflow: 'auto' }}>
@@ -521,6 +525,10 @@ export function PinFormDialogBody({
               </Box>
             </PlacemarkSettingsCard>
           </Box>
+        </TabPanel>
+
+        <TabPanel value={tabIndex} index={4}>
+          <PinPermissionTab onFieldChange={onFieldChange} />
         </TabPanel>
       </Box>
     </>

@@ -181,7 +181,7 @@ export function AddCameraPlacemarkDialog() {
     <PlacemarkCardPanel
       title="Add Camera"
       mode="preview"
-      width={760}
+      width={900}
       placesAutoOpen={placesAutoOpen}
       onPlacesAutoOpenChange={setPlacesAutoOpen}
       onClose={resetPinPlacement}

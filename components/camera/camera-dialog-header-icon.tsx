@@ -13,7 +13,7 @@ export function CameraDialogHeaderIcon({ variant = 'viewing' }: { variant?: 'vie
       sx={{
         width: 48,
         height: 48,
-        borderRadius: 2,
+        borderRadius: 1,
         background,
         display: 'flex',
         alignItems: 'center',

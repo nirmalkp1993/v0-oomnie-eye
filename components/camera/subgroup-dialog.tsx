@@ -1,27 +1,21 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import CloseIcon from '@mui/icons-material/Close'
+import CheckIcon from '@mui/icons-material/Check'
+import CreateNewFolderOutlinedIcon from '@mui/icons-material/CreateNewFolderOutlined'
+import { Box, Button } from '@mui/material'
 import { useCameraStore } from '@/lib/camera-store'
+import { PlacemarkTextFieldWithInfo } from '@/src/components/earth/placemark-card'
+import { EarthDialogShell } from '@/src/components/modals/earth-dialog-shell'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { FolderPlus } from 'lucide-react'
+  PL_CARD_SPACING,
+  PL_CONTAINER_PADDING,
+} from '@/src/components/theme/professional-light-theme'
 
 export function SubgroupDialog() {
-  const {
-    subgroupModalParentId,
-    setSubgroupModalParentId,
-    cameraGroups,
-    createSubgroupUnder,
-  } = useCameraStore()
+  const { subgroupModalParentId, setSubgroupModalParentId, cameraGroups, createSubgroupUnder } =
+    useCameraStore()
 
   const [name, setName] = useState('')
   const open = subgroupModalParentId !== null
@@ -36,70 +30,69 @@ export function SubgroupDialog() {
     setName('')
   }, [open, subgroupModalParentId])
 
+  const handleClose = () => setSubgroupModalParentId(null)
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!subgroupModalParentId) return
     createSubgroupUnder(subgroupModalParentId, name)
   }
 
+  if (!open) return null
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        if (!o) setSubgroupModalParentId(null)
-      }}
+    <EarthDialogShell
+      open
+      onClose={handleClose}
+      title="New subgroup"
+      description={
+        parent
+          ? `Parent: ${parent.name}`
+          : 'Select a parent from the list.'
+      }
+      headerIcon={<CreateNewFolderOutlinedIcon sx={{ fontSize: 28, color: 'primary.main' }} />}
+      maxWidth="md"
+      showOpacityControl={false}
+      footer={
+        <>
+          <Button type="button" variant="outlined" startIcon={<CloseIcon />} onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="subgroup-form"
+            variant="contained"
+            startIcon={<CheckIcon />}
+            disabled={!parent}
+          >
+            Create
+          </Button>
+        </>
+      }
     >
-      <DialogContent className="max-w-sm border-border bg-card">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-foreground">
-            <FolderPlus className="size-5 text-primary" />
-            New subgroup
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            {parent ? (
-              <>
-                Parent: <span className="font-medium text-foreground">{parent.name}</span>
-              </>
-            ) : (
-              'Select a parent from the list.'
-            )}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={submit} className="space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="subgroup-name" className="text-accent">
-              Subgroup name
-            </Label>
-            <Input
-              id="subgroup-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Floor 2"
-              required
-              autoFocus
-              disabled={!parent}
-              className="border-border bg-input text-foreground placeholder:text-muted-foreground focus:border-primary"
-            />
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSubgroupModalParentId(null)}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!parent}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Create
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <Box
+        component="form"
+        id="subgroup-form"
+        onSubmit={submit}
+        sx={{
+          px: PL_CONTAINER_PADDING,
+          py: PL_CARD_SPACING,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: PL_CARD_SPACING,
+        }}
+      >
+        <PlacemarkTextFieldWithInfo
+          label="Subgroup name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Floor 2"
+          required
+          autoFocus
+          disabled={!parent}
+          autoComplete="off"
+        />
+      </Box>
+    </EarthDialogShell>
   )
 }

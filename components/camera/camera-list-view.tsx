@@ -47,15 +47,15 @@ import { getSortedTreeSiblings } from '@/lib/explorer-list-table/tree-sort'
 import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
 import { MyDrawingsTreeDepthIndicators } from '@/src/components/tables/my-drawings-tree-depth-indicators'
 import {
-  MY_DRAWINGS_TABLE,
-  myDrawingsBodyPrimaryTypographySx,
-  myDrawingsBodyRowSx,
-  myDrawingsBodySecondaryTypographySx,
-  myDrawingsTableBodySx,
-  myDrawingsTableCellSx,
-  myDrawingsTableHeadSx,
-  myDrawingsTableSx,
-} from '@/src/components/tables/my-drawings-table-styles'
+  CAMERA_TABLE,
+  cameraBodyPrimaryTypographySx,
+  cameraBodyRowSx,
+  cameraBodySecondaryTypographySx,
+  cameraTableBodySx,
+  cameraTableCellSx,
+  cameraTableHeadSx,
+  cameraTableSx,
+} from './camera-module.styles'
 
 const CELL_DASH = '—'
 
@@ -97,7 +97,7 @@ function NameCellShell({
 
 function SecondaryCellText({ children }: { children: React.ReactNode }) {
   return (
-    <Typography variant="body2" noWrap sx={myDrawingsBodySecondaryTypographySx}>
+    <Typography variant="body2" noWrap sx={cameraBodySecondaryTypographySx}>
       {children}
     </Typography>
   )
@@ -136,6 +136,10 @@ interface CameraListViewProps {
   onSelectAssignGroup?: (groupId: string) => void
   /** Flat camera list for assign panels (middle / right). */
   scopedCameras?: Camera[]
+  /** Assign in-folder panel: current folder and its direct subfolders. */
+  scopedGroupFolderId?: string | null
+  scopedSubfolderIds?: string[]
+  onOpenScopedSubfolder?: (groupId: string) => void
   assignRowSelection?: CameraAssignRowSelection
   recordingSelection?: CameraRecordingRowSelection
 }
@@ -147,11 +151,16 @@ export function CameraListView({
   selectedAssignGroupId = null,
   onSelectAssignGroup,
   scopedCameras,
+  scopedGroupFolderId = null,
+  scopedSubfolderIds,
+  onOpenScopedSubfolder,
   assignRowSelection,
   recordingSelection,
 }: CameraListViewProps) {
   const assignGroupMode = mode === 'groups' && Boolean(onSelectAssignGroup)
-  const isScopedCameraList = scopedCameras != null
+  const isAssignFolderExplorer =
+    scopedGroupFolderId != null && scopedSubfolderIds != null && scopedCameras != null
+  const isScopedCameraList = scopedCameras != null && !isAssignFolderExplorer
   const cameras = useCameraStore((s) => s.cameras)
   const cameraGroups = useCameraStore((s) => s.cameraGroups)
   const searchQuery = useCameraStore((s) => s.searchQuery)
@@ -243,7 +252,7 @@ export function CameraListView({
     switch (columnId) {
       case 'name':
         return (
-          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+          <TableCell key={columnId} sx={cameraTableCellSx}>
             <NameCellShell depth={depth}>
               <Box
                 sx={{
@@ -254,12 +263,12 @@ export function CameraListView({
                   justifyContent: 'center',
                 }}
               >
-                <SubdirectoryArrowRightIcon sx={{ fontSize: 14, color: MY_DRAWINGS_TABLE.border }} />
+                <SubdirectoryArrowRightIcon sx={{ fontSize: 14, color: CAMERA_TABLE.border }} />
               </Box>
               <VideocamOutlinedIcon
-                sx={{ fontSize: 20, color: MY_DRAWINGS_TABLE.folderClosed, flexShrink: 0 }}
+                sx={{ fontSize: 20, color: CAMERA_TABLE.folderClosed, flexShrink: 0 }}
               />
-              <Typography variant="body2" noWrap sx={myDrawingsBodyPrimaryTypographySx}>
+              <Typography variant="body2" noWrap sx={cameraBodyPrimaryTypographySx}>
                 {camera.name}
               </Typography>
             </NameCellShell>
@@ -270,7 +279,7 @@ export function CameraListView({
       case 'port':
       case 'telnetUsername':
         return (
-          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+          <TableCell key={columnId} sx={cameraTableCellSx}>
             <SecondaryCellText>
               {columnId === 'ip'
                 ? camera.ip
@@ -284,24 +293,24 @@ export function CameraListView({
         )
       case 'items':
         return (
-          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+          <TableCell key={columnId} sx={cameraTableCellSx}>
             <SecondaryCellText>{CELL_DASH}</SecondaryCellText>
           </TableCell>
         )
       case 'type':
         return (
-          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+          <TableCell key={columnId} sx={cameraTableCellSx}>
             <SecondaryCellText>camera</SecondaryCellText>
           </TableCell>
         )
       case 'apiBaseUrl':
         return (
-          <TableCell key={columnId} sx={{ ...myDrawingsTableCellSx, maxWidth: 200 }}>
+          <TableCell key={columnId} sx={{ ...cameraTableCellSx, maxWidth: 200 }}>
             <Typography
               variant="body2"
               noWrap
               sx={{
-                ...myDrawingsBodySecondaryTypographySx,
+                ...cameraBodySecondaryTypographySx,
                 fontFamily: 'Roboto Mono, monospace',
                 fontSize: '12px',
               }}
@@ -312,7 +321,7 @@ export function CameraListView({
         )
       case 'status':
         return (
-          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+          <TableCell key={columnId} sx={cameraTableCellSx}>
             <Typography
               variant="body2"
               sx={{
@@ -332,12 +341,12 @@ export function CameraListView({
         )
       case 'actions':
         return (
-          <TableCell key={columnId} align="right" sx={{ ...myDrawingsTableCellSx, width: 120, minWidth: 120 }}>
+          <TableCell key={columnId} align="right" sx={{ ...cameraTableCellSx, width: 120, minWidth: 120 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.25 }}>
               <IconButton
                 size="small"
                 onClick={(e) => toggleStatus(camera, e)}
-                sx={{ color: MY_DRAWINGS_TABLE.folderClosed }}
+                sx={{ color: CAMERA_TABLE.folderClosed }}
               >
                 {camera.status === 'live' ? (
                   <StopIcon fontSize="small" />
@@ -351,14 +360,14 @@ export function CameraListView({
                   e.stopPropagation()
                   setSelectedCamera(camera)
                 }}
-                sx={{ color: MY_DRAWINGS_TABLE.folderClosed }}
+                sx={{ color: CAMERA_TABLE.folderClosed }}
               >
                 <SettingsOutlinedIcon fontSize="small" />
               </IconButton>
               <IconButton
                 size="small"
                 onClick={(e) => handleDeleteCamera(camera, e)}
-                sx={{ color: MY_DRAWINGS_TABLE.folderClosed }}
+                sx={{ color: CAMERA_TABLE.folderClosed }}
               >
                 <DeleteOutlineIcon fontSize="small" />
               </IconButton>
@@ -368,6 +377,77 @@ export function CameraListView({
       default:
         return null
     }
+  }
+
+  const renderAssignFolderGroupRow = (group: CameraGroup, depth: number, count: number) => {
+    return (
+      <TableRow
+        key={group.id}
+        hover={false}
+        onClick={() => onOpenScopedSubfolder?.(group.id)}
+        sx={cameraBodyRowSx({ depth })}
+      >
+        {visibleColumns.map((col) => {
+          switch (col.id) {
+            case 'name':
+              return (
+                <TableCell key={col.id} sx={cameraTableCellSx}>
+                  <NameCellShell depth={depth} isFolder>
+                    <Box
+                      sx={{
+                        width: 28,
+                        minWidth: 28,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <ChevronRightIcon fontSize="small" sx={{ color: CAMERA_TABLE.folderClosed }} />
+                    </Box>
+                    <FolderIcon sx={{ fontSize: 20, color: CAMERA_TABLE.folderClosed, flexShrink: 0 }} />
+                    <Typography variant="body2" noWrap sx={cameraBodyPrimaryTypographySx}>
+                      {group.name}
+                    </Typography>
+                  </NameCellShell>
+                </TableCell>
+              )
+            case 'ip':
+            case 'cameraId':
+            case 'port':
+            case 'apiBaseUrl':
+            case 'telnetUsername':
+            case 'status':
+              return (
+                <TableCell key={col.id} sx={cameraTableCellSx}>
+                  <SecondaryCellText>{CELL_DASH}</SecondaryCellText>
+                </TableCell>
+              )
+            case 'items':
+              return (
+                <TableCell key={col.id} sx={cameraTableCellSx}>
+                  <SecondaryCellText>{count}</SecondaryCellText>
+                </TableCell>
+              )
+            case 'type':
+              return (
+                <TableCell key={col.id} sx={cameraTableCellSx}>
+                  <SecondaryCellText>group</SecondaryCellText>
+                </TableCell>
+              )
+            case 'actions':
+              return (
+                <TableCell
+                  key={col.id}
+                  align="right"
+                  sx={{ ...cameraTableCellSx, width: 120, minWidth: 120 }}
+                />
+              )
+            default:
+              return null
+          }
+        })}
+      </TableRow>
+    )
   }
 
   const renderGroupCell = (
@@ -380,7 +460,7 @@ export function CameraListView({
     switch (columnId) {
       case 'name':
         return (
-          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+          <TableCell key={columnId} sx={cameraTableCellSx}>
             <NameCellShell depth={depth} isFolder>
               <IconButton
                 size="small"
@@ -399,17 +479,17 @@ export function CameraListView({
                 }}
               >
                 {isOpen ? (
-                  <ExpandMoreIcon fontSize="small" sx={{ color: MY_DRAWINGS_TABLE.folderOpen }} />
+                  <ExpandMoreIcon fontSize="small" sx={{ color: CAMERA_TABLE.folderOpen }} />
                 ) : (
-                  <ChevronRightIcon fontSize="small" sx={{ color: MY_DRAWINGS_TABLE.folderClosed }} />
+                  <ChevronRightIcon fontSize="small" sx={{ color: CAMERA_TABLE.folderClosed }} />
                 )}
               </IconButton>
               {isOpen ? (
-                <FolderOpenIcon sx={{ fontSize: 20, color: MY_DRAWINGS_TABLE.folderOpen, flexShrink: 0 }} />
+                <FolderOpenIcon sx={{ fontSize: 20, color: CAMERA_TABLE.folderOpen, flexShrink: 0 }} />
               ) : (
-                <FolderIcon sx={{ fontSize: 20, color: MY_DRAWINGS_TABLE.folderClosed, flexShrink: 0 }} />
+                <FolderIcon sx={{ fontSize: 20, color: CAMERA_TABLE.folderClosed, flexShrink: 0 }} />
               )}
-              <Typography variant="body2" noWrap sx={myDrawingsBodyPrimaryTypographySx}>
+              <Typography variant="body2" noWrap sx={cameraBodyPrimaryTypographySx}>
                 {node.group.name}
               </Typography>
             </NameCellShell>
@@ -422,19 +502,19 @@ export function CameraListView({
       case 'telnetUsername':
       case 'status':
         return (
-          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+          <TableCell key={columnId} sx={cameraTableCellSx}>
             <SecondaryCellText>{CELL_DASH}</SecondaryCellText>
           </TableCell>
         )
       case 'items':
         return (
-          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+          <TableCell key={columnId} sx={cameraTableCellSx}>
             <SecondaryCellText>{count}</SecondaryCellText>
           </TableCell>
         )
       case 'type':
         return (
-          <TableCell key={columnId} sx={myDrawingsTableCellSx}>
+          <TableCell key={columnId} sx={cameraTableCellSx}>
             <SecondaryCellText>group</SecondaryCellText>
           </TableCell>
         )
@@ -443,13 +523,13 @@ export function CameraListView({
           <TableCell
             key={columnId}
             align="right"
-            sx={{ ...myDrawingsTableCellSx, width: 120, minWidth: 120 }}
+            sx={{ ...cameraTableCellSx, width: 120, minWidth: 120 }}
             onClick={(e) => e.stopPropagation()}
           >
             <IconButton
               size="small"
               onClick={(e) => handleDeleteGroup(node.group, e)}
-              sx={{ color: MY_DRAWINGS_TABLE.folderClosed }}
+              sx={{ color: CAMERA_TABLE.folderClosed }}
             >
               <DeleteOutlineIcon fontSize="small" />
             </IconButton>
@@ -486,7 +566,7 @@ export function CameraListView({
         }}
         onDoubleClick={() => assignRowSelection?.onRowDoubleClick?.(camera)}
         sx={{
-          ...myDrawingsBodyRowSx({ depth }),
+          ...cameraBodyRowSx({ depth }),
           ...(isAssignSelected || isRecordingSelected
             ? {
                 bgcolor: 'action.selected',
@@ -522,7 +602,7 @@ export function CameraListView({
               hover={false}
               onClick={() => handleGroupRowClick(node.group.id)}
               sx={{
-                ...myDrawingsBodyRowSx({ depth }),
+                ...cameraBodyRowSx({ depth }),
                 ...(isAssignSelected
                   ? {
                       bgcolor: 'action.selected',
@@ -584,11 +664,40 @@ export function CameraListView({
       .map((sibling) => sibling.item)
   }, [scopedCameras, getFilteredCameras, sort])
 
-  const isEmpty = isScopedCameraList
-    ? flatCameras.length === 0
-    : mode === 'cameras'
+  const assignFolderSubgroups = useMemo(() => {
+    if (!isAssignFolderExplorer || !scopedSubfolderIds) return []
+    return scopedSubfolderIds
+      .map((id) => cameraGroups.find((g) => g.id === id))
+      .filter((g): g is CameraGroup => g != null)
+  }, [isAssignFolderExplorer, scopedSubfolderIds, cameraGroups])
+
+  const assignFolderSiblings = useMemo(() => {
+    if (!isAssignFolderExplorer) return []
+    return getSortedTreeSiblings(
+      assignFolderSubgroups.map((group) => ({
+        group,
+        cameras: [],
+        children: [],
+      })),
+      flatCameras,
+      sort,
+      (node) => {
+        const count = countCamerasInGroupSubtree(node.group.id, cameras, cameraGroups)
+        return sort
+          ? (getCameraGroupFilterValues(node.group, count)[sort.columnId] ?? '')
+          : ''
+      },
+      (c) => (sort ? (getCameraFilterValues(c)[sort.columnId] ?? '') : ''),
+    )
+  }, [isAssignFolderExplorer, assignFolderSubgroups, flatCameras, sort, cameras, cameraGroups])
+
+  const isEmpty = isAssignFolderExplorer
+    ? assignFolderSubgroups.length === 0 && flatCameras.length === 0
+    : isScopedCameraList
       ? flatCameras.length === 0
-      : rootTrees.length === 0 && rootCameras.length === 0
+      : mode === 'cameras'
+        ? flatCameras.length === 0
+        : rootTrees.length === 0 && rootCameras.length === 0
 
   const tableContainerSx = {
     flex: 1,
@@ -603,12 +712,28 @@ export function CameraListView({
 
   const tableContent = (
     <TableContainer sx={tableContainerSx}>
-      <Table stickyHeader size="small" sx={myDrawingsTableSx}>
-        <TableHead sx={myDrawingsTableHeadSx}>
+      <Table stickyHeader size="small" sx={cameraTableSx}>
+        <TableHead sx={cameraTableHeadSx}>
           <ExplorerTableHeaderRow variant="drawings" />
         </TableHead>
-        <TableBody sx={myDrawingsTableBodySx}>
-          {mode === 'cameras' || isScopedCameraList
+        <TableBody sx={cameraTableBodySx}>
+          {isAssignFolderExplorer
+            ? assignFolderSiblings.map((sibling) =>
+                sibling.kind === 'group' ? (
+                  <Fragment key={sibling.node.group.id}>
+                    {renderAssignFolderGroupRow(
+                      sibling.node.group,
+                      0,
+                      countCamerasInGroupSubtree(sibling.node.group.id, cameras, cameraGroups),
+                    )}
+                  </Fragment>
+                ) : (
+                  <Fragment key={sibling.item.id}>
+                    {renderCameraRow(sibling.item, 0, sibling.item.id)}
+                  </Fragment>
+                ),
+              )
+            : mode === 'cameras' || isScopedCameraList
             ? flatCameras.map((camera) => (
                 <Fragment key={camera.id}>{renderCameraRow(camera, 0, camera.id)}</Fragment>
               ))
@@ -625,11 +750,13 @@ export function CameraListView({
               )}
           {isEmpty && (
             <TableRow hover={false}>
-              <TableCell colSpan={colSpan} sx={{ ...myDrawingsTableCellSx, height: 128, textAlign: 'center' }}>
-                <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
-                  {isScopedCameraList || mode === 'cameras'
-                    ? 'No cameras found. Add a new camera or adjust search and filters.'
-                    : 'No groups or cameras found. Create a new group or adjust search and filters.'}
+              <TableCell colSpan={colSpan} sx={{ ...cameraTableCellSx, height: 128, textAlign: 'center' }}>
+                <Typography variant="body2" sx={cameraBodySecondaryTypographySx}>
+                  {isAssignFolderExplorer
+                    ? 'This folder is empty. Add cameras from the list on the right or open a subgroup.'
+                    : isScopedCameraList || mode === 'cameras'
+                      ? 'No cameras found. Add a new camera or adjust search and filters.'
+                      : 'No groups or cameras found. Create a new group or adjust search and filters.'}
                 </Typography>
               </TableCell>
             </TableRow>

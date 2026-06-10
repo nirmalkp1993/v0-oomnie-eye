@@ -17,7 +17,7 @@ import { PlacemarkCardSurfaceProvider } from './placemark-card-surface-context'
 export function PlacemarkCardPanel({
   title,
   mode,
-  width = 760,
+  width = 900,
   showUnsavedChip,
   placesAutoOpen,
   onPlacesAutoOpenChange,

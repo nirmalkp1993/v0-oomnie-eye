@@ -46,7 +46,7 @@ export function StreamConfigTab() {
       action={
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           {selectedCamera.status === 'live' ? (
-            <Chip label="LIVE" size="small" color="success" sx={{ fontWeight: 700 }} />
+            <Chip label="LIVE" size="small" color="success" sx={{ fontWeight: 400, fontSize: '0.75rem' }} />
           ) : null}
           <Chip label={selectedCamera.type} size="small" variant="outlined" />
         </Box>

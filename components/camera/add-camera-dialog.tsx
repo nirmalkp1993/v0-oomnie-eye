@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
 import CloseIcon from '@mui/icons-material/Close'
 import CheckIcon from '@mui/icons-material/Check'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 import RouterOutlinedIcon from '@mui/icons-material/RouterOutlined'
@@ -19,6 +20,8 @@ import {
   InputAdornment,
   MenuItem,
   Stack,
+  Tab,
+  Tabs,
   Typography,
 } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
@@ -30,8 +33,11 @@ import {
   PlacemarkTextFieldWithInfo,
 } from '@/src/components/earth/placemark-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
+import { PL_CARD_SPACING } from '@/src/components/theme/professional-light-theme'
 import { CameraDialogHeaderIcon } from './camera-dialog-header-icon'
 import { CameraThumbnailMarkerEditor } from './camera-thumbnail-marker-editor'
+import { cameraModalContentSx } from './camera-module.styles'
+import { cameraEarthTabsSx, CameraEarthTabPanel } from './camera-earth-tab-panel'
 import type { Camera as CameraType, CameraThumbnailMarker } from '@/types/camera'
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024
@@ -43,6 +49,10 @@ const API_BASE_PRESETS = [
   '/api/v1/commands',
   '/cgi-bin/hi3510/param.cgi',
 ]
+
+type AddCameraTabId = 'general' | 'network' | 'credentials' | 'image'
+
+const ADD_CAMERA_TAB_IDS: AddCameraTabId[] = ['general', 'network', 'credentials', 'image']
 
 const initialFormState = {
   name: '',
@@ -60,10 +70,21 @@ const initialFormState = {
   thumbnailMarker: null as CameraThumbnailMarker | null,
 }
 
+type FormState = typeof initialFormState
+
+function addCameraTabIndex(tab: AddCameraTabId): number {
+  return ADD_CAMERA_TAB_IDS.indexOf(tab)
+}
+
+function addCameraTabFromIndex(index: number): AddCameraTabId {
+  return ADD_CAMERA_TAB_IDS[index] ?? 'general'
+}
+
 export function AddCameraDialog() {
   const theme = useTheme()
   const { isAddDialogOpen, setIsAddDialogOpen, addCamera } = useCameraStore()
-  const [formData, setFormData] = useState(initialFormState)
+  const [activeTab, setActiveTab] = useState<AddCameraTabId>('general')
+  const [formData, setFormData] = useState<FormState>(initialFormState)
   const [showTelnetPassword, setShowTelnetPassword] = useState(false)
   const [showCameraPassword, setShowCameraPassword] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
@@ -71,13 +92,24 @@ export function AddCameraDialog() {
 
   const hasImage = Boolean(formData.thumbnail?.length)
   const datalistId = 'add-camera-api-presets'
+  const tabIndex = addCameraTabIndex(activeTab)
 
-  const handleClose = () => {
-    setIsAddDialogOpen(false)
+  useEffect(() => {
+    if (!isAddDialogOpen) return
+    setActiveTab('general')
+  }, [isAddDialogOpen])
+
+  const resetForm = () => {
     setFormData(initialFormState)
     setImageError(null)
     setShowTelnetPassword(false)
     setShowCameraPassword(false)
+    setActiveTab('general')
+  }
+
+  const handleClose = () => {
+    setIsAddDialogOpen(false)
+    resetForm()
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -97,8 +129,11 @@ export function AddCameraDialog() {
       thumbnail: formData.thumbnail || undefined,
       thumbnailMarker: formData.thumbnailMarker ?? undefined,
     })
-    setFormData(initialFormState)
-    setImageError(null)
+    resetForm()
+  }
+
+  const handleTabChange = (_: SyntheticEvent, newIndex: number) => {
+    setActiveTab(addCameraTabFromIndex(newIndex))
   }
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,299 +192,319 @@ export function AddCameraDialog() {
         component="form"
         id="add-camera-form"
         onSubmit={handleSubmit}
-        sx={{
-          px: 3,
-          py: 2,
-          pb: 3,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3,
-          width: '100%',
-          minWidth: 0,
-          boxSizing: 'border-box',
-        }}
+        sx={{ ...cameraModalContentSx, width: '100%', minWidth: 0, boxSizing: 'border-box' }}
       >
+        <Tabs
+          value={tabIndex}
+          onChange={handleTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={cameraEarthTabsSx}
+        >
+          <Tab icon={<InfoOutlinedIcon />} label="General" iconPosition="start" />
+          <Tab icon={<RouterOutlinedIcon />} label="Network & API" iconPosition="start" />
+          <Tab icon={<LockOutlinedIcon />} label="Credentials" iconPosition="start" />
+          <Tab icon={<ImageOutlinedIcon />} label="Camera Image" iconPosition="start" />
+        </Tabs>
+
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
-            gap: 3,
-            alignItems: 'start',
+            minHeight: 360,
+            maxHeight: 'min(520px, 58vh)',
+            overflow: 'auto',
+            mx: -0.5,
+            px: 0.5,
           }}
         >
-          <PlacemarkSettingsCard
-            title="Camera identity"
-            tooltip="Basic identifiers used across management views, exports, and integrations"
-            headerIcon={<EditOutlinedIcon />}
-            accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
-            fullHeight
-          >
-            <Stack spacing={2}>
+          <CameraEarthTabPanel value={tabIndex} index={0}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' },
+                gap: PL_CARD_SPACING,
+                alignItems: 'start',
+              }}
+            >
+              <PlacemarkSettingsCard
+                title="Camera identity"
+                tooltip="Basic identifiers used across management views, exports, and integrations"
+                headerIcon={<EditOutlinedIcon />}
+                accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
+                fullHeight
+              >
+                <Stack spacing={2}>
+                  <PlacemarkTextFieldWithInfo
+                    label="Camera name"
+                    tooltip="Display name shown in lists and the earth map"
+                    value={formData.name}
+                    onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                    required
+                    autoComplete="off"
+                  />
+                  <PlacemarkTextFieldWithInfo
+                    label="Camera ID"
+                    tooltip="Unique device identifier from the camera or your inventory"
+                    value={formData.cameraId}
+                    onChange={(e) => setFormData((p) => ({ ...p, cameraId: e.target.value }))}
+                    required
+                    autoComplete="off"
+                  />
+                  <PlacemarkLabeledSelect
+                    label="Type"
+                    tooltip="Connection protocol for this camera"
+                    value={formData.type}
+                    onChange={(e) =>
+                      setFormData((p) => ({
+                        ...p,
+                        type: e.target.value as CameraType['type'],
+                      }))
+                    }
+                  >
+                    <MenuItem value="RTSP">RTSP</MenuItem>
+                    <MenuItem value="ONVIF">ONVIF</MenuItem>
+                    <MenuItem value="USB">USB</MenuItem>
+                    <MenuItem value="HTTP">HTTP</MenuItem>
+                  </PlacemarkLabeledSelect>
+                </Stack>
+              </PlacemarkSettingsCard>
+
+              <PlacemarkSettingsCard
+                title="Location"
+                tooltip="Physical or logical placement of this camera"
+                headerIcon={<PlaceOutlinedIcon />}
+                accentColor={EARTH_DIALOG_SECTION_ACCENTS.success}
+                fullHeight
+              >
+                <Stack spacing={2}>
+                  <PlacemarkTextFieldWithInfo
+                    label="Camera location"
+                    tooltip="e.g. Building A, Floor 2, North entrance"
+                    value={formData.location}
+                    onChange={(e) => setFormData((p) => ({ ...p, location: e.target.value }))}
+                    autoComplete="off"
+                  />
+                </Stack>
+              </PlacemarkSettingsCard>
+            </Box>
+          </CameraEarthTabPanel>
+
+          <CameraEarthTabPanel value={tabIndex} index={1}>
+            <PlacemarkSettingsCard
+              title="Network and API"
+              tooltip="Connection endpoint for streaming and control commands. Port 554 is typical for RTSP"
+              headerIcon={<RouterOutlinedIcon />}
+              accentColor={EARTH_DIALOG_SECTION_ACCENTS.info}
+            >
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                  gap: 2,
+                }}
+              >
+                <PlacemarkTextFieldWithInfo
+                  label="IP"
+                  value={formData.ip}
+                  onChange={(e) => setFormData((p) => ({ ...p, ip: e.target.value }))}
+                  required
+                  autoComplete="off"
+                />
+                <PlacemarkTextFieldWithInfo
+                  label="Port"
+                  value={formData.port}
+                  onChange={(e) => setFormData((p) => ({ ...p, port: e.target.value }))}
+                  required
+                  inputMode="numeric"
+                  autoComplete="off"
+                />
+                <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+                  <PlacemarkTextFieldWithInfo
+                    label="API base URL"
+                    tooltip="Path used for ONVIF, OSC, or vendor HTTP APIs"
+                    value={formData.apiBaseUrl}
+                    onChange={(e) => setFormData((p) => ({ ...p, apiBaseUrl: e.target.value }))}
+                    required
+                    autoComplete="off"
+                    inputProps={{ list: datalistId }}
+                    sx={{ '& input': { fontFamily: 'Roboto Mono, monospace', fontSize: '0.875rem' } }}
+                  />
+                  <datalist id={datalistId}>
+                    {API_BASE_PRESETS.map((p) => (
+                      <option key={p} value={p} />
+                    ))}
+                  </datalist>
+                </Box>
+              </Box>
+            </PlacemarkSettingsCard>
+          </CameraEarthTabPanel>
+
+          <CameraEarthTabPanel value={tabIndex} index={2}>
+            <PlacemarkSettingsCard
+              title="Access credentials"
+              tooltip="Credentials for telnet maintenance and the camera web or API login"
+              headerIcon={<LockOutlinedIcon />}
+              accentColor={EARTH_DIALOG_SECTION_ACCENTS.secondary}
+            >
+              <Stack spacing={2} sx={{ maxWidth: { md: 480 } }}>
+                <PlacemarkTextFieldWithInfo
+                  label="Telnet username"
+                  value={formData.telnetUsername}
+                  onChange={(e) => setFormData((p) => ({ ...p, telnetUsername: e.target.value }))}
+                  required
+                  autoComplete="username"
+                />
+                <PlacemarkTextFieldWithInfo
+                  label="Telnet password"
+                  type={showTelnetPassword ? 'text' : 'password'}
+                  value={formData.telnetPassword}
+                  onChange={(e) => setFormData((p) => ({ ...p, telnetPassword: e.target.value }))}
+                  required
+                  autoComplete="new-password"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setShowTelnetPassword((s) => !s)}
+                          aria-label={showTelnetPassword ? 'Hide password' : 'Show password'}
+                          edge="end"
+                        >
+                          {showTelnetPassword ? (
+                            <VisibilityOffOutlinedIcon fontSize="small" />
+                          ) : (
+                            <VisibilityOutlinedIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <PlacemarkTextFieldWithInfo
+                  label="Camera password"
+                  type={showCameraPassword ? 'text' : 'password'}
+                  value={formData.cameraPassword}
+                  onChange={(e) => setFormData((p) => ({ ...p, cameraPassword: e.target.value }))}
+                  required
+                  autoComplete="new-password"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setShowCameraPassword((s) => !s)}
+                          aria-label={showCameraPassword ? 'Hide password' : 'Show password'}
+                          edge="end"
+                        >
+                          {showCameraPassword ? (
+                            <VisibilityOffOutlinedIcon fontSize="small" />
+                          ) : (
+                            <VisibilityOutlinedIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Stack>
+            </PlacemarkSettingsCard>
+          </CameraEarthTabPanel>
+
+          <CameraEarthTabPanel value={tabIndex} index={3}>
+            <PlacemarkSettingsCard
+              title="Camera image"
+              tooltip="Reference still shown in camera lists, cards, and placemark quick views"
+              headerIcon={<ImageOutlinedIcon />}
+              accentColor={theme.palette.success.main}
+            >
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Upload a reference still, then click on the image to mark where this camera is located.
+              </Typography>
+
+              {hasImage ? (
+                <Box sx={{ mb: 2 }}>
+                  <CameraThumbnailMarkerEditor
+                    imageUrl={formData.thumbnail}
+                    marker={formData.thumbnailMarker}
+                    onMarkerChange={(thumbnailMarker) =>
+                      setFormData((p) => ({ ...p, thumbnailMarker }))
+                    }
+                    minHeight={220}
+                  />
+                </Box>
+              ) : (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    minHeight: 200,
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 2,
+                    border: '2px dashed',
+                    borderColor: 'divider',
+                    bgcolor: 'action.hover',
+                    px: 2,
+                    py: 4,
+                    textAlign: 'center',
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    No image uploaded yet.
+                  </Typography>
+                </Box>
+              )}
+
               <PlacemarkTextFieldWithInfo
-                label="Camera name"
-                tooltip="Display name shown in lists and the earth map"
-                value={formData.name}
-                onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                required
-                autoComplete="off"
-              />
-              <PlacemarkTextFieldWithInfo
-                label="Camera ID"
-                tooltip="Unique device identifier from the camera or your inventory"
-                value={formData.cameraId}
-                onChange={(e) => setFormData((p) => ({ ...p, cameraId: e.target.value }))}
-                required
-                autoComplete="off"
-              />
-              <PlacemarkLabeledSelect
-                label="Type"
-                tooltip="Connection protocol for this camera"
-                value={formData.type}
+                label="Image URL"
+                tooltip="Optional direct link if you are not uploading a file"
+                value={formData.thumbnail.startsWith('data:') ? '' : formData.thumbnail}
                 onChange={(e) =>
                   setFormData((p) => ({
                     ...p,
-                    type: e.target.value as CameraType['type'],
+                    thumbnail: e.target.value,
+                    thumbnailMarker: null,
                   }))
                 }
-              >
-                <MenuItem value="RTSP">RTSP</MenuItem>
-                <MenuItem value="ONVIF">ONVIF</MenuItem>
-                <MenuItem value="USB">USB</MenuItem>
-                <MenuItem value="HTTP">HTTP</MenuItem>
-              </PlacemarkLabeledSelect>
-            </Stack>
-          </PlacemarkSettingsCard>
-
-          <PlacemarkSettingsCard
-            title="Location"
-            tooltip="Physical or logical placement of this camera"
-            headerIcon={<PlaceOutlinedIcon />}
-            accentColor={EARTH_DIALOG_SECTION_ACCENTS.success}
-            fullHeight
-          >
-            <Stack spacing={2}>
-              <PlacemarkTextFieldWithInfo
-                label="Camera location"
-                tooltip="e.g. Building A, Floor 2, North entrance"
-                value={formData.location}
-                onChange={(e) => setFormData((p) => ({ ...p, location: e.target.value }))}
                 autoComplete="off"
+                placeholder="https://…"
               />
-            </Stack>
-          </PlacemarkSettingsCard>
-        </Box>
 
-        <PlacemarkSettingsCard
-          title="Network and API"
-          tooltip="Connection endpoint for streaming and control commands. Port 554 is typical for RTSP"
-          headerIcon={<RouterOutlinedIcon />}
-          accentColor={EARTH_DIALOG_SECTION_ACCENTS.info}
-        >
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              gap: 2,
-              maxWidth: { md: '100%' },
-            }}
-          >
-            <PlacemarkTextFieldWithInfo
-              label="IP"
-              value={formData.ip}
-              onChange={(e) => setFormData((p) => ({ ...p, ip: e.target.value }))}
-              required
-              autoComplete="off"
-            />
-            <PlacemarkTextFieldWithInfo
-              label="Port"
-              value={formData.port}
-              onChange={(e) => setFormData((p) => ({ ...p, port: e.target.value }))}
-              required
-              inputMode="numeric"
-              autoComplete="off"
-            />
-            <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
-              <PlacemarkTextFieldWithInfo
-                label="API base URL"
-                tooltip="Path used for ONVIF, OSC, or vendor HTTP APIs"
-                value={formData.apiBaseUrl}
-                onChange={(e) => setFormData((p) => ({ ...p, apiBaseUrl: e.target.value }))}
-                required
-                autoComplete="off"
-                inputProps={{ list: datalistId }}
-                sx={{ '& input': { fontFamily: 'Roboto Mono, monospace', fontSize: '0.875rem' } }}
-              />
-              <datalist id={datalistId}>
-                {API_BASE_PRESETS.map((p) => (
-                  <option key={p} value={p} />
-                ))}
-              </datalist>
-            </Box>
-          </Box>
-        </PlacemarkSettingsCard>
+              {imageError ? (
+                <Typography variant="body2" color="error" sx={{ mt: 1.5 }} role="alert">
+                  {imageError}
+                </Typography>
+              ) : null}
 
-        <PlacemarkSettingsCard
-          title="Access credentials"
-          tooltip="Credentials for telnet maintenance and the camera web or API login"
-          headerIcon={<LockOutlinedIcon />}
-          accentColor={EARTH_DIALOG_SECTION_ACCENTS.secondary}
-        >
-          <Stack spacing={2} sx={{ maxWidth: { md: 480 } }}>
-            <PlacemarkTextFieldWithInfo
-              label="Telnet username"
-              value={formData.telnetUsername}
-              onChange={(e) => setFormData((p) => ({ ...p, telnetUsername: e.target.value }))}
-              required
-              autoComplete="username"
-            />
-            <PlacemarkTextFieldWithInfo
-              label="Telnet password"
-              type={showTelnetPassword ? 'text' : 'password'}
-              value={formData.telnetPassword}
-              onChange={(e) => setFormData((p) => ({ ...p, telnetPassword: e.target.value }))}
-              required
-              autoComplete="new-password"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={() => setShowTelnetPassword((s) => !s)}
-                      aria-label={showTelnetPassword ? 'Hide password' : 'Show password'}
-                      edge="end"
-                    >
-                      {showTelnetPassword ? (
-                        <VisibilityOffOutlinedIcon fontSize="small" />
-                      ) : (
-                        <VisibilityOutlinedIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <PlacemarkTextFieldWithInfo
-              label="Camera password"
-              type={showCameraPassword ? 'text' : 'password'}
-              value={formData.cameraPassword}
-              onChange={(e) => setFormData((p) => ({ ...p, cameraPassword: e.target.value }))}
-              required
-              autoComplete="new-password"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={() => setShowCameraPassword((s) => !s)}
-                      aria-label={showCameraPassword ? 'Hide password' : 'Show password'}
-                      edge="end"
-                    >
-                      {showCameraPassword ? (
-                        <VisibilityOffOutlinedIcon fontSize="small" />
-                      ) : (
-                        <VisibilityOutlinedIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Stack>
-        </PlacemarkSettingsCard>
+              <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                <input ref={fileRef} type="file" accept={ACCEPT_IMAGE} hidden onChange={handleFile} />
+                <Button
+                  type="button"
+                  variant="contained"
+                  size="small"
+                  startIcon={<CloudUploadOutlinedIcon />}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  Upload image
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  size="small"
+                  disabled={!hasImage}
+                  startIcon={<DeleteOutlineOutlinedIcon />}
+                  onClick={removeImage}
+                >
+                  Remove image
+                </Button>
+              </Box>
 
-        <PlacemarkSettingsCard
-          title="Camera image"
-          tooltip="Reference still shown in camera lists, cards, and placemark quick views"
-          headerIcon={<ImageOutlinedIcon />}
-          accentColor={theme.palette.success.main}
-        >
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Upload a reference still, then click on the image to mark where this camera is located.
-          </Typography>
-
-          {hasImage ? (
-            <Box sx={{ mb: 2 }}>
-              <CameraThumbnailMarkerEditor
-                imageUrl={formData.thumbnail}
-                marker={formData.thumbnailMarker}
-                onMarkerChange={(thumbnailMarker) =>
-                  setFormData((p) => ({ ...p, thumbnailMarker }))
-                }
-                minHeight={220}
-              />
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                display: 'flex',
-                minHeight: 200,
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 2,
-                border: '2px dashed',
-                borderColor: 'divider',
-                bgcolor: 'action.hover',
-                px: 2,
-                py: 4,
-                textAlign: 'center',
-                mb: 2,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                No image uploaded yet.
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
+                JPEG, PNG, WebP, or GIF up to 8 MB.
               </Typography>
-            </Box>
-          )}
-
-          <PlacemarkTextFieldWithInfo
-            label="Image URL"
-            tooltip="Optional direct link if you are not uploading a file"
-            value={formData.thumbnail.startsWith('data:') ? '' : formData.thumbnail}
-            onChange={(e) =>
-              setFormData((p) => ({
-                ...p,
-                thumbnail: e.target.value,
-                thumbnailMarker: null,
-              }))
-            }
-            autoComplete="off"
-            placeholder="https://…"
-          />
-
-          {imageError ? (
-            <Typography variant="body2" color="error" sx={{ mt: 1.5 }} role="alert">
-              {imageError}
-            </Typography>
-          ) : null}
-
-          <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-            <input ref={fileRef} type="file" accept={ACCEPT_IMAGE} hidden onChange={handleFile} />
-            <Button
-              type="button"
-              variant="contained"
-              size="small"
-              startIcon={<CloudUploadOutlinedIcon />}
-              onClick={() => fileRef.current?.click()}
-            >
-              Upload image
-            </Button>
-            <Button
-              type="button"
-              variant="outlined"
-              size="small"
-              disabled={!hasImage}
-              startIcon={<DeleteOutlineOutlinedIcon />}
-              onClick={removeImage}
-            >
-              Remove image
-            </Button>
-          </Box>
-
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
-            JPEG, PNG, WebP, or GIF up to 8 MB.
-          </Typography>
-        </PlacemarkSettingsCard>
+            </PlacemarkSettingsCard>
+          </CameraEarthTabPanel>
+        </Box>
       </Box>
     </EarthDialogShell>
   )

@@ -15,6 +15,7 @@ import {
 import { CameraListView } from './camera-list-view'
 import { CameraToolbar } from './camera-toolbar'
 import { CameraAssignCamerasPanel } from './camera-assign-cameras-panel'
+import { CameraAssignInFolderPanel } from './camera-assign-in-folder-panel'
 import { CameraAssignPanelHeader } from './camera-assign-panel-header'
 import type { CameraAssignRowSelection, CameraRecordingRowSelection } from './camera-list-view'
 
@@ -138,6 +139,7 @@ export function CameraGroupAssignView() {
 
   const [selectedInGroupIds, setSelectedInGroupIds] = useState<Set<string>>(new Set())
   const [selectedPoolIds, setSelectedPoolIds] = useState<Set<string>>(new Set())
+  const [inFolderStack, setInFolderStack] = useState<string[]>([])
   const [dropHighlight, setDropHighlight] = useState(false)
   const [fullscreenPanel, setFullscreenPanel] = useState<CameraAssignPanelId | null>(null)
   /** Panel width percentages [groups, in-folder, all] — used to position transfer arrows. */
@@ -168,45 +170,77 @@ export function CameraGroupAssignView() {
   }, [cameraGroups, selectedAssignGroupId, setSelectedAssignGroupId])
 
   useEffect(() => {
-    setSelectedInGroupIds(new Set())
-    setSelectedPoolIds(new Set())
+    setInFolderStack([])
   }, [selectedAssignGroupId])
 
-  const camerasInGroupSource = useMemo(() => {
-    if (!selectedAssignGroupId) return []
-    return cameras.filter((c) => camInGroup(c, selectedAssignGroupId))
-  }, [cameras, selectedAssignGroupId])
+  const activeFolderId = useMemo(() => {
+    if (!selectedAssignGroupId) return null
+    if (inFolderStack.length === 0) return selectedAssignGroupId
+    return inFolderStack[inFolderStack.length - 1] ?? selectedAssignGroupId
+  }, [selectedAssignGroupId, inFolderStack])
+
+  const activeFolder = useMemo(
+    () => cameraGroups.find((g) => g.id === activeFolderId) ?? null,
+    [cameraGroups, activeFolderId],
+  )
+
+  const inFolderBreadcrumbs = useMemo(() => {
+    if (!selectedAssignGroupId || !selectedGroup) return []
+    const items = [{ id: selectedAssignGroupId, name: selectedGroup.name }]
+    for (const groupId of inFolderStack) {
+      const group = cameraGroups.find((g) => g.id === groupId)
+      items.push({ id: groupId, name: group?.name ?? groupId })
+    }
+    return items
+  }, [selectedAssignGroupId, selectedGroup, inFolderStack, cameraGroups])
+
+  useEffect(() => {
+    setSelectedInGroupIds(new Set())
+    setSelectedPoolIds(new Set())
+  }, [activeFolderId])
 
   const availableCamerasSource = useMemo(() => {
-    if (!selectedAssignGroupId) return [...cameras]
-    return cameras.filter((c) => !camInGroup(c, selectedAssignGroupId))
-  }, [cameras, selectedAssignGroupId])
+    if (!activeFolderId) return [...cameras]
+    return cameras.filter((c) => !camInGroup(c, activeFolderId))
+  }, [cameras, activeFolderId])
 
   const addToGroup = useCallback(
     (cameraIds: string[]) => {
-      if (!selectedAssignGroupId || cameraIds.length === 0) return
+      if (!activeFolderId || cameraIds.length === 0) return
       const toAdd = cameraIds.filter((id) => {
         const c = cameras.find((x) => x.id === id)
-        return c && !camInGroup(c, selectedAssignGroupId)
+        return c && !camInGroup(c, activeFolderId)
       })
       if (toAdd.length === 0) return
-      addCamerasToParentGroup(selectedAssignGroupId, toAdd, { closeAddModal: false })
+      addCamerasToParentGroup(activeFolderId, toAdd, { closeAddModal: false })
     },
-    [selectedAssignGroupId, cameras, addCamerasToParentGroup],
+    [activeFolderId, cameras, addCamerasToParentGroup],
   )
 
   const removeFromGroup = useCallback(
     (cameraIds: string[]) => {
-      if (!selectedAssignGroupId || cameraIds.length === 0) return
-      removeCamerasFromParentGroup(selectedAssignGroupId, cameraIds)
+      if (!activeFolderId || cameraIds.length === 0) return
+      removeCamerasFromParentGroup(activeFolderId, cameraIds)
       setSelectedInGroupIds((prev) => {
         const next = new Set(prev)
         cameraIds.forEach((id) => next.delete(id))
         return next
       })
     },
-    [selectedAssignGroupId, removeCamerasFromParentGroup],
+    [activeFolderId, removeCamerasFromParentGroup],
   )
+
+  const handleOpenInFolderSubfolder = useCallback((groupId: string) => {
+    setInFolderStack((prev) => [...prev, groupId])
+  }, [])
+
+  const handleInFolderBreadcrumbNavigate = useCallback((segmentIndex: number) => {
+    if (segmentIndex <= 0) {
+      setInFolderStack([])
+      return
+    }
+    setInFolderStack((prev) => prev.slice(0, segmentIndex))
+  }, [])
 
   const toggleInGroupSelect = (id: string) => {
     setSelectedInGroupIds((prev) => {
@@ -237,7 +271,7 @@ export function CameraGroupAssignView() {
   }
 
   const handleDragOver = (e: React.DragEvent) => {
-    if (!selectedAssignGroupId) return
+    if (!activeFolderId) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'copy'
     setDropHighlight(true)
@@ -262,10 +296,10 @@ export function CameraGroupAssignView() {
     selectedIds: selectedPoolIds,
     onToggleSelect: togglePoolSelect,
     onRowDoubleClick: (camera) => {
-      if (!selectedAssignGroupId) return
+      if (!activeFolderId) return
       addToGroup([camera.id])
     },
-    isRowDraggable: () => Boolean(selectedAssignGroupId),
+    isRowDraggable: () => Boolean(activeFolderId),
     onRowDragStart: (camera, e) => handleDragStart(camera.id)(e),
   }
 
@@ -279,17 +313,22 @@ export function CameraGroupAssignView() {
   )
 
   const inFolderPanel = (
-    <CameraAssignCamerasPanel
+    <CameraAssignInFolderPanel
       storageKey="explorer-list-table:camera-assign-in-folder"
       title="Cameras in folder"
-      subtitle={selectedGroup ? selectedGroup.name : 'Select a group on the left'}
-      sourceCameras={camerasInGroupSource}
-      emptyMessage={
-        selectedAssignGroupId
-          ? 'No cameras in this folder. Add from the list on the right (double-click, drag, or arrow).'
-          : 'Select a group to manage its cameras.'
+      subtitle={
+        activeFolder
+          ? `Managing ${activeFolder.name}`
+          : selectedGroup
+            ? selectedGroup.name
+            : 'Select a group on the left'
       }
-      assignRowSelection={selectedAssignGroupId ? inFolderSelection : undefined}
+      activeFolderId={activeFolderId}
+      breadcrumbItems={inFolderBreadcrumbs}
+      onBreadcrumbNavigate={handleInFolderBreadcrumbNavigate}
+      onOpenSubfolder={handleOpenInFolderSubfolder}
+      emptyMessage="No cameras in this folder. Add from the list on the right (double-click, drag, or arrow), or open a subgroup."
+      assignRowSelection={activeFolderId ? inFolderSelection : undefined}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -304,17 +343,17 @@ export function CameraGroupAssignView() {
         storageKey="explorer-list-table:camera-assign-all"
         title="All cameras"
         subtitle={
-          selectedAssignGroupId
-            ? 'Cameras not in this folder — double-click or drag to add'
+          activeFolderId
+            ? `Add cameras to ${activeFolder?.name ?? 'folder'} — double-click or drag`
             : 'Select a group to add cameras'
         }
         sourceCameras={availableCamerasSource}
         emptyMessage={
-          selectedAssignGroupId
+          activeFolderId
             ? 'All cameras are already in this folder.'
             : 'Select a group on the left to assign cameras.'
         }
-        assignRowSelection={selectedAssignGroupId ? poolSelection : undefined}
+        assignRowSelection={activeFolderId ? poolSelection : undefined}
       isFullscreen={fullscreenPanel === 'all'}
       onToggleFullscreen={() => toggleFullscreen('all')}
     />
@@ -395,7 +434,7 @@ export function CameraGroupAssignView() {
         }}
       >
         <TransferArrowControls
-          selectedAssignGroupId={selectedAssignGroupId}
+          selectedAssignGroupId={activeFolderId}
           selectedPoolIds={selectedPoolIds}
           selectedInGroupIds={selectedInGroupIds}
           onAddSelected={handleAddSelected}

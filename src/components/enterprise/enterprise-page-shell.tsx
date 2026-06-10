@@ -25,7 +25,7 @@ export function EnterprisePageShell({
         flex: 1,
         flexDirection: 'column',
         gap: 3,
-        p: 3,
+        p: 3, // containerPadding × baseUnit = 12px (theme.spacing(3) with baseUnit 4)
         bgcolor: 'background.default',
         color: 'text.primary',
         minHeight: 0,
