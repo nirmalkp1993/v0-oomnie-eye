@@ -188,6 +188,7 @@ export function NestedDepartmentPicker({
         size="small"
         label="Department"
         value={triggerLabel}
+        InputLabelProps={{ shrink: true }}
         onClick={() => setOpen(true)}
         InputProps={{
           readOnly: true,

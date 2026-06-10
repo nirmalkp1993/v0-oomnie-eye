@@ -1,14 +1,13 @@
 'use client'
 
 import {
-  Box,
   Checkbox,
   ListItemText,
   MenuItem,
   TextField,
+  Typography,
   type SelectChangeEvent,
 } from '@mui/material'
-import { PlacemarkInfoTooltip } from '@/src/components/earth/placemark-card/placemark-info-tooltip'
 import { MOCK_GROUPS } from '@/src/mock-data/groups'
 
 function formatUserGroupTriggerLabel(selectedIds: string[]): string {
@@ -37,21 +36,24 @@ export function UserGroupMultiSelect({
       select
       fullWidth
       size="small"
-      label={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          User Group
-          <PlacemarkInfoTooltip
-            title="Select one or more groups from the Groups module"
-            placement="top"
-          />
-        </Box>
-      }
+      label="User Group"
       value={value}
       onChange={handleChange}
+      InputLabelProps={{ shrink: true }}
       SelectProps={{
         multiple: true,
         displayEmpty: true,
-        renderValue: () => formatUserGroupTriggerLabel(value),
+        renderValue: (selected) => {
+          const ids = selected as string[]
+          if (ids.length === 0) {
+            return (
+              <Typography variant="body2" fontStyle="italic" color="text.secondary">
+                None
+              </Typography>
+            )
+          }
+          return formatUserGroupTriggerLabel(ids)
+        },
       }}
     >
       {MOCK_GROUPS.map((group) => (
