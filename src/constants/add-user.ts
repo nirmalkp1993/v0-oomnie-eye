@@ -13,13 +13,12 @@ export const USER_STATUS_FORM_OPTIONS: { value: UserStatus; label: string }[] = 
 ]
 
 export const DEPARTMENT_OPTIONS = [
-  'Operations',
+  'HR',
+  'IT',
   'Finance',
-  'Security',
-  'Engineering',
   'Sales',
-  'Customer Support',
-  'Human Resources',
+  'Marketing',
+  'Administration',
 ] as const
 
 export const JOB_TITLE_OPTIONS = [
@@ -32,7 +31,7 @@ export const JOB_TITLE_OPTIONS = [
   'Executive',
 ] as const
 
-export const TERRITORY_OPTIONS = ['North', 'South', 'East', 'West', 'Central'] as const
+export const TERRITORY_OPTIONS = ['Europe', 'America', 'Asia'] as const
 
 export const COUNTRY_OPTIONS = [
   'United States',
