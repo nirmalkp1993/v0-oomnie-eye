@@ -19,12 +19,12 @@ import { AppDialog, DialogFormField } from '@/src/components/modals/app-dialog'
 import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
+import { DepartmentHierarchySelect } from '@/src/components/user-management/department-hierarchy-select'
+import { JobTitleHierarchySelect } from '@/src/components/user-management/job-title-hierarchy-select'
 import {
   COUNTRY_OPTIONS,
   DEFAULT_TENANT_NAME,
-  DEPARTMENT_OPTIONS,
   INITIAL_CREATE_USER_FORM,
-  JOB_TITLE_OPTIONS,
   SELECT_EMPTY_VALUE,
   TERRITORY_OPTIONS,
   USER_STATUS_FORM_OPTIONS,
@@ -332,12 +332,22 @@ export function UserFormModal({
           fullHeight
         >
           <Stack spacing={2.5}>
-            {stringSelect('department', 'Department', form.department, DEPARTMENT_OPTIONS, (v) =>
-              update('department', v)
-            )}
-            {stringSelect('jobTitle', 'Job title', form.jobTitle, JOB_TITLE_OPTIONS, (v) =>
-              update('jobTitle', v)
-            )}
+            <DialogFormField label="Department" htmlFor="department">
+              <DepartmentHierarchySelect
+                id="department"
+                value={form.department}
+                onChange={(v) => update('department', v)}
+                fieldSx={outlineFieldSx}
+              />
+            </DialogFormField>
+            <DialogFormField label="Job title" htmlFor="jobTitle">
+              <JobTitleHierarchySelect
+                id="jobTitle"
+                value={form.jobTitle}
+                onChange={(v) => update('jobTitle', v)}
+                fieldSx={outlineFieldSx}
+              />
+            </DialogFormField>
             {stringSelect('territory', 'Territory', form.territory, TERRITORY_OPTIONS, (v) =>
               update('territory', v)
             )}
