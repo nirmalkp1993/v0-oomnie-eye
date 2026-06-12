@@ -36,6 +36,7 @@ export type UserManagementExplorerTableProps<TRow> = {
   getCellValue: (row: TRow, columnId: string) => string
   renderCell: (row: TRow, columnId: string) => ReactNode
   onRowClick?: (row: TRow, event: MouseEvent<HTMLTableRowElement>) => void
+  onRowContextMenu?: (row: TRow, event: MouseEvent<HTMLTableRowElement>) => void
   emptyMessage?: string
   primaryColumnId?: string
   checkboxSelection?: boolean
@@ -51,6 +52,7 @@ export function UserManagementExplorerTable<TRow>({
   getCellValue,
   renderCell,
   onRowClick,
+  onRowContextMenu,
   emptyMessage = 'No rows match your search or filters.',
   primaryColumnId: _primaryColumnId,
   checkboxSelection = false,
@@ -161,9 +163,10 @@ export function UserManagementExplorerTable<TRow>({
                   key={id}
                   hover={false}
                   onClick={onRowClick ? (e) => onRowClick(row, e) : undefined}
+                  onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
                   sx={{
                     ...myDrawingsBodyRowSx({ selected: isSelected }),
-                    cursor: onRowClick ? 'pointer' : 'default',
+                    cursor: onRowClick || onRowContextMenu ? 'pointer' : 'default',
                   }}
                 >
                   {checkboxSelection ? (

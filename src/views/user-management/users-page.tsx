@@ -49,6 +49,7 @@ export function UsersPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | UserStatus>('all')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null)
   const [menuUser, setMenuUser] = useState<UserListItem | null>(null)
   const [userModal, setUserModal] = useState<{
     open: boolean
@@ -102,8 +103,21 @@ export function UsersPage() {
 
   const closeMenu = () => {
     setMenuAnchor(null)
+    setMenuPosition(null)
     setMenuUser(null)
   }
+
+  const openRowMenu = useCallback(
+    (
+      user: UserListItem,
+      options: { anchorEl?: HTMLElement | null; position?: { top: number; left: number } },
+    ) => {
+      setMenuUser(user)
+      setMenuAnchor(options.anchorEl ?? null)
+      setMenuPosition(options.position ?? null)
+    },
+    [],
+  )
 
   const openDetail = useCallback((user: UserListItem) => {
     setUserModal({ open: true, mode: 'view', user })
@@ -123,19 +137,28 @@ export function UsersPage() {
     openEdit(user, 'groups')
   }, [openEdit])
 
+  const isRowActionTarget = (target: HTMLElement) =>
+    Boolean(
+      target.closest('[data-um-actions]') ||
+        target.closest('button') ||
+        target.closest('[role="checkbox"]'),
+    )
+
   const handleRowClick = useCallback(
     (user: UserListItem, event: MouseEvent<HTMLTableRowElement>) => {
-      const target = event.target as HTMLElement
-      if (
-        target.closest('[data-um-actions]') ||
-        target.closest('button') ||
-        target.closest('[role="checkbox"]')
-      ) {
-        return
-      }
+      if (isRowActionTarget(event.target as HTMLElement)) return
       openDetail(user)
     },
-    [openDetail]
+    [openDetail],
+  )
+
+  const handleRowContextMenu = useCallback(
+    (user: UserListItem, event: MouseEvent<HTMLTableRowElement>) => {
+      if (isRowActionTarget(event.target as HTMLElement)) return
+      event.preventDefault()
+      openRowMenu(user, { position: { top: event.clientY, left: event.clientX } })
+    },
+    [openRowMenu],
   )
 
   const handleSaveUser = useCallback(
@@ -202,8 +225,12 @@ export function UsersPage() {
             sx={myDrawingsToolbarIconButtonSx}
             onClick={(e) => {
               e.stopPropagation()
-              setMenuUser(row)
-              setMenuAnchor(e.currentTarget)
+              openRowMenu(row, { anchorEl: e.currentTarget })
+            }}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              openRowMenu(row, { anchorEl: e.currentTarget })
             }}
           >
             <MoreVertIcon fontSize="small" />
@@ -212,7 +239,7 @@ export function UsersPage() {
       default:
         return null
     }
-  }, [])
+  }, [openRowMenu])
 
   return (
   <>
@@ -286,6 +313,7 @@ export function UsersPage() {
           getCellValue={getUserRowCellValue}
           renderCell={renderCell}
           onRowClick={handleRowClick}
+          onRowContextMenu={handleRowContextMenu}
           primaryColumnId="name"
           checkboxSelection
           selectedIds={selectedIds}
@@ -301,7 +329,13 @@ export function UsersPage() {
       </ExplorerListTableProvider>
     </UserManagementPageShell>
 
-      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
+      <Menu
+        anchorEl={menuAnchor}
+        anchorReference={menuPosition ? 'anchorPosition' : 'anchorEl'}
+        anchorPosition={menuPosition ?? undefined}
+        open={Boolean(menuUser && (menuAnchor || menuPosition))}
+        onClose={closeMenu}
+      >
         <MenuItem onClick={() => menuUser && openDetail(menuUser)}>
           <VisibilityOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> View details
         </MenuItem>
