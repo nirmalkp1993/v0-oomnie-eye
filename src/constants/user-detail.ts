@@ -42,9 +42,27 @@ export const AVAILABLE_USER_GROUPS: UserGroupOption[] = [
 ]
 
 export const MOCK_USER_AUDIT: UserAuditEntry[] = [
-  { id: 'audit-1', action: 'user.view', context: 'users / user', date: '2024-05-23' },
-  { id: 'audit-2', action: 'users.list.view', context: 'users / list', date: '2024-05-22' },
-  { id: 'audit-3', action: 'user.roles.update', context: 'users / roles', date: '2024-05-20' },
+  {
+    id: 'audit-1',
+    action: 'user.view',
+    context: 'users / user',
+    date: '2024-05-23',
+    category: 'read_view',
+  },
+  {
+    id: 'audit-2',
+    action: 'users.list.view',
+    context: 'users / list',
+    date: '2024-05-22',
+    category: 'read_view',
+  },
+  {
+    id: 'audit-3',
+    action: 'user.roles.update',
+    context: 'users / roles',
+    date: '2024-05-20',
+    category: 'admin_data_add',
+  },
 ]
 
 export function roleNameToCatalogId(name: string): string | null {

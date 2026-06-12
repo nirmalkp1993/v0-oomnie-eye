@@ -55,11 +55,18 @@ export interface UserGroupOption {
   description: string
 }
 
+export type UserAuditCategory =
+  | 'user_delete'
+  | 'admin_data_add'
+  | 'general_data_add'
+  | 'read_view'
+
 export interface UserAuditEntry {
   id: string
   action: string
   context: string
   date: string
+  category: UserAuditCategory
 }
 
 export type GroupType = 'static' | 'dynamic'

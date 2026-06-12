@@ -4,6 +4,7 @@ import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined'
+import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
 import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined'
 import { CameraEarthTabPanel, cameraEarthTabsSx } from '@/components/camera/camera-earth-tab-panel'
@@ -53,16 +54,15 @@ import {
   userToFormValues,
   validateCreateUserForm,
 } from '@/src/lib/user-management/add-user-form.utils'
+import { UserAuditTrailPanel } from '@/src/components/user-management/user-audit-trail-panel'
 import { UserFormGroupsTab } from '@/src/components/user-management/user-form-groups-tab'
 import { UserFormRolesTab } from '@/src/components/user-management/user-form-roles-tab'
 import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
 
-type UserFormTabId = 'profile' | 'roles' | 'groups'
+type UserFormTabId = 'profile' | 'roles' | 'groups' | 'audit'
 
-const USER_FORM_TAB_INDEX: Record<UserFormTabId, number> = {
-  profile: 0,
-  roles: 1,
-  groups: 2,
+function getUserFormTabs(isEdit: boolean): UserFormTabId[] {
+  return isEdit ? ['profile', 'roles', 'groups', 'audit'] : ['profile', 'roles', 'groups']
 }
 
 interface UserFormModalProps {
@@ -116,6 +116,12 @@ export function UserFormModal({
     setOfficeManageOpen(false)
     setActiveTab('profile')
   }, [open, initial, reset])
+
+  useEffect(() => {
+    if (!isEdit && activeTab === 'audit') {
+      setActiveTab('profile')
+    }
+  }, [activeTab, isEdit])
 
   const syncDepartmentAfterTreeChange = useCallback(() => {
     const tree = useDepartmentStore.getState().tree
@@ -231,6 +237,9 @@ export function UserFormModal({
     </DialogFormField>
   )
 
+  const formTabs = getUserFormTabs(isEdit)
+  const activeTabIndex = formTabs.indexOf(activeTab)
+
   const handleSubmit = async () => {
     const validationKey = validateCreateUserForm(form)
     if (validationKey) {
@@ -273,10 +282,9 @@ export function UserFormModal({
       }
     >
       <Tabs
-        value={USER_FORM_TAB_INDEX[activeTab]}
+        value={activeTabIndex >= 0 ? activeTabIndex : 0}
         onChange={(_, idx) => {
-          const tabs: UserFormTabId[] = ['profile', 'roles', 'groups']
-          const id = tabs[idx]
+          const id = formTabs[idx]
           if (id) setActiveTab(id)
         }}
         variant="scrollable"
@@ -286,6 +294,9 @@ export function UserFormModal({
         <Tab icon={<PersonOutlineOutlinedIcon />} label="Profile" iconPosition="start" />
         <Tab icon={<SecurityOutlinedIcon />} label="Roles" iconPosition="start" />
         <Tab icon={<GroupOutlinedIcon />} label="Groups" iconPosition="start" />
+        {isEdit ? (
+          <Tab icon={<HistoryOutlinedIcon />} label="Audit" iconPosition="start" />
+        ) : null}
       </Tabs>
 
       <Box
@@ -297,7 +308,7 @@ export function UserFormModal({
           px: 0.5,
         }}
       >
-        <CameraEarthTabPanel value={USER_FORM_TAB_INDEX[activeTab]} index={0}>
+        <CameraEarthTabPanel value={activeTabIndex} index={0}>
           <Box
             sx={{
               display: 'grid',
@@ -554,7 +565,7 @@ export function UserFormModal({
           </Box>
         </CameraEarthTabPanel>
 
-        <CameraEarthTabPanel value={USER_FORM_TAB_INDEX[activeTab]} index={1}>
+        <CameraEarthTabPanel value={activeTabIndex} index={1}>
           <Box sx={{ py: 1 }}>
             <UserFormRolesTab
               roleId={form.roleId}
@@ -563,7 +574,7 @@ export function UserFormModal({
           </Box>
         </CameraEarthTabPanel>
 
-        <CameraEarthTabPanel value={USER_FORM_TAB_INDEX[activeTab]} index={2}>
+        <CameraEarthTabPanel value={activeTabIndex} index={2}>
           <Box sx={{ py: 1 }}>
             <UserFormGroupsTab
               groupIds={form.groupIds}
@@ -571,6 +582,14 @@ export function UserFormModal({
             />
           </Box>
         </CameraEarthTabPanel>
+
+        {isEdit ? (
+          <CameraEarthTabPanel value={activeTabIndex} index={3}>
+            <Box sx={{ py: 1 }}>
+              <UserAuditTrailPanel userId={initial?.id ?? null} />
+            </Box>
+          </CameraEarthTabPanel>
+        ) : null}
       </Box>
     </AppDialog>
 

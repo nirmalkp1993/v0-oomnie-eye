@@ -112,7 +112,7 @@ export function UserDetailModal({
             <UserDetailAccessTab user={user} onUserChange={onUserChange} />
           </CameraEarthTabPanel>
           <CameraEarthTabPanel value={tabIndex} index={2}>
-            <UserDetailAuditTab />
+            <UserDetailAuditTab user={user} />
           </CameraEarthTabPanel>
         </Box>
       </Box>
