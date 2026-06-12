@@ -1,8 +1,8 @@
 'use client'
 
 import type { SxProps, Theme } from '@mui/material'
+import { useJobTitleStore } from '@/lib/job-title-store'
 import { HierarchyPathSelect } from '@/src/components/user-management/hierarchy-path-select'
-import { JOB_TITLE_HIERARCHY_TREE } from '@/src/mock-data/job-title-hierarchy'
 
 export function JobTitleHierarchySelect({
   id,
@@ -15,12 +15,14 @@ export function JobTitleHierarchySelect({
   onChange: (jobTitleLabel: string) => void
   fieldSx?: SxProps<Theme>
 }) {
+  const tree = useJobTitleStore((state) => state.tree)
+
   return (
     <HierarchyPathSelect
       id={id}
       value={value}
       onChange={onChange}
-      tree={JOB_TITLE_HIERARCHY_TREE}
+      tree={tree}
       searchPlaceholder="Search job titles..."
       emptySearchMessage="No job titles match your search."
       fieldSx={fieldSx}

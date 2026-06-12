@@ -19,12 +19,14 @@ import {
 } from '@mui/material'
 import { Briefcase, UserRound } from 'lucide-react'
 import { useDepartmentStore } from '@/lib/department-store'
+import { useJobTitleStore } from '@/lib/job-title-store'
 import { AppDialog, DialogFormField } from '@/src/components/modals/app-dialog'
 import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { DepartmentHierarchySelect } from '@/src/components/user-management/department-hierarchy-select'
 import { DepartmentManageModal } from '@/src/components/user-management/department-manage-modal'
+import { JobTitleManageModal } from '@/src/components/user-management/job-title-manage-modal'
 import { collectNestedPathOptions } from '@/src/lib/nested-tree-path-options'
 import { JobTitleHierarchySelect } from '@/src/components/user-management/job-title-hierarchy-select'
 import {
@@ -73,6 +75,7 @@ export function UserFormModal({
   const [submitting, setSubmitting] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const [departmentManageOpen, setDepartmentManageOpen] = useState(false)
+  const [jobTitleManageOpen, setJobTitleManageOpen] = useState(false)
   const avatarFileRef = useRef<HTMLInputElement>(null)
 
   const reset = useCallback(() => {
@@ -85,6 +88,7 @@ export function UserFormModal({
     if (initial) setForm(userToFormValues(initial))
     else reset()
     setDepartmentManageOpen(false)
+    setJobTitleManageOpen(false)
   }, [open, initial, reset])
 
   const syncDepartmentAfterTreeChange = useCallback(() => {
@@ -94,6 +98,16 @@ export function UserFormModal({
       if (!prev.department || prev.department === SELECT_EMPTY_VALUE) return prev
       if (validLabels.has(prev.department)) return prev
       return { ...prev, department: SELECT_EMPTY_VALUE }
+    })
+  }, [])
+
+  const syncJobTitleAfterTreeChange = useCallback(() => {
+    const tree = useJobTitleStore.getState().tree
+    const validLabels = new Set(collectNestedPathOptions(tree).map((option) => option.label))
+    setForm((prev) => {
+      if (!prev.jobTitle || prev.jobTitle === SELECT_EMPTY_VALUE) return prev
+      if (validLabels.has(prev.jobTitle)) return prev
+      return { ...prev, jobTitle: SELECT_EMPTY_VALUE }
     })
   }, [])
 
@@ -380,12 +394,32 @@ export function UserFormModal({
               </Box>
             </DialogFormField>
             <DialogFormField label="Job title" htmlFor="jobTitle">
-              <JobTitleHierarchySelect
-                id="jobTitle"
-                value={form.jobTitle}
-                onChange={(v) => update('jobTitle', v)}
-                fieldSx={outlineFieldSx}
-              />
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <JobTitleHierarchySelect
+                    id="jobTitle"
+                    value={form.jobTitle}
+                    onChange={(v) => update('jobTitle', v)}
+                    fieldSx={outlineFieldSx}
+                  />
+                </Box>
+                <Tooltip title="Manage job titles">
+                  <IconButton
+                    type="button"
+                    aria-label="Manage job titles"
+                    onClick={() => setJobTitleManageOpen(true)}
+                    sx={{
+                      mt: 0.25,
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <AccountTreeOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </DialogFormField>
             {stringSelect('territory', 'Territory', form.territory, TERRITORY_OPTIONS, (v) =>
               update('territory', v)
@@ -402,6 +436,12 @@ export function UserFormModal({
       open={open && departmentManageOpen}
       onClose={() => setDepartmentManageOpen(false)}
       onTreeChanged={syncDepartmentAfterTreeChange}
+    />
+
+    <JobTitleManageModal
+      open={open && jobTitleManageOpen}
+      onClose={() => setJobTitleManageOpen(false)}
+      onTreeChanged={syncJobTitleAfterTreeChange}
     />
     </>
   )
