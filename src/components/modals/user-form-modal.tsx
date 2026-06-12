@@ -59,7 +59,7 @@ import { UserFormGroupsTab } from '@/src/components/user-management/user-form-gr
 import { UserFormRolesTab } from '@/src/components/user-management/user-form-roles-tab'
 import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
 
-type UserFormTabId = 'profile' | 'roles' | 'groups' | 'audit'
+export type UserFormTabId = 'profile' | 'roles' | 'groups' | 'audit'
 
 function getUserFormTabs(mode: 'create' | 'edit' | 'view'): UserFormTabId[] {
   return mode === 'create'
@@ -71,6 +71,7 @@ interface UserFormModalProps {
   open: boolean
   mode: 'create' | 'edit' | 'view'
   initial?: UserListItem | null
+  initialTab?: UserFormTabId
   onClose: () => void
   onSubmit: (user: UserListItem) => void
   onEditProfile?: (user: UserListItem) => void
@@ -88,6 +89,7 @@ export function UserFormModal({
   open,
   mode,
   initial,
+  initialTab = 'profile',
   onClose,
   onSubmit,
   onEditProfile,
@@ -120,8 +122,8 @@ export function UserFormModal({
     setJobTitleManageOpen(false)
     setTerritoryManageOpen(false)
     setOfficeManageOpen(false)
-    setActiveTab('profile')
-  }, [open, initial, reset])
+    setActiveTab(initialTab)
+  }, [open, initial, initialTab, reset])
 
   useEffect(() => {
     if (mode === 'create' && activeTab === 'audit') {

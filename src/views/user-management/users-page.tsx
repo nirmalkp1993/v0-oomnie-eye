@@ -13,7 +13,7 @@ import { ExplorerListTableProvider } from '@/components/tables/explorer-list-tab
 import { USER_LIST_COLUMNS } from '@/lib/explorer-list-table/user-management-columns'
 import { UserManagementExplorerTable } from '@/src/components/user-management/user-management-explorer-table'
 import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
-import { UserFormModal } from '@/src/components/modals/user-form-modal'
+import { UserFormModal, type UserFormTabId } from '@/src/components/modals/user-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
 import { UserStatusBadge } from '@/src/components/user-management/user-status-badge'
@@ -54,6 +54,7 @@ export function UsersPage() {
     open: boolean
     mode: 'create' | 'edit' | 'view'
     user?: UserListItem | null
+    initialTab?: UserFormTabId
   }>({
     open: false,
     mode: 'create',
@@ -109,10 +110,18 @@ export function UsersPage() {
     closeMenu()
   }, [])
 
-  const openEdit = useCallback((user: UserListItem) => {
-    setUserModal({ open: true, mode: 'edit', user })
+  const openEdit = useCallback((user: UserListItem, initialTab: UserFormTabId = 'profile') => {
+    setUserModal({ open: true, mode: 'edit', user, initialTab })
     closeMenu()
   }, [])
+
+  const openAssignRole = useCallback((user: UserListItem) => {
+    openEdit(user, 'roles')
+  }, [openEdit])
+
+  const openAssignGroups = useCallback((user: UserListItem) => {
+    openEdit(user, 'groups')
+  }, [openEdit])
 
   const handleRowClick = useCallback(
     (user: UserListItem, event: MouseEvent<HTMLTableRowElement>) => {
@@ -307,18 +316,10 @@ export function UsersPage() {
         >
           <DeleteOutlineIcon fontSize="small" sx={{ mr: 1 }} /> Delete
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            if (menuUser) openDetail(menuUser)
-          }}
-        >
+        <MenuItem onClick={() => menuUser && openAssignGroups(menuUser)}>
           <GroupAddOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Assign groups
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            if (menuUser) openDetail(menuUser)
-          }}
-        >
+        <MenuItem onClick={() => menuUser && openAssignRole(menuUser)}>
           <SecurityUpdateGoodOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Assign role
         </MenuItem>
       </Menu>
@@ -327,6 +328,7 @@ export function UsersPage() {
         open={userModal.open}
         mode={userModal.mode}
         initial={userModal.user ?? undefined}
+        initialTab={userModal.initialTab}
         onClose={() => setUserModal({ open: false, mode: 'create', user: null })}
         onSubmit={handleSaveUser}
         onEditProfile={(u) => openEdit(u)}
