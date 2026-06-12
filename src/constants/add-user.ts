@@ -55,8 +55,8 @@ export const BUSINESS_UNIT_OPTIONS = [
 ] as const
 
 export const INITIAL_CREATE_USER_FORM: CreateUserFormValues = {
-  firstName: '',
-  lastName: '',
+  fullName: '',
+  avatarUrl: '',
   email: '',
   phone: '',
   department: SELECT_EMPTY_VALUE,

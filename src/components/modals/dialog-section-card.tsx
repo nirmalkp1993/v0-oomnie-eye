@@ -12,20 +12,30 @@ export function DialogSectionCard({
   tooltip,
   children,
   accentColor,
+  fullHeight = false,
 }: {
   title: string
   headerIcon?: ReactNode
   tooltip?: string
   children: ReactNode
   accentColor?: string
+  fullHeight?: boolean
 }) {
   return (
-    <Box sx={{ mb: 2 }}>
+    <Box
+      sx={{
+        mb: fullHeight ? 0 : 2,
+        height: fullHeight ? '100%' : 'auto',
+        display: fullHeight ? 'flex' : 'block',
+        flexDirection: 'column',
+      }}
+    >
       <PlacemarkSettingsCard
         title={title}
         headerIcon={headerIcon}
         tooltip={tooltip}
         accentColor={accentColor}
+        fullHeight={fullHeight}
       >
         {children}
       </PlacemarkSettingsCard>
@@ -41,6 +51,7 @@ export function EarthDialogSectionCard({
   children,
   className,
   accentColor,
+  fullHeight = false,
 }: {
   title: string
   icon: LucideIcon
@@ -48,6 +59,7 @@ export function EarthDialogSectionCard({
   children: ReactNode
   className?: string
   accentColor?: string
+  fullHeight?: boolean
 }) {
   const theme = useTheme()
 
@@ -57,6 +69,7 @@ export function EarthDialogSectionCard({
       tooltip={tooltip}
       accentColor={accentColor ?? theme.palette.primary.main}
       headerIcon={<Icon className="size-10" strokeWidth={1.75} />}
+      fullHeight={fullHeight}
     >
       <Box className={className}>{children}</Box>
     </DialogSectionCard>

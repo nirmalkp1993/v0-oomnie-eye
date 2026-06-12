@@ -21,8 +21,7 @@ export function parseCustomAttributes(raw: string): Record<string, string> {
 }
 
 export function validateCreateUserForm(form: CreateUserFormValues): string | null {
-  if (!form.firstName.trim()) return 'firstName'
-  if (!form.lastName.trim()) return 'lastName'
+  if (!form.fullName.trim()) return 'fullName'
   if (!form.email.trim()) return 'email'
   if (!EMAIL_PATTERN.test(form.email.trim())) return 'emailInvalid'
   return null
@@ -46,14 +45,10 @@ function customAttributesToFormString(attrs?: Record<string, string>): string {
 }
 
 export function userToFormValues(user: UserListItem): CreateUserFormValues {
-  const nameParts = user.name.trim().split(/\s+/)
-  const firstName = nameParts[0] ?? ''
-  const lastName = nameParts.slice(1).join(' ')
-
   return {
     ...INITIAL_CREATE_USER_FORM,
-    firstName,
-    lastName,
+    fullName: user.name,
+    avatarUrl: user.avatarUrl ?? '',
     email: user.email,
     phone: user.phone ?? SELECT_EMPTY_VALUE,
     department: fieldFromUser(user.department),
@@ -71,13 +66,12 @@ export function buildUserListItemFromForm(
   form: CreateUserFormValues,
   existing?: UserListItem
 ): UserListItem {
-  const firstName = form.firstName.trim()
-  const lastName = form.lastName.trim()
   const customAttributes = parseCustomAttributes(form.customAttributes)
 
   return {
     id: existing?.id ?? `user-${Date.now()}`,
-    name: [firstName, lastName].filter(Boolean).join(' '),
+    name: form.fullName.trim(),
+    avatarUrl: form.avatarUrl.trim() || undefined,
     email: form.email.trim(),
     phone: orEmpty(form.phone),
     department: orEmpty(form.department) ?? '—',

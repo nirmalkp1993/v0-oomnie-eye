@@ -1,11 +1,17 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
+import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  Avatar,
   Box,
+  Button,
   MenuItem,
   Select,
+  Stack,
   TextField,
+  Typography,
   type SelectChangeEvent,
 } from '@mui/material'
 import { Briefcase, UserRound } from 'lucide-react'
@@ -44,6 +50,9 @@ const outlineFieldSx = {
   '& .MuiOutlinedInput-root': { borderRadius: 2 },
 } as const
 
+const MAX_AVATAR_BYTES = 8 * 1024 * 1024
+const ACCEPT_AVATAR_IMAGE = 'image/jpeg,image/png,image/webp,image/gif'
+
 export function UserFormModal({
   open,
   mode,
@@ -56,9 +65,12 @@ export function UserFormModal({
   const isEdit = mode === 'edit' && initial != null
   const [form, setForm] = useState<CreateUserFormValues>(INITIAL_CREATE_USER_FORM)
   const [submitting, setSubmitting] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const avatarFileRef = useRef<HTMLInputElement>(null)
 
   const reset = useCallback(() => {
     setForm(INITIAL_CREATE_USER_FORM)
+    setAvatarError(null)
   }, [])
 
   useEffect(() => {
@@ -76,6 +88,34 @@ export function UserFormModal({
       reset()
       onClose()
     }
+  }
+
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setAvatarError('Please choose a JPEG, PNG, WebP, or GIF file.')
+      return
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setAvatarError('File is too large. Maximum size is 8 MB.')
+      return
+    }
+    setAvatarError(null)
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result === 'string') {
+        update('avatarUrl', result)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeAvatar = () => {
+    update('avatarUrl', '')
+    setAvatarError(null)
   }
 
   const stringSelect = (
@@ -140,7 +180,7 @@ export function UserFormModal({
       title={isEdit ? 'Edit user' : 'Add user'}
       description={`${DEFAULT_TENANT_NAME} · User directory`}
       icon={UserRound}
-      maxWidth="3xl"
+      maxWidth="4xl"
       footer={
         <DialogFormFooter
           isCreate={!isEdit}
@@ -153,36 +193,98 @@ export function UserFormModal({
         />
       }
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, py: 1 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 2.5,
+          alignItems: 'stretch',
+          py: 1,
+        }}
+      >
         <EarthDialogSectionCard
           title="Identity"
           icon={UserRound}
           accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
+          fullHeight
         >
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              columnGap: 2.5,
-              rowGap: 2.5,
-            }}
-          >
-            <DialogFormField label="First name" htmlFor="firstName" required>
+          <Stack spacing={2.5}>
+            <DialogFormField label="Profile image" htmlFor="avatarUpload">
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5 }}>
+                {form.avatarUrl ? (
+                  <Avatar
+                    src={form.avatarUrl}
+                    alt={form.fullName || 'User profile'}
+                    sx={{ width: 96, height: 96, border: '2px solid', borderColor: 'divider' }}
+                  />
+                ) : (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      width: 96,
+                      height: 96,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '50%',
+                      border: '2px dashed',
+                      borderColor: 'divider',
+                      bgcolor: 'action.hover',
+                    }}
+                  >
+                    <UserRound size={40} strokeWidth={1.5} style={{ opacity: 0.4 }} />
+                  </Box>
+                )}
+                <input
+                  ref={avatarFileRef}
+                  id="avatarUpload"
+                  type="file"
+                  accept={ACCEPT_AVATAR_IMAGE}
+                  hidden
+                  onChange={handleAvatarFile}
+                />
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    size="small"
+                    startIcon={<CloudUploadOutlinedIcon />}
+                    onClick={() => avatarFileRef.current?.click()}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    {form.avatarUrl ? 'Change image' : 'Upload image'}
+                  </Button>
+                  {form.avatarUrl ? (
+                    <Button
+                      type="button"
+                      variant="outlined"
+                      size="small"
+                      color="error"
+                      startIcon={<DeleteOutlineOutlinedIcon />}
+                      onClick={removeAvatar}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Remove
+                    </Button>
+                  ) : null}
+                </Box>
+                {avatarError ? (
+                  <Typography variant="caption" color="error" role="alert">
+                    {avatarError}
+                  </Typography>
+                ) : (
+                  <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+                    JPEG, PNG, WebP, or GIF · max 8 MB
+                  </Typography>
+                )}
+              </Box>
+            </DialogFormField>
+            <DialogFormField label="Full name" htmlFor="fullName" required>
               <TextField
-                id="firstName"
+                id="fullName"
                 fullWidth
                 autoFocus
-                value={form.firstName}
-                onChange={(e) => update('firstName', e.target.value)}
-                sx={outlineFieldSx}
-              />
-            </DialogFormField>
-            <DialogFormField label="Last name" htmlFor="lastName" required>
-              <TextField
-                id="lastName"
-                fullWidth
-                value={form.lastName}
-                onChange={(e) => update('lastName', e.target.value)}
+                value={form.fullName}
+                onChange={(e) => update('fullName', e.target.value)}
                 sx={outlineFieldSx}
               />
             </DialogFormField>
@@ -220,22 +322,16 @@ export function UserFormModal({
                 ))}
               </Select>
             </DialogFormField>
-          </Box>
+          </Stack>
         </EarthDialogSectionCard>
 
         <EarthDialogSectionCard
           title="Organization"
           icon={Briefcase}
           accentColor={EARTH_DIALOG_SECTION_ACCENTS.secondary}
+          fullHeight
         >
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-              columnGap: 2.5,
-              rowGap: 2.5,
-            }}
-          >
+          <Stack spacing={2.5}>
             {stringSelect('department', 'Department', form.department, DEPARTMENT_OPTIONS, (v) =>
               update('department', v)
             )}
@@ -248,7 +344,7 @@ export function UserFormModal({
             {stringSelect('country', 'Country', form.country, COUNTRY_OPTIONS, (v) =>
               update('country', v)
             )}
-          </Box>
+          </Stack>
         </EarthDialogSectionCard>
       </Box>
     </AppDialog>

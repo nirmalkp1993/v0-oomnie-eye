@@ -8,8 +8,8 @@ export type UserStatus =
   | 'archived'
 
 export interface CreateUserFormValues {
-  firstName: string
-  lastName: string
+  fullName: string
+  avatarUrl: string
   email: string
   phone: string
   department: string
@@ -25,6 +25,7 @@ export interface CreateUserFormValues {
 export interface UserListItem {
   id: string
   name: string
+  avatarUrl?: string
   email: string
   roles: string[]
   groups: string[]
