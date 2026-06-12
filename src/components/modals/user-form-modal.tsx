@@ -2,6 +2,7 @@
 
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
+import PersonOffOutlinedIcon from '@mui/icons-material/PersonOffOutlined'
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined'
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
@@ -57,6 +58,7 @@ import {
 import { UserAuditTrailPanel } from '@/src/components/user-management/user-audit-trail-panel'
 import { UserFormGroupsTab } from '@/src/components/user-management/user-form-groups-tab'
 import { UserFormRolesTab } from '@/src/components/user-management/user-form-roles-tab'
+import { isUserRetired } from '@/src/lib/user-management/user-lifecycle.utils'
 import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
 
 export type UserFormTabId = 'profile' | 'roles' | 'groups' | 'audit'
@@ -75,6 +77,7 @@ interface UserFormModalProps {
   onClose: () => void
   onSubmit: (user: UserListItem) => void
   onEditProfile?: (user: UserListItem) => void
+  onRetireRequest?: () => void
   onDeleteRequest?: () => void
 }
 
@@ -93,6 +96,7 @@ export function UserFormModal({
   onClose,
   onSubmit,
   onEditProfile,
+  onRetireRequest,
   onDeleteRequest,
 }: UserFormModalProps) {
   const { showMessage } = useAdminSnackbar()
@@ -247,6 +251,7 @@ export function UserFormModal({
 
   const formTabs = getUserFormTabs(mode)
   const activeTabIndex = formTabs.indexOf(activeTab)
+  const userIsRetired = initial != null && isUserRetired(initial)
 
   const dialogTitle = isView
     ? (initial?.name ?? 'View user')
@@ -296,8 +301,12 @@ export function UserFormModal({
             if (initial && onEditProfile) onEditProfile(initial)
           }}
           onSave={() => void handleSubmit()}
-          onDelete={isEdit ? onDeleteRequest : undefined}
-          deleteLabel="Delete user"
+          onDelete={
+            isEdit ? (userIsRetired ? onDeleteRequest : onRetireRequest) : undefined
+          }
+          deleteLabel={userIsRetired ? 'Delete user' : 'Retire user'}
+          deleteIcon={userIsRetired ? <DeleteOutlineOutlinedIcon /> : <PersonOffOutlinedIcon />}
+          deleteColor={userIsRetired ? 'error' : 'warning'}
           editLabel="Edit profile"
         />
       }

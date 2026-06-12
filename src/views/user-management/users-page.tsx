@@ -5,6 +5,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined'
+import PersonOffOutlinedIcon from '@mui/icons-material/PersonOffOutlined'
 import SecurityUpdateGoodOutlinedIcon from '@mui/icons-material/SecurityUpdateGoodOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { Box, Button, IconButton, Menu, MenuItem, Typography } from '@mui/material'
@@ -27,6 +28,11 @@ import {
 } from '@/src/components/user-management/user-management-table-primitives'
 import { myDrawingsBodySecondaryTypographySx } from '@/src/components/tables/my-drawings-table-styles'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
+import {
+  RETIRED_USER_STATUS,
+  canDeleteUser,
+  isUserRetired,
+} from '@/src/lib/user-management/user-lifecycle.utils'
 import { getUserRowCellValue } from '@/src/lib/user-management/user-row-values'
 import { useUserDirectoryStore } from '@/lib/user-directory-store'
 import { MOCK_USERS } from '@/src/mock-data/users'
@@ -39,6 +45,7 @@ const STATUS_FILTER_OPTIONS: { value: 'all' | UserStatus; label: string }[] = [
   { value: 'pending', label: 'Pending' },
   { value: 'suspended', label: 'Suspended' },
   { value: 'archived', label: 'Archived' },
+  { value: 'retired', label: 'Retired' },
 ]
 
 export function UsersPage() {
@@ -60,8 +67,10 @@ export function UsersPage() {
     open: false,
     mode: 'create',
   })
-  const [confirmBulk, setConfirmBulk] = useState(false)
-  const [confirmSingle, setConfirmSingle] = useState<UserListItem | null>(null)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [confirmBulkRetire, setConfirmBulkRetire] = useState(false)
+  const [confirmSingleDelete, setConfirmSingleDelete] = useState<UserListItem | null>(null)
+  const [confirmSingleRetire, setConfirmSingleRetire] = useState<UserListItem | null>(null)
   const setDirectoryUsers = useUserDirectoryStore((state) => state.setUsers)
 
   useEffect(() => {
@@ -100,6 +109,19 @@ export function UsersPage() {
   }, [rows, search, statusFilter])
 
   const selectedCount = selectedIds.length
+
+  const selectedUsers = useMemo(
+    () => rows.filter((row) => selectedIds.includes(row.id)),
+    [rows, selectedIds],
+  )
+
+  const selectedRetirableCount = useMemo(
+    () => selectedUsers.filter((user) => !isUserRetired(user)).length,
+    [selectedUsers],
+  )
+
+  const allSelectedRetired =
+    selectedUsers.length > 0 && selectedUsers.every((user) => isUserRetired(user))
 
   const closeMenu = () => {
     setMenuAnchor(null)
@@ -177,26 +199,73 @@ export function UsersPage() {
     [userModal.user?.id, showMessage]
   )
 
+  const retireUser = useCallback((userId: string) => {
+    setRows((prev) =>
+      prev.map((row) => (row.id === userId ? { ...row, status: RETIRED_USER_STATUS } : row)),
+    )
+    setUserModal((prev) =>
+      prev.user?.id === userId
+        ? { ...prev, user: { ...prev.user, status: RETIRED_USER_STATUS } }
+        : prev,
+    )
+  }, [])
+
+  const bulkRetire = () => {
+    const idSet = new Set(
+      selectedUsers.filter((user) => !isUserRetired(user)).map((user) => user.id),
+    )
+    setRows((prev) =>
+      prev.map((row) => (idSet.has(row.id) ? { ...row, status: RETIRED_USER_STATUS } : row)),
+    )
+    setConfirmBulkRetire(false)
+    showMessage(`${idSet.size} user(s) retired`, 'info')
+  }
+
   const bulkDelete = () => {
     const idSet = new Set(selectedIds)
     setRows((prev) => prev.filter((r) => !idSet.has(r.id)))
     setSelectedIds([])
-    setConfirmBulk(false)
+    setConfirmBulkDelete(false)
     showMessage(`${idSet.size} user(s) removed`, 'info')
   }
 
-  const requestDeleteUser = useCallback((user: UserListItem) => {
+  const requestRetireUser = useCallback((user: UserListItem) => {
+    if (isUserRetired(user)) return
     setUserModal({ open: false, mode: 'create', user: null })
-    setConfirmSingle(user)
+    setConfirmSingleRetire(user)
   }, [])
 
+  const requestDeleteUser = useCallback(
+    (user: UserListItem) => {
+      if (!canDeleteUser(user)) {
+        showMessage('Retire the user before deleting.', 'warning')
+        return
+      }
+      setUserModal({ open: false, mode: 'create', user: null })
+      setConfirmSingleDelete(user)
+    },
+    [showMessage],
+  )
+
+  const confirmRetireUser = useCallback(() => {
+    if (!confirmSingleRetire) return
+    retireUser(confirmSingleRetire.id)
+    showMessage(`${confirmSingleRetire.name} retired`, 'info')
+    setConfirmSingleRetire(null)
+  }, [confirmSingleRetire, retireUser, showMessage])
+
   const confirmDeleteUser = useCallback(() => {
-    if (!confirmSingle) return
-    setRows((prev) => prev.filter((r) => r.id !== confirmSingle.id))
-    setSelectedIds((prev) => prev.filter((id) => id !== confirmSingle.id))
+    if (!confirmSingleDelete) return
+    if (!canDeleteUser(confirmSingleDelete)) {
+      showMessage('Retire the user before deleting.', 'warning')
+      setConfirmSingleDelete(null)
+      return
+    }
+    setRows((prev) => prev.filter((r) => r.id !== confirmSingleDelete.id))
+    setSelectedIds((prev) => prev.filter((id) => id !== confirmSingleDelete.id))
     showMessage('User deleted', 'info')
-    setConfirmSingle(null)
-  }, [confirmSingle, showMessage])
+    setConfirmSingleDelete(null)
+  }, [confirmSingleDelete, showMessage])
 
   const renderCell = useCallback((row: UserListItem, columnId: string) => {
     switch (columnId) {
@@ -288,20 +357,43 @@ export function UsersPage() {
             gap: 1,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 0.5, flexWrap: 'wrap' }}>
             {selectedCount > 0 ? (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<DeleteOutlineIcon fontSize="small" />}
-                onClick={() => setConfirmBulk(true)}
-                sx={{ ...myDrawingsToolbarOutlineButtonSx, color: 'error.main', borderColor: 'error.light' }}
-              >
-                Delete selected ({selectedCount})
-              </Button>
+              <>
+                {selectedRetirableCount > 0 ? (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<PersonOffOutlinedIcon fontSize="small" />}
+                    onClick={() => setConfirmBulkRetire(true)}
+                    sx={{
+                      ...myDrawingsToolbarOutlineButtonSx,
+                      color: 'warning.main',
+                      borderColor: 'warning.light',
+                    }}
+                  >
+                    Retire selected ({selectedRetirableCount})
+                  </Button>
+                ) : null}
+                {allSelectedRetired ? (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<DeleteOutlineIcon fontSize="small" />}
+                    onClick={() => setConfirmBulkDelete(true)}
+                    sx={{
+                      ...myDrawingsToolbarOutlineButtonSx,
+                      color: 'error.main',
+                      borderColor: 'error.light',
+                    }}
+                  >
+                    Delete selected ({selectedCount})
+                  </Button>
+                ) : null}
+              </>
             ) : (
               <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
-                Select rows for bulk delete
+                Select rows for bulk retire or delete
               </Typography>
             )}
           </Box>
@@ -342,14 +434,25 @@ export function UsersPage() {
         <MenuItem onClick={() => menuUser && openEdit(menuUser)}>
           <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Edit profile
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            if (menuUser) requestDeleteUser(menuUser)
-            closeMenu()
-          }}
-        >
-          <DeleteOutlineIcon fontSize="small" sx={{ mr: 1 }} /> Delete
-        </MenuItem>
+        {menuUser && isUserRetired(menuUser) ? (
+          <MenuItem
+            onClick={() => {
+              requestDeleteUser(menuUser)
+              closeMenu()
+            }}
+          >
+            <DeleteOutlineIcon fontSize="small" sx={{ mr: 1 }} /> Delete
+          </MenuItem>
+        ) : (
+          <MenuItem
+            onClick={() => {
+              if (menuUser) requestRetireUser(menuUser)
+              closeMenu()
+            }}
+          >
+            <PersonOffOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Retire
+          </MenuItem>
+        )}
         <MenuItem onClick={() => menuUser && openAssignGroups(menuUser)}>
           <GroupAddOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Assign groups
         </MenuItem>
@@ -366,30 +469,53 @@ export function UsersPage() {
         onClose={() => setUserModal({ open: false, mode: 'create', user: null })}
         onSubmit={handleSaveUser}
         onEditProfile={(u) => openEdit(u)}
+        onRetireRequest={
+          userModal.mode === 'edit' && userModal.user && !isUserRetired(userModal.user)
+            ? () => requestRetireUser(userModal.user as UserListItem)
+            : undefined
+        }
         onDeleteRequest={
-          userModal.mode === 'edit' && userModal.user
+          userModal.mode === 'edit' && userModal.user && isUserRetired(userModal.user)
             ? () => requestDeleteUser(userModal.user as UserListItem)
             : undefined
         }
       />
 
       <ConfirmDialog
-        open={confirmBulk}
+        open={confirmBulkRetire}
+        title="Retire selected users?"
+        description="Retired users lose access but remain in the directory until deleted."
+        confirmLabel="Retire"
+        onClose={() => setConfirmBulkRetire(false)}
+        onConfirm={bulkRetire}
+      />
+
+      <ConfirmDialog
+        open={confirmBulkDelete}
         title="Delete selected users?"
-        description="This action removes all selected users from the directory."
+        description="This permanently removes all selected retired users from the directory."
         confirmLabel="Delete"
         destructive
-        onClose={() => setConfirmBulk(false)}
+        onClose={() => setConfirmBulkDelete(false)}
         onConfirm={bulkDelete}
       />
 
       <ConfirmDialog
-        open={Boolean(confirmSingle)}
+        open={Boolean(confirmSingleRetire)}
+        title="Retire user?"
+        description={`Retire ${confirmSingleRetire?.name ?? ''}? They will lose access but remain in the directory until deleted.`}
+        confirmLabel="Retire"
+        onClose={() => setConfirmSingleRetire(null)}
+        onConfirm={confirmRetireUser}
+      />
+
+      <ConfirmDialog
+        open={Boolean(confirmSingleDelete)}
         title="Delete user?"
-        description={`Remove ${confirmSingle?.name ?? ''} from the directory?`}
+        description={`Permanently remove ${confirmSingleDelete?.name ?? ''} from the directory?`}
         confirmLabel="Delete"
         destructive
-        onClose={() => setConfirmSingle(null)}
+        onClose={() => setConfirmSingleDelete(null)}
         onConfirm={confirmDeleteUser}
       />
   </>

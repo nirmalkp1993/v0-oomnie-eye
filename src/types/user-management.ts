@@ -6,6 +6,7 @@ export type UserStatus =
   | 'pending'
   | 'suspended'
   | 'archived'
+  | 'retired'
 
 export interface CreateUserFormValues {
   fullName: string
