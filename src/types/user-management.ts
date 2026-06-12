@@ -20,6 +20,7 @@ export interface CreateUserFormValues {
   businessUnit: string
   status: UserStatus
   roleId: string
+  groupIds: string[]
   customAttributes: string
 }
 

@@ -3,6 +3,7 @@
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
+import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined'
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
 import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined'
 import { CameraEarthTabPanel, cameraEarthTabsSx } from '@/components/camera/camera-earth-tab-panel'
@@ -52,14 +53,16 @@ import {
   userToFormValues,
   validateCreateUserForm,
 } from '@/src/lib/user-management/add-user-form.utils'
+import { UserFormGroupsTab } from '@/src/components/user-management/user-form-groups-tab'
 import { UserFormRolesTab } from '@/src/components/user-management/user-form-roles-tab'
 import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
 
-type UserFormTabId = 'profile' | 'roles'
+type UserFormTabId = 'profile' | 'roles' | 'groups'
 
 const USER_FORM_TAB_INDEX: Record<UserFormTabId, number> = {
   profile: 0,
   roles: 1,
+  groups: 2,
 }
 
 interface UserFormModalProps {
@@ -272,7 +275,7 @@ export function UserFormModal({
       <Tabs
         value={USER_FORM_TAB_INDEX[activeTab]}
         onChange={(_, idx) => {
-          const tabs: UserFormTabId[] = ['profile', 'roles']
+          const tabs: UserFormTabId[] = ['profile', 'roles', 'groups']
           const id = tabs[idx]
           if (id) setActiveTab(id)
         }}
@@ -282,6 +285,7 @@ export function UserFormModal({
       >
         <Tab icon={<PersonOutlineOutlinedIcon />} label="Profile" iconPosition="start" />
         <Tab icon={<SecurityOutlinedIcon />} label="Roles" iconPosition="start" />
+        <Tab icon={<GroupOutlinedIcon />} label="Groups" iconPosition="start" />
       </Tabs>
 
       <Box
@@ -555,6 +559,15 @@ export function UserFormModal({
             <UserFormRolesTab
               roleId={form.roleId}
               onRoleChange={(id) => update('roleId', id)}
+            />
+          </Box>
+        </CameraEarthTabPanel>
+
+        <CameraEarthTabPanel value={USER_FORM_TAB_INDEX[activeTab]} index={2}>
+          <Box sx={{ py: 1 }}>
+            <UserFormGroupsTab
+              groupIds={form.groupIds}
+              onGroupIdsChange={(ids) => update('groupIds', ids)}
             />
           </Box>
         </CameraEarthTabPanel>

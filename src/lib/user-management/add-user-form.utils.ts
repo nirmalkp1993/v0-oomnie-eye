@@ -6,6 +6,10 @@ import {
   catalogIdToRoleName,
   roleNameToCatalogId,
 } from '@/src/constants/user-detail'
+import {
+  groupMockIdsToNames,
+  userGroupNamesToMockIds,
+} from '@/src/lib/user-management/group-members.utils'
 import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -66,6 +70,7 @@ export function userToFormValues(user: UserListItem): CreateUserFormValues {
       user.roles
         .map((name) => roleNameToCatalogId(name))
         .find((id): id is string => Boolean(id)) ?? SELECT_EMPTY_VALUE,
+    groupIds: userGroupNamesToMockIds(user.groups),
     customAttributes: customAttributesToFormString(user.customAttributes),
   }
 }
@@ -93,7 +98,7 @@ export function buildUserListItemFromForm(
       const name = catalogIdToRoleName(form.roleId)
       return name ? [name] : []
     })(),
-    groups: existing?.groups ?? [],
+    groups: groupMockIdsToNames(form.groupIds),
     lastLogin: existing?.lastLogin ?? null,
     customAttributes:
       Object.keys(customAttributes).length > 0 ? customAttributes : undefined,

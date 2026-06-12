@@ -66,6 +66,7 @@ export const INITIAL_CREATE_USER_FORM: CreateUserFormValues = {
   businessUnit: SELECT_EMPTY_VALUE,
   status: 'pending',
   roleId: SELECT_EMPTY_VALUE,
+  groupIds: [],
   customAttributes: '',
 }
 
