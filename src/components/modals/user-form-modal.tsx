@@ -3,6 +3,9 @@
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
+import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
+import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined'
+import { CameraEarthTabPanel, cameraEarthTabsSx } from '@/components/camera/camera-earth-tab-panel'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Avatar,
@@ -12,6 +15,8 @@ import {
   MenuItem,
   Select,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Tooltip,
   Typography,
@@ -47,7 +52,15 @@ import {
   userToFormValues,
   validateCreateUserForm,
 } from '@/src/lib/user-management/add-user-form.utils'
+import { UserFormRolesTab } from '@/src/components/user-management/user-form-roles-tab'
 import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
+
+type UserFormTabId = 'profile' | 'roles'
+
+const USER_FORM_TAB_INDEX: Record<UserFormTabId, number> = {
+  profile: 0,
+  roles: 1,
+}
 
 interface UserFormModalProps {
   open: boolean
@@ -82,6 +95,7 @@ export function UserFormModal({
   const [jobTitleManageOpen, setJobTitleManageOpen] = useState(false)
   const [territoryManageOpen, setTerritoryManageOpen] = useState(false)
   const [officeManageOpen, setOfficeManageOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<UserFormTabId>('profile')
   const avatarFileRef = useRef<HTMLInputElement>(null)
 
   const reset = useCallback(() => {
@@ -97,6 +111,7 @@ export function UserFormModal({
     setJobTitleManageOpen(false)
     setTerritoryManageOpen(false)
     setOfficeManageOpen(false)
+    setActiveTab('profile')
   }, [open, initial, reset])
 
   const syncDepartmentAfterTreeChange = useCallback(() => {
@@ -254,15 +269,40 @@ export function UserFormModal({
         />
       }
     >
+      <Tabs
+        value={USER_FORM_TAB_INDEX[activeTab]}
+        onChange={(_, idx) => {
+          const tabs: UserFormTabId[] = ['profile', 'roles']
+          const id = tabs[idx]
+          if (id) setActiveTab(id)
+        }}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={{ ...cameraEarthTabsSx, mx: -3, px: 3, mb: 0 }}
+      >
+        <Tab icon={<PersonOutlineOutlinedIcon />} label="Profile" iconPosition="start" />
+        <Tab icon={<SecurityOutlinedIcon />} label="Roles" iconPosition="start" />
+      </Tabs>
+
       <Box
         sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-          gap: 2.5,
-          alignItems: 'stretch',
-          py: 1,
+          minHeight: 420,
+          maxHeight: 'min(520px, 58vh)',
+          overflow: 'auto',
+          mx: -0.5,
+          px: 0.5,
         }}
       >
+        <CameraEarthTabPanel value={USER_FORM_TAB_INDEX[activeTab]} index={0}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+              gap: 2.5,
+              alignItems: 'stretch',
+              py: 1,
+            }}
+          >
         <EarthDialogSectionCard
           title="Identity"
           icon={UserRound}
@@ -507,6 +547,17 @@ export function UserFormModal({
             </DialogFormField>
           </Stack>
         </EarthDialogSectionCard>
+          </Box>
+        </CameraEarthTabPanel>
+
+        <CameraEarthTabPanel value={USER_FORM_TAB_INDEX[activeTab]} index={1}>
+          <Box sx={{ py: 1 }}>
+            <UserFormRolesTab
+              roleId={form.roleId}
+              onRoleChange={(id) => update('roleId', id)}
+            />
+          </Box>
+        </CameraEarthTabPanel>
       </Box>
     </AppDialog>
 

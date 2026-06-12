@@ -52,14 +52,15 @@ export function PermissionsEditor({
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   {module.label}
                 </Typography>
-                <Button
-                  size="small"
-                  disabled={disabled}
-                  onClick={() => onSetModulePermissions(module.id, keys, !allSelected)}
-                  sx={{ textTransform: 'none', fontWeight: 500, minWidth: 0 }}
-                >
-                  {allSelected ? 'Deselect all' : 'Select all'}
-                </Button>
+                {!disabled ? (
+                  <Button
+                    size="small"
+                    onClick={() => onSetModulePermissions(module.id, keys, !allSelected)}
+                    sx={{ textTransform: 'none', fontWeight: 500, minWidth: 0 }}
+                  >
+                    {allSelected ? 'Deselect all' : 'Select all'}
+                  </Button>
+                ) : null}
               </Box>
               <Box
                 sx={{

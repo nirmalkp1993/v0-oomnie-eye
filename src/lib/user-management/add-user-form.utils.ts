@@ -2,6 +2,10 @@ import {
   INITIAL_CREATE_USER_FORM,
   SELECT_EMPTY_VALUE,
 } from '@/src/constants/add-user'
+import {
+  catalogIdToRoleName,
+  roleNameToCatalogId,
+} from '@/src/constants/user-detail'
 import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -58,6 +62,10 @@ export function userToFormValues(user: UserListItem): CreateUserFormValues {
     region: fieldFromUser(user.region),
     businessUnit: fieldFromUser(user.businessUnit),
     status: user.status,
+    roleId:
+      user.roles
+        .map((name) => roleNameToCatalogId(name))
+        .find((id): id is string => Boolean(id)) ?? SELECT_EMPTY_VALUE,
     customAttributes: customAttributesToFormString(user.customAttributes),
   }
 }
@@ -81,7 +89,10 @@ export function buildUserListItemFromForm(
     region: orEmpty(form.region),
     businessUnit: orEmpty(form.businessUnit),
     status: form.status,
-    roles: existing?.roles ?? [],
+    roles: (() => {
+      const name = catalogIdToRoleName(form.roleId)
+      return name ? [name] : []
+    })(),
     groups: existing?.groups ?? [],
     lastLogin: existing?.lastLogin ?? null,
     customAttributes:

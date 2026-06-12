@@ -65,6 +65,7 @@ export const INITIAL_CREATE_USER_FORM: CreateUserFormValues = {
   region: SELECT_EMPTY_VALUE,
   businessUnit: SELECT_EMPTY_VALUE,
   status: 'pending',
+  roleId: SELECT_EMPTY_VALUE,
   customAttributes: '',
 }
 

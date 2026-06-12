@@ -3,7 +3,15 @@ import {
   ROLE_PERMISSION_MODULES,
   SELECTABLE_DATA_SCOPE_IDS,
 } from '@/src/constants/role-catalog'
+import { MOCK_ROLES } from '@/src/mock-data/roles'
 import type { CreateRoleFormValues, DataScopeId, RoleListItem } from '@/src/types/user-management'
+
+const USER_ROLE_CATALOG_TO_MOCK_ID: Record<string, string> = {
+  super_admin: 'role-super-admin',
+  tenant_admin: 'role-tenant-admin',
+  operations_manager: 'role-operations-manager',
+  viewer: 'role-viewer',
+}
 
 export function permissionKey(moduleId: string, action: string): string {
   return `${moduleId}:${action}`
@@ -69,6 +77,24 @@ const ROLE_EDIT_PERMISSION_PRESETS: Record<string, string[]> = {
     ...modulePermissionKeys('sidebar', ['View']),
     ...modulePermissionKeys('topbar', ['View']),
   ],
+  'role-operations-manager': [
+    ...modulePermissionKeys('operations', ['Read', 'Update']),
+    ...modulePermissionKeys('ops_overview', ['View']),
+    ...modulePermissionKeys('ops_throughput', ['View']),
+    ...modulePermissionKeys('users', ['Read']),
+    ...modulePermissionKeys('groups', ['Read']),
+    ...modulePermissionKeys('reports', ['Read']),
+    ...modulePermissionKeys('dashboards', ['Read']),
+    ...modulePermissionKeys('sidebar', ['View']),
+    ...modulePermissionKeys('topbar', ['View']),
+  ],
+}
+
+export function getPermissionsForCatalogRoleId(catalogRoleId: string): string[] {
+  const mockRoleId = USER_ROLE_CATALOG_TO_MOCK_ID[catalogRoleId]
+  if (!mockRoleId) return []
+  const role = MOCK_ROLES.find((item) => item.id === mockRoleId)
+  return role?.selectedPermissions ?? ROLE_EDIT_PERMISSION_PRESETS[mockRoleId] ?? []
 }
 
 export function roleToFormValues(role: RoleListItem): CreateRoleFormValues {

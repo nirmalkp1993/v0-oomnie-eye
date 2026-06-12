@@ -19,6 +19,7 @@ export interface CreateUserFormValues {
   region: string
   businessUnit: string
   status: UserStatus
+  roleId: string
   customAttributes: string
 }
 
