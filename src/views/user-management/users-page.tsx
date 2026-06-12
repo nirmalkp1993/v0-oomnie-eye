@@ -29,6 +29,7 @@ import {
 import { myDrawingsBodySecondaryTypographySx } from '@/src/components/tables/my-drawings-table-styles'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import { getUserRowCellValue } from '@/src/lib/user-management/user-row-values'
+import { useUserDirectoryStore } from '@/lib/user-directory-store'
 import { MOCK_USERS } from '@/src/mock-data/users'
 import type { UserListItem, UserStatus } from '@/src/types/user-management'
 
@@ -62,6 +63,7 @@ export function UsersPage() {
   })
   const [confirmBulk, setConfirmBulk] = useState(false)
   const [confirmSingle, setConfirmSingle] = useState<UserListItem | null>(null)
+  const setDirectoryUsers = useUserDirectoryStore((state) => state.setUsers)
 
   useEffect(() => {
     setLoading(true)
@@ -71,6 +73,10 @@ export function UsersPage() {
     }, 600)
     return () => window.clearTimeout(t)
   }, [])
+
+  useEffect(() => {
+    setDirectoryUsers(rows)
+  }, [rows, setDirectoryUsers])
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase()

@@ -2,24 +2,30 @@
 
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Avatar,
   Box,
   Button,
+  IconButton,
   MenuItem,
   Select,
   Stack,
   TextField,
+  Tooltip,
   Typography,
   type SelectChangeEvent,
 } from '@mui/material'
 import { Briefcase, UserRound } from 'lucide-react'
+import { useDepartmentStore } from '@/lib/department-store'
 import { AppDialog, DialogFormField } from '@/src/components/modals/app-dialog'
 import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { DepartmentHierarchySelect } from '@/src/components/user-management/department-hierarchy-select'
+import { DepartmentManageModal } from '@/src/components/user-management/department-manage-modal'
+import { collectNestedPathOptions } from '@/src/lib/nested-tree-path-options'
 import { JobTitleHierarchySelect } from '@/src/components/user-management/job-title-hierarchy-select'
 import {
   COUNTRY_OPTIONS,
@@ -66,6 +72,7 @@ export function UserFormModal({
   const [form, setForm] = useState<CreateUserFormValues>(INITIAL_CREATE_USER_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [departmentManageOpen, setDepartmentManageOpen] = useState(false)
   const avatarFileRef = useRef<HTMLInputElement>(null)
 
   const reset = useCallback(() => {
@@ -77,7 +84,18 @@ export function UserFormModal({
     if (!open) return
     if (initial) setForm(userToFormValues(initial))
     else reset()
+    setDepartmentManageOpen(false)
   }, [open, initial, reset])
+
+  const syncDepartmentAfterTreeChange = useCallback(() => {
+    const tree = useDepartmentStore.getState().tree
+    const validLabels = new Set(collectNestedPathOptions(tree).map((option) => option.label))
+    setForm((prev) => {
+      if (!prev.department || prev.department === SELECT_EMPTY_VALUE) return prev
+      if (validLabels.has(prev.department)) return prev
+      return { ...prev, department: SELECT_EMPTY_VALUE }
+    })
+  }, [])
 
   const update = <K extends keyof CreateUserFormValues>(key: K, value: CreateUserFormValues[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -174,6 +192,7 @@ export function UserFormModal({
   }
 
   return (
+    <>
     <AppDialog
       open={open}
       onClose={handleClose}
@@ -333,12 +352,32 @@ export function UserFormModal({
         >
           <Stack spacing={2.5}>
             <DialogFormField label="Department" htmlFor="department">
-              <DepartmentHierarchySelect
-                id="department"
-                value={form.department}
-                onChange={(v) => update('department', v)}
-                fieldSx={outlineFieldSx}
-              />
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <DepartmentHierarchySelect
+                    id="department"
+                    value={form.department}
+                    onChange={(v) => update('department', v)}
+                    fieldSx={outlineFieldSx}
+                  />
+                </Box>
+                <Tooltip title="Manage departments">
+                  <IconButton
+                    type="button"
+                    aria-label="Manage departments"
+                    onClick={() => setDepartmentManageOpen(true)}
+                    sx={{
+                      mt: 0.25,
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <AccountTreeOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </DialogFormField>
             <DialogFormField label="Job title" htmlFor="jobTitle">
               <JobTitleHierarchySelect
@@ -358,5 +397,12 @@ export function UserFormModal({
         </EarthDialogSectionCard>
       </Box>
     </AppDialog>
+
+    <DepartmentManageModal
+      open={open && departmentManageOpen}
+      onClose={() => setDepartmentManageOpen(false)}
+      onTreeChanged={syncDepartmentAfterTreeChange}
+    />
+    </>
   )
 }
