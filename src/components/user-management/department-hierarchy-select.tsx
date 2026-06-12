@@ -9,11 +9,13 @@ export function DepartmentHierarchySelect({
   value,
   onChange,
   fieldSx,
+  disabled,
 }: {
   id?: string
   value: string
   onChange: (departmentLabel: string) => void
   fieldSx?: SxProps<Theme>
+  disabled?: boolean
 }) {
   const tree = useDepartmentStore((state) => state.tree)
 
@@ -26,6 +28,7 @@ export function DepartmentHierarchySelect({
       searchPlaceholder="Search departments..."
       emptySearchMessage="No departments match your search."
       fieldSx={fieldSx}
+      disabled={disabled}
     />
   )
 }

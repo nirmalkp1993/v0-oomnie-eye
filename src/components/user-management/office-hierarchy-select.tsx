@@ -9,11 +9,13 @@ export function OfficeHierarchySelect({
   value,
   onChange,
   fieldSx,
+  disabled,
 }: {
   id?: string
   value: string
   onChange: (officeLabel: string) => void
   fieldSx?: SxProps<Theme>
+  disabled?: boolean
 }) {
   const tree = useOfficeStore((state) => state.tree)
 
@@ -26,6 +28,7 @@ export function OfficeHierarchySelect({
       searchPlaceholder="Search offices..."
       emptySearchMessage="No offices match your search."
       fieldSx={fieldSx}
+      disabled={disabled}
     />
   )
 }

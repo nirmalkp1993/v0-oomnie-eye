@@ -9,11 +9,13 @@ export function TerritoryHierarchySelect({
   value,
   onChange,
   fieldSx,
+  disabled,
 }: {
   id?: string
   value: string
   onChange: (territoryLabel: string) => void
   fieldSx?: SxProps<Theme>
+  disabled?: boolean
 }) {
   const tree = useTerritoryStore((state) => state.tree)
 
@@ -26,6 +28,7 @@ export function TerritoryHierarchySelect({
       searchPlaceholder="Search territories..."
       emptySearchMessage="No territories match your search."
       fieldSx={fieldSx}
+      disabled={disabled}
     />
   )
 }

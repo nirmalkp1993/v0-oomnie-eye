@@ -41,9 +41,11 @@ function groupInitials(name: string): string {
 export function UserFormGroupsTab({
   groupIds,
   onGroupIdsChange,
+  readOnly = false,
 }: {
   groupIds: string[]
   onGroupIdsChange: (groupIds: string[]) => void
+  readOnly?: boolean
 }) {
   const directoryUsers = useUserDirectoryStore((state) => state.users)
   const [searchInput, setSearchInput] = useState('')
@@ -100,44 +102,46 @@ export function UserFormGroupsTab({
       tooltip="Assign this user to one or more groups"
       accentColor={EARTH_DIALOG_SECTION_ACCENTS.secondary}
     >
-      <DialogFormField label="Search groups" htmlFor="userFormGroupSearch">
-        <Autocomplete
-          id="userFormGroupSearch"
-          options={availableGroups}
-          value={null}
-          inputValue={searchInput}
-          onInputChange={(_, value) => setSearchInput(value)}
-          onChange={(_, group) => {
-            if (group) addGroup(group)
-          }}
-          getOptionLabel={(group) => group.name}
-          isOptionEqualToValue={(a, b) => a.id === b.id}
-          noOptionsText={
-            availableGroups.length === 0 && groupIds.length > 0
-              ? 'All groups are already assigned'
-              : 'No groups match your search'
-          }
-          renderInput={(params) => (
-            <TextField {...params} placeholder="Search group name…" sx={outlineFieldSx} />
-          )}
-          renderOption={(props, group) => (
-            <Box component="li" {...props} key={group.id}>
-              <Box sx={{ py: 0.25 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {group.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {group.description}
-                </Typography>
+      {!readOnly ? (
+        <DialogFormField label="Search groups" htmlFor="userFormGroupSearch">
+          <Autocomplete
+            id="userFormGroupSearch"
+            options={availableGroups}
+            value={null}
+            inputValue={searchInput}
+            onInputChange={(_, value) => setSearchInput(value)}
+            onChange={(_, group) => {
+              if (group) addGroup(group)
+            }}
+            getOptionLabel={(group) => group.name}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            noOptionsText={
+              availableGroups.length === 0 && groupIds.length > 0
+                ? 'All groups are already assigned'
+                : 'No groups match your search'
+            }
+            renderInput={(params) => (
+              <TextField {...params} placeholder="Search group name…" sx={outlineFieldSx} />
+            )}
+            renderOption={(props, group) => (
+              <Box component="li" {...props} key={group.id}>
+                <Box sx={{ py: 0.25 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {group.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {group.description}
+                  </Typography>
+                </Box>
               </Box>
-            </Box>
-          )}
-        />
-      </DialogFormField>
+            )}
+          />
+        </DialogFormField>
+      ) : null}
 
       <Box
         sx={{
-          mt: 2,
+          mt: readOnly ? 0 : 2,
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', md: '1fr 3fr' },
           gap: 2,
@@ -163,7 +167,7 @@ export function UserFormGroupsTab({
           <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
             {selectedGroups.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
-                No groups selected. Search above to add groups.
+                {readOnly ? 'No groups assigned.' : 'No groups selected. Search above to add groups.'}
               </Typography>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -203,16 +207,18 @@ export function UserFormGroupsTab({
                           {group.type === 'dynamic' ? 'Dynamic' : 'Static'}
                         </Typography>
                       </Box>
-                      <Tooltip title="Remove group">
-                        <IconButton
-                          size="small"
-                          aria-label={`Remove ${group.name}`}
-                          onClick={() => removeGroup(group.id)}
-                          sx={{ flexShrink: 0 }}
-                        >
-                          <CloseOutlinedIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      {!readOnly ? (
+                        <Tooltip title="Remove group">
+                          <IconButton
+                            size="small"
+                            aria-label={`Remove ${group.name}`}
+                            onClick={() => removeGroup(group.id)}
+                            sx={{ flexShrink: 0 }}
+                          >
+                            <CloseOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ) : null}
                     </Box>
                   )
                 })}

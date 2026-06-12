@@ -15,7 +15,6 @@ import { UserManagementExplorerTable } from '@/src/components/user-management/us
 import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
 import { UserFormModal } from '@/src/components/modals/user-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
-import { UserDetailModal } from '@/src/components/user-management/user-detail-modal'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
 import { UserStatusBadge } from '@/src/components/user-management/user-status-badge'
 import {
@@ -51,11 +50,9 @@ export function UsersPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
   const [menuUser, setMenuUser] = useState<UserListItem | null>(null)
-  const [detailUser, setDetailUser] = useState<UserListItem | null>(null)
-  const [detailOpen, setDetailOpen] = useState(false)
   const [userModal, setUserModal] = useState<{
     open: boolean
-    mode: 'create' | 'edit'
+    mode: 'create' | 'edit' | 'view'
     user?: UserListItem | null
   }>({
     open: false,
@@ -108,13 +105,11 @@ export function UsersPage() {
   }
 
   const openDetail = useCallback((user: UserListItem) => {
-    setDetailUser(user)
-    setDetailOpen(true)
+    setUserModal({ open: true, mode: 'view', user })
     closeMenu()
   }, [])
 
   const openEdit = useCallback((user: UserListItem) => {
-    setDetailOpen(false)
     setUserModal({ open: true, mode: 'edit', user })
     closeMenu()
   }, [])
@@ -134,17 +129,12 @@ export function UsersPage() {
     [openDetail]
   )
 
-  const handleUserChange = useCallback((updated: UserListItem) => {
-    setRows((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
-    setDetailUser((prev) => (prev?.id === updated.id ? updated : prev))
-  }, [])
-
   const handleSaveUser = useCallback(
     (user: UserListItem) => {
       const existingId = userModal.user?.id
       if (existingId) {
-        setRows((prev) => prev.map((r) => (r.id === existingId ? { ...user, id: existingId } : r)))
-        setDetailUser((prev) => (prev?.id === existingId ? { ...user, id: existingId } : prev))
+        const saved = { ...user, id: existingId }
+        setRows((prev) => prev.map((r) => (r.id === existingId ? saved : r)))
         showMessage('User updated')
       } else {
         setRows((prev) => [user, ...prev])
@@ -165,7 +155,6 @@ export function UsersPage() {
 
   const requestDeleteUser = useCallback((user: UserListItem) => {
     setUserModal({ open: false, mode: 'create', user: null })
-    setDetailOpen(false)
     setConfirmSingle(user)
   }, [])
 
@@ -173,13 +162,9 @@ export function UsersPage() {
     if (!confirmSingle) return
     setRows((prev) => prev.filter((r) => r.id !== confirmSingle.id))
     setSelectedIds((prev) => prev.filter((id) => id !== confirmSingle.id))
-    if (detailUser?.id === confirmSingle.id) {
-      setDetailOpen(false)
-      setDetailUser(null)
-    }
     showMessage('User deleted', 'info')
     setConfirmSingle(null)
-  }, [confirmSingle, detailUser?.id, showMessage])
+  }, [confirmSingle, showMessage])
 
   const renderCell = useCallback((row: UserListItem, columnId: string) => {
     switch (columnId) {
@@ -338,23 +323,13 @@ export function UsersPage() {
         </MenuItem>
       </Menu>
 
-      <UserDetailModal
-        user={detailUser}
-        open={detailOpen}
-        onClose={() => {
-          setDetailOpen(false)
-          setDetailUser(null)
-        }}
-        onUserChange={handleUserChange}
-        onEditProfile={(u) => openEdit(u)}
-      />
-
       <UserFormModal
         open={userModal.open}
         mode={userModal.mode}
         initial={userModal.user ?? undefined}
         onClose={() => setUserModal({ open: false, mode: 'create', user: null })}
         onSubmit={handleSaveUser}
+        onEditProfile={(u) => openEdit(u)}
         onDeleteRequest={
           userModal.mode === 'edit' && userModal.user
             ? () => requestDeleteUser(userModal.user as UserListItem)

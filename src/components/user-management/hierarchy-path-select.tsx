@@ -164,6 +164,7 @@ export function HierarchyPathSelect({
   searchPlaceholder,
   emptySearchMessage,
   fieldSx,
+  disabled = false,
 }: {
   id?: string
   value: string
@@ -172,6 +173,7 @@ export function HierarchyPathSelect({
   searchPlaceholder: string
   emptySearchMessage: string
   fieldSx?: SxProps<Theme>
+  disabled?: boolean
 }) {
   const anchorRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
@@ -209,8 +211,11 @@ export function HierarchyPathSelect({
       <TextField
         id={id}
         fullWidth
+        disabled={disabled}
         value={formatTriggerLabel(value, allOptions)}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          if (!disabled) setOpen(true)
+        }}
         InputProps={{
           readOnly: true,
           endAdornment: (

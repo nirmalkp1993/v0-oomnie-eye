@@ -19,9 +19,11 @@ const outlineFieldSx = {
 export function UserFormRolesTab({
   roleId,
   onRoleChange,
+  readOnly = false,
 }: {
   roleId: string
   onRoleChange: (roleId: string) => void
+  readOnly?: boolean
 }) {
   const selectedRole = useMemo(
     () => AVAILABLE_USER_ROLES.find((role) => role.id === roleId) ?? null,
@@ -46,15 +48,16 @@ export function UserFormRolesTab({
             id="userFormRole"
             options={AVAILABLE_USER_ROLES}
             value={selectedRole}
+            disabled={readOnly}
             onChange={(_, role: UserRoleOption | null) => {
-              onRoleChange(role?.id ?? SELECT_EMPTY_VALUE)
+              if (!readOnly) onRoleChange(role?.id ?? SELECT_EMPTY_VALUE)
             }}
             getOptionLabel={(role) => role.name}
             isOptionEqualToValue={(a, b) => a.id === b.id}
             renderInput={(params) => (
               <TextField
                 {...params}
-                placeholder="Search roles…"
+                placeholder={readOnly ? undefined : 'Search roles…'}
                 sx={outlineFieldSx}
               />
             )}

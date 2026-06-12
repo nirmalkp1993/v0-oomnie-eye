@@ -9,11 +9,13 @@ export function JobTitleHierarchySelect({
   value,
   onChange,
   fieldSx,
+  disabled,
 }: {
   id?: string
   value: string
   onChange: (jobTitleLabel: string) => void
   fieldSx?: SxProps<Theme>
+  disabled?: boolean
 }) {
   const tree = useJobTitleStore((state) => state.tree)
 
@@ -26,6 +28,7 @@ export function JobTitleHierarchySelect({
       searchPlaceholder="Search job titles..."
       emptySearchMessage="No job titles match your search."
       fieldSx={fieldSx}
+      disabled={disabled}
     />
   )
 }

@@ -61,16 +61,19 @@ import type { CreateUserFormValues, UserListItem } from '@/src/types/user-manage
 
 type UserFormTabId = 'profile' | 'roles' | 'groups' | 'audit'
 
-function getUserFormTabs(isEdit: boolean): UserFormTabId[] {
-  return isEdit ? ['profile', 'roles', 'groups', 'audit'] : ['profile', 'roles', 'groups']
+function getUserFormTabs(mode: 'create' | 'edit' | 'view'): UserFormTabId[] {
+  return mode === 'create'
+    ? ['profile', 'roles', 'groups']
+    : ['profile', 'roles', 'groups', 'audit']
 }
 
 interface UserFormModalProps {
   open: boolean
-  mode: 'create' | 'edit'
+  mode: 'create' | 'edit' | 'view'
   initial?: UserListItem | null
   onClose: () => void
   onSubmit: (user: UserListItem) => void
+  onEditProfile?: (user: UserListItem) => void
   onDeleteRequest?: () => void
 }
 
@@ -87,10 +90,13 @@ export function UserFormModal({
   initial,
   onClose,
   onSubmit,
+  onEditProfile,
   onDeleteRequest,
 }: UserFormModalProps) {
   const { showMessage } = useAdminSnackbar()
+  const isView = mode === 'view' && initial != null
   const isEdit = mode === 'edit' && initial != null
+  const readOnly = isView
   const [form, setForm] = useState<CreateUserFormValues>(INITIAL_CREATE_USER_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
@@ -118,10 +124,10 @@ export function UserFormModal({
   }, [open, initial, reset])
 
   useEffect(() => {
-    if (!isEdit && activeTab === 'audit') {
+    if (mode === 'create' && activeTab === 'audit') {
       setActiveTab('profile')
     }
-  }, [activeTab, isEdit])
+  }, [activeTab, mode])
 
   const syncDepartmentAfterTreeChange = useCallback(() => {
     const tree = useDepartmentStore.getState().tree
@@ -237,8 +243,18 @@ export function UserFormModal({
     </DialogFormField>
   )
 
-  const formTabs = getUserFormTabs(isEdit)
+  const formTabs = getUserFormTabs(mode)
   const activeTabIndex = formTabs.indexOf(activeTab)
+
+  const dialogTitle = isView
+    ? (initial?.name ?? 'View user')
+    : isEdit
+      ? 'Edit user'
+      : 'Add user'
+
+  const dialogDescription = isView
+    ? (initial?.email ?? `${DEFAULT_TENANT_NAME} · User directory`)
+    : `${DEFAULT_TENANT_NAME} · User directory`
 
   const handleSubmit = async () => {
     const validationKey = validateCreateUserForm(form)
@@ -265,19 +281,22 @@ export function UserFormModal({
     <AppDialog
       open={open}
       onClose={handleClose}
-      title={isEdit ? 'Edit user' : 'Add user'}
-      description={`${DEFAULT_TENANT_NAME} · User directory`}
+      title={dialogTitle}
+      description={dialogDescription}
       icon={UserRound}
       maxWidth="4xl"
       footer={
         <DialogFormFooter
-          isCreate={!isEdit}
-          isEditing
+          isCreate={mode === 'create'}
+          isEditing={!isView}
           onClose={handleClose}
-          onEdit={() => {}}
+          onEdit={() => {
+            if (initial && onEditProfile) onEditProfile(initial)
+          }}
           onSave={() => void handleSubmit()}
-          onDelete={onDeleteRequest}
+          onDelete={isEdit ? onDeleteRequest : undefined}
           deleteLabel="Delete user"
+          editLabel="Edit profile"
         />
       }
     >
@@ -294,7 +313,7 @@ export function UserFormModal({
         <Tab icon={<PersonOutlineOutlinedIcon />} label="Profile" iconPosition="start" />
         <Tab icon={<SecurityOutlinedIcon />} label="Roles" iconPosition="start" />
         <Tab icon={<GroupOutlinedIcon />} label="Groups" iconPosition="start" />
-        {isEdit ? (
+        {mode !== 'create' ? (
           <Tab icon={<HistoryOutlinedIcon />} label="Audit" iconPosition="start" />
         ) : null}
       </Tabs>
@@ -350,55 +369,60 @@ export function UserFormModal({
                     <UserRound size={40} strokeWidth={1.5} style={{ opacity: 0.4 }} />
                   </Box>
                 )}
-                <input
-                  ref={avatarFileRef}
-                  id="avatarUpload"
-                  type="file"
-                  accept={ACCEPT_AVATAR_IMAGE}
-                  hidden
-                  onChange={handleAvatarFile}
-                />
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
-                  <Button
-                    type="button"
-                    variant="outlined"
-                    size="small"
-                    startIcon={<CloudUploadOutlinedIcon />}
-                    onClick={() => avatarFileRef.current?.click()}
-                    sx={{ textTransform: 'none' }}
-                  >
-                    {form.avatarUrl ? 'Change image' : 'Upload image'}
-                  </Button>
-                  {form.avatarUrl ? (
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      size="small"
-                      color="error"
-                      startIcon={<DeleteOutlineOutlinedIcon />}
-                      onClick={removeAvatar}
-                      sx={{ textTransform: 'none' }}
-                    >
-                      Remove
-                    </Button>
-                  ) : null}
-                </Box>
-                {avatarError ? (
-                  <Typography variant="caption" color="error" role="alert">
-                    {avatarError}
-                  </Typography>
-                ) : (
-                  <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
-                    JPEG, PNG, WebP, or GIF · max 8 MB
-                  </Typography>
-                )}
+                {!readOnly ? (
+                  <>
+                    <input
+                      ref={avatarFileRef}
+                      id="avatarUpload"
+                      type="file"
+                      accept={ACCEPT_AVATAR_IMAGE}
+                      hidden
+                      onChange={handleAvatarFile}
+                    />
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        size="small"
+                        startIcon={<CloudUploadOutlinedIcon />}
+                        onClick={() => avatarFileRef.current?.click()}
+                        sx={{ textTransform: 'none' }}
+                      >
+                        {form.avatarUrl ? 'Change image' : 'Upload image'}
+                      </Button>
+                      {form.avatarUrl ? (
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          size="small"
+                          color="error"
+                          startIcon={<DeleteOutlineOutlinedIcon />}
+                          onClick={removeAvatar}
+                          sx={{ textTransform: 'none' }}
+                        >
+                          Remove
+                        </Button>
+                      ) : null}
+                    </Box>
+                    {avatarError ? (
+                      <Typography variant="caption" color="error" role="alert">
+                        {avatarError}
+                      </Typography>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
+                        JPEG, PNG, WebP, or GIF · max 8 MB
+                      </Typography>
+                    )}
+                  </>
+                ) : null}
               </Box>
             </DialogFormField>
             <DialogFormField label="Full name" htmlFor="fullName" required>
               <TextField
                 id="fullName"
                 fullWidth
-                autoFocus
+                autoFocus={!readOnly}
+                disabled={readOnly}
                 value={form.fullName}
                 onChange={(e) => update('fullName', e.target.value)}
                 sx={outlineFieldSx}
@@ -409,6 +433,7 @@ export function UserFormModal({
                 id="email"
                 fullWidth
                 type="email"
+                disabled={readOnly}
                 value={form.email}
                 onChange={(e) => update('email', e.target.value)}
                 sx={outlineFieldSx}
@@ -418,6 +443,7 @@ export function UserFormModal({
               <TextField
                 id="phone"
                 fullWidth
+                disabled={readOnly}
                 value={form.phone}
                 onChange={(e) => update('phone', e.target.value)}
                 sx={outlineFieldSx}
@@ -427,6 +453,7 @@ export function UserFormModal({
               <Select
                 id="status"
                 fullWidth
+                disabled={readOnly}
                 value={form.status}
                 onChange={(e) => update('status', e.target.value as CreateUserFormValues['status'])}
                 sx={outlineFieldSx}
@@ -456,24 +483,27 @@ export function UserFormModal({
                     value={form.department}
                     onChange={(v) => update('department', v)}
                     fieldSx={outlineFieldSx}
+                    disabled={readOnly}
                   />
                 </Box>
-                <Tooltip title="Manage departments">
-                  <IconButton
-                    type="button"
-                    aria-label="Manage departments"
-                    onClick={() => setDepartmentManageOpen(true)}
-                    sx={{
-                      mt: 0.25,
-                      border: 1,
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <AccountTreeOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                {!readOnly ? (
+                  <Tooltip title="Manage departments">
+                    <IconButton
+                      type="button"
+                      aria-label="Manage departments"
+                      onClick={() => setDepartmentManageOpen(true)}
+                      sx={{
+                        mt: 0.25,
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <AccountTreeOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
               </Box>
             </DialogFormField>
             <DialogFormField label="Job title" htmlFor="jobTitle">
@@ -484,24 +514,27 @@ export function UserFormModal({
                     value={form.jobTitle}
                     onChange={(v) => update('jobTitle', v)}
                     fieldSx={outlineFieldSx}
+                    disabled={readOnly}
                   />
                 </Box>
-                <Tooltip title="Manage job titles">
-                  <IconButton
-                    type="button"
-                    aria-label="Manage job titles"
-                    onClick={() => setJobTitleManageOpen(true)}
-                    sx={{
-                      mt: 0.25,
-                      border: 1,
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <AccountTreeOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                {!readOnly ? (
+                  <Tooltip title="Manage job titles">
+                    <IconButton
+                      type="button"
+                      aria-label="Manage job titles"
+                      onClick={() => setJobTitleManageOpen(true)}
+                      sx={{
+                        mt: 0.25,
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <AccountTreeOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
               </Box>
             </DialogFormField>
             <DialogFormField label="Territory" htmlFor="territory">
@@ -512,24 +545,27 @@ export function UserFormModal({
                     value={form.territory}
                     onChange={(v) => update('territory', v)}
                     fieldSx={outlineFieldSx}
+                    disabled={readOnly}
                   />
                 </Box>
-                <Tooltip title="Manage territories">
-                  <IconButton
-                    type="button"
-                    aria-label="Manage territories"
-                    onClick={() => setTerritoryManageOpen(true)}
-                    sx={{
-                      mt: 0.25,
-                      border: 1,
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <AccountTreeOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                {!readOnly ? (
+                  <Tooltip title="Manage territories">
+                    <IconButton
+                      type="button"
+                      aria-label="Manage territories"
+                      onClick={() => setTerritoryManageOpen(true)}
+                      sx={{
+                        mt: 0.25,
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <AccountTreeOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
               </Box>
             </DialogFormField>
             <DialogFormField label="Office" htmlFor="office">
@@ -540,24 +576,27 @@ export function UserFormModal({
                     value={form.office}
                     onChange={(v) => update('office', v)}
                     fieldSx={outlineFieldSx}
+                    disabled={readOnly}
                   />
                 </Box>
-                <Tooltip title="Manage offices">
-                  <IconButton
-                    type="button"
-                    aria-label="Manage offices"
-                    onClick={() => setOfficeManageOpen(true)}
-                    sx={{
-                      mt: 0.25,
-                      border: 1,
-                      borderColor: 'divider',
-                      borderRadius: 2,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <AccountTreeOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
+                {!readOnly ? (
+                  <Tooltip title="Manage offices">
+                    <IconButton
+                      type="button"
+                      aria-label="Manage offices"
+                      onClick={() => setOfficeManageOpen(true)}
+                      sx={{
+                        mt: 0.25,
+                        border: 1,
+                        borderColor: 'divider',
+                        borderRadius: 2,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <AccountTreeOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null}
               </Box>
             </DialogFormField>
           </Stack>
@@ -570,6 +609,7 @@ export function UserFormModal({
             <UserFormRolesTab
               roleId={form.roleId}
               onRoleChange={(id) => update('roleId', id)}
+              readOnly={readOnly}
             />
           </Box>
         </CameraEarthTabPanel>
@@ -579,11 +619,12 @@ export function UserFormModal({
             <UserFormGroupsTab
               groupIds={form.groupIds}
               onGroupIdsChange={(ids) => update('groupIds', ids)}
+              readOnly={readOnly}
             />
           </Box>
         </CameraEarthTabPanel>
 
-        {isEdit ? (
+        {mode !== 'create' ? (
           <CameraEarthTabPanel value={activeTabIndex} index={3}>
             <Box sx={{ py: 1 }}>
               <UserAuditTrailPanel userId={initial?.id ?? null} />
