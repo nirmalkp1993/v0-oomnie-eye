@@ -10,7 +10,7 @@ export const USER_LIST_COLUMNS: ExplorerListColumnDef[] = [
   { id: 'roles', label: 'Roles', headerClassName: 'min-w-[160px]' },
   { id: 'groups', label: 'Groups', headerClassName: 'min-w-[160px]' },
   { id: 'department', label: 'Department', headerClassName: 'min-w-[130px]' },
-  { id: 'country', label: 'Country', headerClassName: 'min-w-[120px]' },
+  { id: 'office', label: 'Office', headerClassName: 'min-w-[120px]' },
   { id: 'lastLogin', label: 'Last Login', headerClassName: 'min-w-[120px]' },
   { id: 'status', label: 'Status', headerClassName: 'min-w-[100px]' },
   {

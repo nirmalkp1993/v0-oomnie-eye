@@ -12,8 +12,8 @@ export function getUserRowCellValue(row: UserListItem, columnId: string): string
       return row.groups.length > 0 ? row.groups.join(', ') : '—'
     case 'department':
       return row.department
-    case 'country':
-      return row.country
+    case 'office':
+      return row.office
     case 'lastLogin':
       return row.lastLogin ?? '—'
     case 'status':

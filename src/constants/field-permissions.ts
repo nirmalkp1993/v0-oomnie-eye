@@ -51,7 +51,7 @@ export const USER_MANAGEMENT_FORM_FIELDS: FormFieldDefinition[] = [
   { id: "phone", label: "Phone", key: "phone", type: "text" },
   { id: "department", label: "Department", key: "department", type: "select" },
   { id: "jobtitle", label: "Job title", key: "jobtitle", type: "text" },
-  { id: "country", label: "Country", key: "country", type: "select" },
+  { id: "office", label: "Office", key: "office", type: "select" },
   { id: "region", label: "Region", key: "region", type: "select" },
   { id: "salarygrade", label: "Salary grade", key: "salarygrade", type: "select" },
   { id: "customattributes", label: "Custom attributes", key: "customattributes", type: "textarea" },

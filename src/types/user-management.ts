@@ -15,7 +15,7 @@ export interface CreateUserFormValues {
   department: string
   jobTitle: string
   territory: string
-  country: string
+  office: string
   region: string
   businessUnit: string
   status: UserStatus
@@ -30,7 +30,7 @@ export interface UserListItem {
   roles: string[]
   groups: string[]
   department: string
-  country: string
+  office: string
   status: UserStatus
   lastLogin: string | null
   jobTitle?: string

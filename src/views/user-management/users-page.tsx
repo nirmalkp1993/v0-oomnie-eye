@@ -89,7 +89,7 @@ export function UsersPage() {
         r.phone,
         r.jobTitle,
         r.department,
-        r.country,
+        r.office,
         r.roles.join(' '),
         r.groups.join(' '),
       ]
@@ -193,8 +193,8 @@ export function UsersPage() {
         return <UmSecondaryText>{row.groups.join(', ') || '—'}</UmSecondaryText>
       case 'department':
         return <UmSecondaryText>{row.department}</UmSecondaryText>
-      case 'country':
-        return <UmSecondaryText>{row.country}</UmSecondaryText>
+      case 'office':
+        return <UmSecondaryText>{row.office}</UmSecondaryText>
       case 'lastLogin':
         return <UmSecondaryText>{row.lastLogin ?? '—'}</UmSecondaryText>
       case 'status':

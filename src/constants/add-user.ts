@@ -33,7 +33,7 @@ export const JOB_TITLE_OPTIONS = [
 
 export const TERRITORY_OPTIONS = ['Europe', 'America', 'Asia'] as const
 
-export const COUNTRY_OPTIONS = [
+export const OFFICE_OPTIONS = [
   'United States',
   'Canada',
   'United Kingdom',
@@ -61,7 +61,7 @@ export const INITIAL_CREATE_USER_FORM: CreateUserFormValues = {
   department: SELECT_EMPTY_VALUE,
   jobTitle: SELECT_EMPTY_VALUE,
   territory: SELECT_EMPTY_VALUE,
-  country: SELECT_EMPTY_VALUE,
+  office: SELECT_EMPTY_VALUE,
   region: SELECT_EMPTY_VALUE,
   businessUnit: SELECT_EMPTY_VALUE,
   status: 'pending',
