@@ -211,26 +211,6 @@ export function UserGroupHierarchyView({
     [activeFolderId, assignmentDisabled, removeUsersFromGroup],
   )
 
-  const toggleMemberSelect = (userId: string) => {
-    setSelectedMemberIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(userId)) next.delete(userId)
-      else next.add(userId)
-      return next
-    })
-    setSelectedPoolIds(new Set())
-  }
-
-  const togglePoolSelect = (userId: string) => {
-    setSelectedPoolIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(userId)) next.delete(userId)
-      else next.add(userId)
-      return next
-    })
-    setSelectedMemberIds(new Set())
-  }
-
   const handleDragStart = useCallback(
     (userId: string) => (e: DragEvent) => {
       e.dataTransfer.setData(USER_GROUP_DRAG_MIME, userId)
@@ -289,7 +269,10 @@ export function UserGroupHierarchyView({
       }}
       onOpenSubfolder={(groupId) => setInFolderStack((prev) => [...prev, groupId])}
       selectedMemberIds={selectedMemberIds}
-      onToggleMemberSelect={toggleMemberSelect}
+      onMemberSelectionChange={(ids) => {
+        setSelectedMemberIds(new Set(ids))
+        setSelectedPoolIds(new Set())
+      }}
       onViewUser={onViewUser}
       onDragOver={canAssignUsers ? handleDragOver : undefined}
       onDragLeave={canAssignUsers ? handleDragLeave : undefined}
@@ -308,7 +291,10 @@ export function UserGroupHierarchyView({
       isUnassignedFolder={isUnassignedFolder}
       availableUsers={availableUsers}
       selectedUserIds={selectedPoolIds}
-      onToggleUserSelect={togglePoolSelect}
+      onPoolSelectionChange={(ids) => {
+        setSelectedPoolIds(new Set(ids))
+        setSelectedMemberIds(new Set())
+      }}
       onUserDoubleClick={(userId) => addToGroup([userId])}
       isUserDraggable={() => canAssignUsers}
       onUserDragStart={(user: UserListItem, e: DragEvent) => handleDragStart(user.id)(e)}
