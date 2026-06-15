@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react'
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft'
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight'
 import { Box, IconButton, Tooltip } from '@mui/material'
@@ -15,6 +15,7 @@ import type { GroupListItem, UserListItem } from '@/src/types/user-management'
 import {
   UNASSIGNED_USERS_FOLDER_ID,
   UNASSIGNED_USERS_FOLDER_NAME,
+  USER_GROUP_DRAG_MIME,
   isUnassignedUsersFolder,
 } from '@/src/constants/user-groups'
 import { getUnassignedUsers } from '@/src/lib/user-management/group-members.utils'
@@ -113,6 +114,7 @@ export function UserGroupHierarchyView({
   const [inFolderStack, setInFolderStack] = useState<string[]>([])
   const [fullscreenPanel, setFullscreenPanel] = useState<UserGroupPanelId | null>(null)
   const [panelLayout, setPanelLayout] = useState<number[]>([28, 36, 36])
+  const [dropHighlight, setDropHighlight] = useState(false)
 
   const selectedGroup = useMemo(
     () => groups.find((group) => group.id === selectedGroupId) ?? null,
@@ -185,6 +187,7 @@ export function UserGroupHierarchyView({
   }, [activeGroup, directoryUsers])
 
   const assignmentDisabled = isUnassignedFolder || !activeGroup || activeGroup.type !== 'static'
+  const canAssignUsers = !assignmentDisabled && Boolean(activeFolderId)
 
   const addToGroup = useCallback(
     (userIds: string[]) => {
@@ -228,6 +231,39 @@ export function UserGroupHierarchyView({
     setSelectedMemberIds(new Set())
   }
 
+  const handleDragStart = useCallback(
+    (userId: string) => (e: DragEvent) => {
+      e.dataTransfer.setData(USER_GROUP_DRAG_MIME, userId)
+      e.dataTransfer.effectAllowed = 'copy'
+    },
+    [],
+  )
+
+  const handleDragOver = useCallback(
+    (e: DragEvent) => {
+      if (!canAssignUsers) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+      setDropHighlight(true)
+    },
+    [canAssignUsers],
+  )
+
+  const handleDragLeave = useCallback(() => {
+    setDropHighlight(false)
+  }, [])
+
+  const handleDrop = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault()
+      setDropHighlight(false)
+      if (!canAssignUsers) return
+      const id = e.dataTransfer.getData(USER_GROUP_DRAG_MIME)
+      if (id) addToGroup([id])
+    },
+    [canAssignUsers, addToGroup],
+  )
+
   const groupsPanel = (
     <UserGroupTreePanel
       isFullscreen={fullscreenPanel === 'groups'}
@@ -255,6 +291,10 @@ export function UserGroupHierarchyView({
       selectedMemberIds={selectedMemberIds}
       onToggleMemberSelect={toggleMemberSelect}
       onViewUser={onViewUser}
+      onDragOver={canAssignUsers ? handleDragOver : undefined}
+      onDragLeave={canAssignUsers ? handleDragLeave : undefined}
+      onDrop={canAssignUsers ? handleDrop : undefined}
+      dropActive={dropHighlight}
       isFullscreen={fullscreenPanel === 'in-folder'}
       onToggleFullscreen={() =>
         setFullscreenPanel((prev) => (prev === 'in-folder' ? null : 'in-folder'))
@@ -270,6 +310,8 @@ export function UserGroupHierarchyView({
       selectedUserIds={selectedPoolIds}
       onToggleUserSelect={togglePoolSelect}
       onUserDoubleClick={(userId) => addToGroup([userId])}
+      isUserDraggable={() => canAssignUsers}
+      onUserDragStart={(user: UserListItem, e: DragEvent) => handleDragStart(user.id)(e)}
       isFullscreen={fullscreenPanel === 'all'}
       onToggleFullscreen={() =>
         setFullscreenPanel((prev) => (prev === 'all' ? null : 'all'))

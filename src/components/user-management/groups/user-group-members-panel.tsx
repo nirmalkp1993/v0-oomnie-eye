@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, type DragEvent } from 'react'
 import FolderIcon from '@mui/icons-material/Folder'
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
 import {
@@ -102,6 +102,10 @@ export function UserGroupMembersPanel({
   selectedMemberIds,
   onToggleMemberSelect,
   onViewUser,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  dropActive = false,
   isFullscreen,
   onToggleFullscreen,
 }: {
@@ -114,6 +118,10 @@ export function UserGroupMembersPanel({
   selectedMemberIds: Set<string>
   onToggleMemberSelect: (userId: string) => void
   onViewUser: (user: UserListItem) => void
+  onDragOver?: (e: DragEvent) => void
+  onDragLeave?: (e: DragEvent) => void
+  onDrop?: (e: DragEvent) => void
+  dropActive?: boolean
   isFullscreen: boolean
   onToggleFullscreen: () => void
 }) {
@@ -135,6 +143,9 @@ export function UserGroupMembersPanel({
   return (
     <Paper
       elevation={0}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
       sx={(theme) => ({
         width: '100%',
         height: '100%',
@@ -144,6 +155,12 @@ export function UserGroupMembersPanel({
         flexDirection: 'column',
         overflow: 'hidden',
         ...getEnterpriseSettingsCardSx(theme),
+        ...(dropActive
+          ? {
+              outline: `2px dashed ${theme.palette.primary.main}`,
+              outlineOffset: -2,
+            }
+          : {}),
       })}
     >
       <CameraAssignPanelHeader
@@ -303,7 +320,8 @@ export function UserGroupMembersPanel({
                   <TableRow hover={false}>
                     <TableCell colSpan={2} sx={{ ...myDrawingsTableCellSx, py: 3, textAlign: 'center' }}>
                       <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
-                        No members in this folder. Add users from the list on the right.
+                        No members in this folder. Add users from the list on the right
+                        (double-click, drag, or arrow).
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -372,6 +390,8 @@ export function UserGroupAvailableUsersPanel({
   selectedUserIds,
   onToggleUserSelect,
   onUserDoubleClick,
+  isUserDraggable,
+  onUserDragStart,
   isFullscreen,
   onToggleFullscreen,
 }: {
@@ -381,6 +401,8 @@ export function UserGroupAvailableUsersPanel({
   selectedUserIds: Set<string>
   onToggleUserSelect: (userId: string) => void
   onUserDoubleClick: (userId: string) => void
+  isUserDraggable?: (user: UserListItem) => boolean
+  onUserDragStart?: (user: UserListItem, e: DragEvent) => void
   isFullscreen: boolean
   onToggleFullscreen: () => void
 }) {
@@ -404,7 +426,7 @@ export function UserGroupAvailableUsersPanel({
           isUnassignedFolder
             ? 'Select a static group on the left to assign users'
             : activeGroup?.type === 'static'
-              ? `Add users to ${activeGroup.name} — double-click or use arrows`
+              ? `Add users to ${activeGroup.name} — double-click, drag, or use arrows`
               : activeGroup
                 ? 'Only static groups support manual member assignment'
                 : 'Select a group to assign users'
@@ -433,16 +455,24 @@ export function UserGroupAvailableUsersPanel({
           <List dense disablePadding>
             {availableUsers.map((user) => {
               const selected = selectedUserIds.has(user.id)
+              const draggable = isUserDraggable?.(user) ?? false
               return (
                 <ListItem
                   key={user.id}
+                  draggable={draggable}
+                  onDragStart={
+                    onUserDragStart && draggable
+                      ? (e) => onUserDragStart(user, e)
+                      : undefined
+                  }
                   onClick={() => onToggleUserSelect(user.id)}
                   onDoubleClick={() => onUserDoubleClick(user.id)}
                   sx={{
                     py: 1,
                     px: 2,
-                    cursor: 'pointer',
+                    cursor: draggable ? 'grab' : 'pointer',
                     ...(selected ? { bgcolor: 'action.selected' } : {}),
+                    '&:active': draggable ? { cursor: 'grabbing' } : undefined,
                   }}
                 >
                   <ListItemAvatar sx={{ minWidth: 44 }}>
