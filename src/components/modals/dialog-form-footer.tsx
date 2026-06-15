@@ -11,7 +11,7 @@ export interface DialogFormFooterProps {
   isCreate: boolean
   isEditing: boolean
   onClose: () => void
-  onEdit: () => void
+  onEdit?: () => void
   onSave: () => void
   onDelete?: () => void
   deleteLabel?: string
@@ -69,11 +69,11 @@ export function DialogFormFooter({
         <Button type="button" variant="contained" startIcon={<SaveOutlinedIcon />} onClick={onSave}>
           Save
         </Button>
-      ) : (
+      ) : onEdit ? (
         <Button type="button" variant="contained" startIcon={<EditOutlinedIcon />} onClick={onEdit}>
           {editLabel}
         </Button>
-      )}
+      ) : null}
     </>
   )
 }

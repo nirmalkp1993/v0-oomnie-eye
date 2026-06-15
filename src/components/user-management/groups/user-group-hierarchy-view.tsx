@@ -11,7 +11,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from '@/components/ui/resizable'
-import type { GroupListItem } from '@/src/types/user-management'
+import type { GroupListItem, UserListItem } from '@/src/types/user-management'
 import {
   UserGroupAvailableUsersPanel,
   UserGroupMembersPanel,
@@ -87,11 +87,13 @@ export function UserGroupHierarchyView({
   onCreateSubgroup,
   onEditGroup,
   onDeleteGroup,
+  onViewUser,
 }: {
   onOpenCreateRoot: () => void
   onCreateSubgroup: (parentId: string) => void
   onEditGroup: (group: GroupListItem) => void
   onDeleteGroup: (group: GroupListItem) => void
+  onViewUser: (user: UserListItem) => void
 }) {
   const groups = useUserGroupStore((state) => state.groups)
   const selectedGroupId = useUserGroupStore((state) => state.selectedGroupId)
@@ -222,6 +224,7 @@ export function UserGroupHierarchyView({
       onOpenSubfolder={(groupId) => setInFolderStack((prev) => [...prev, groupId])}
       selectedMemberIds={selectedMemberIds}
       onToggleMemberSelect={toggleMemberSelect}
+      onViewUser={onViewUser}
       isFullscreen={fullscreenPanel === 'in-folder'}
       onToggleFullscreen={() =>
         setFullscreenPanel((prev) => (prev === 'in-folder' ? null : 'in-folder'))

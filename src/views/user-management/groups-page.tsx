@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Box } from '@mui/material'
+import { useUserDirectoryStore } from '@/lib/user-directory-store'
 import { useUserGroupStore } from '@/lib/user-group-store'
 import { AddGroupModal } from '@/src/components/user-management/groups/add-group-modal'
 import { UserGroupHierarchyView } from '@/src/components/user-management/groups/user-group-hierarchy-view'
+import { UserFormModal } from '@/src/components/modals/user-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import { MOCK_USERS } from '@/src/mock-data/users'
-import type { GroupListItem } from '@/src/types/user-management'
+import type { GroupListItem, UserListItem } from '@/src/types/user-management'
 
 const directoryUsers = MOCK_USERS.map((user) => ({
   id: user.id,
@@ -22,12 +24,18 @@ export function GroupsPage() {
   const upsertGroup = useUserGroupStore((state) => state.upsertGroup)
   const removeGroup = useUserGroupStore((state) => state.removeGroup)
   const groups = useUserGroupStore((state) => state.groups)
+  const setDirectoryUsers = useUserDirectoryStore((state) => state.setUsers)
 
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editGroup, setEditGroup] = useState<GroupListItem | null>(null)
   const [parentGroupId, setParentGroupId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<GroupListItem | null>(null)
+  const [viewUser, setViewUser] = useState<UserListItem | null>(null)
+
+  useEffect(() => {
+    setDirectoryUsers(MOCK_USERS.map((user) => ({ ...user })))
+  }, [setDirectoryUsers])
 
   useEffect(() => {
     setLoading(true)
@@ -61,6 +69,10 @@ export function GroupsPage() {
     setEditGroup(group)
     setParentGroupId(null)
     setModalOpen(true)
+  }, [])
+
+  const handleViewUser = useCallback((user: UserListItem) => {
+    setViewUser(user)
   }, [])
 
   const handleGroupCreated = useCallback(
@@ -100,6 +112,7 @@ export function GroupsPage() {
             onCreateSubgroup={handleCreateSubgroup}
             onEditGroup={handleEditGroup}
             onDeleteGroup={requestDeleteGroup}
+            onViewUser={handleViewUser}
           />
         </Box>
       </UserManagementPageShell>
@@ -113,6 +126,14 @@ export function GroupsPage() {
         onCreated={handleGroupCreated}
         onUpdated={handleGroupUpdated}
         directoryUsers={directoryUsers}
+      />
+
+      <UserFormModal
+        open={Boolean(viewUser)}
+        mode="view"
+        initial={viewUser ?? undefined}
+        onClose={() => setViewUser(null)}
+        onSubmit={() => {}}
       />
 
       <ConfirmDialog

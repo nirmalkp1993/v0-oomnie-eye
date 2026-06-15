@@ -7,6 +7,7 @@ import {
   Avatar,
   Box,
   Breadcrumbs,
+  Checkbox,
   Link,
   List,
   ListItem,
@@ -51,7 +52,13 @@ function userInitials(name: string): string {
     .join('')
 }
 
-function MemberList({ members }: { members: UserListItem[] }) {
+function MemberList({
+  members,
+  onViewUser,
+}: {
+  members: UserListItem[]
+  onViewUser: (user: UserListItem) => void
+}) {
   if (members.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
@@ -63,7 +70,11 @@ function MemberList({ members }: { members: UserListItem[] }) {
   return (
     <List dense disablePadding>
       {members.map((member) => (
-        <ListItem key={member.id} sx={{ py: 1, px: 2 }}>
+        <ListItem
+          key={member.id}
+          onClick={() => onViewUser(member)}
+          sx={{ py: 1, px: 2, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+        >
           <ListItemAvatar sx={{ minWidth: 44 }}>
             <Avatar src={member.avatarUrl} alt={member.name} sx={{ width: 32, height: 32, fontSize: 13 }}>
               {userInitials(member.name)}
@@ -88,6 +99,7 @@ export function UserGroupMembersPanel({
   onOpenSubfolder,
   selectedMemberIds,
   onToggleMemberSelect,
+  onViewUser,
   isFullscreen,
   onToggleFullscreen,
 }: {
@@ -97,6 +109,7 @@ export function UserGroupMembersPanel({
   onOpenSubfolder: (groupId: string) => void
   selectedMemberIds: Set<string>
   onToggleMemberSelect: (userId: string) => void
+  onViewUser: (user: UserListItem) => void
   isFullscreen: boolean
   onToggleFullscreen: () => void
 }) {
@@ -176,7 +189,7 @@ export function UserGroupMembersPanel({
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             This is a dynamic group. Membership is managed by rules in the group settings.
           </Typography>
-          <MemberList members={members} />
+          <MemberList members={members} onViewUser={onViewUser} />
         </Box>
       ) : (
         <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
@@ -219,6 +232,7 @@ export function UserGroupMembersPanel({
             <Table size="small" sx={myDrawingsTableSx}>
               <TableHead sx={myDrawingsTableHeadSx}>
                 <TableRow hover={false}>
+                  <TableCell sx={{ ...myDrawingsTableCellSx, width: 48, px: 1 }} />
                   <TableCell sx={myDrawingsTableCellSx}>
                     <Typography variant="body2" sx={myDrawingsHeaderTypographySx}>
                       Members
@@ -229,7 +243,7 @@ export function UserGroupMembersPanel({
               <TableBody sx={myDrawingsTableBodySx}>
                 {members.length === 0 ? (
                   <TableRow hover={false}>
-                    <TableCell sx={{ ...myDrawingsTableCellSx, py: 3, textAlign: 'center' }}>
+                    <TableCell colSpan={2} sx={{ ...myDrawingsTableCellSx, py: 3, textAlign: 'center' }}>
                       <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
                         No members in this folder. Add users from the list on the right.
                       </Typography>
@@ -242,7 +256,7 @@ export function UserGroupMembersPanel({
                       <TableRow
                         key={member.id}
                         hover={false}
-                        onClick={() => onToggleMemberSelect(member.id)}
+                        onClick={() => onViewUser(member)}
                         sx={{
                           ...myDrawingsBodyRowSx({ depth: 0 }),
                           cursor: 'pointer',
@@ -254,6 +268,17 @@ export function UserGroupMembersPanel({
                             : {}),
                         }}
                       >
+                        <TableCell
+                          sx={{ ...myDrawingsTableCellSx, width: 48, px: 1 }}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <Checkbox
+                            size="small"
+                            checked={selected}
+                            onChange={() => onToggleMemberSelect(member.id)}
+                            aria-label={`Select ${member.name}`}
+                          />
+                        </TableCell>
                         <TableCell sx={myDrawingsTableCellSx}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                             <Avatar sx={{ width: 28, height: 28, fontSize: 12 }}>

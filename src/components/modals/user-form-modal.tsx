@@ -297,9 +297,13 @@ export function UserFormModal({
           isCreate={mode === 'create'}
           isEditing={!isView}
           onClose={handleClose}
-          onEdit={() => {
-            if (initial && onEditProfile) onEditProfile(initial)
-          }}
+          onEdit={
+            onEditProfile && initial
+              ? () => {
+                  onEditProfile(initial)
+                }
+              : undefined
+          }
           onSave={() => void handleSubmit()}
           onDelete={
             isEdit ? (userIsRetired ? onDeleteRequest : onRetireRequest) : undefined
