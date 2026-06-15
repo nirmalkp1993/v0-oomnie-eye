@@ -176,9 +176,11 @@ export function UserGroupHierarchyView({
   }, [activeFolderId])
 
   const availableUsers = useMemo(() => {
-    if (!activeGroup || activeGroup.type !== 'static') return []
-    return directoryUsers.filter((user) => !userInGroup(activeGroup, user.id))
-  }, [activeGroup, directoryUsers])
+    if (activeGroup?.type === 'static' && activeFolderId) {
+      return directoryUsers.filter((user) => !userInGroup(activeGroup, user.id))
+    }
+    return directoryUsers
+  }, [activeGroup, activeFolderId, directoryUsers])
 
   const assignmentDisabled = isUnassignedFolder || !activeGroup || activeGroup.type !== 'static'
   const canAssignUsers = !assignmentDisabled && Boolean(activeFolderId)
@@ -264,7 +266,6 @@ export function UserGroupHierarchyView({
         setSelectedGroupId(rootId)
         setInFolderStack(breadcrumbItems.slice(1, index + 1).map((item) => item.id))
       }}
-      onOpenSubfolder={(groupId) => setInFolderStack((prev) => [...prev, groupId])}
       selectedMemberIds={selectedMemberIds}
       onMemberSelectionChange={(ids) => {
         setSelectedMemberIds(new Set(ids))
@@ -286,6 +287,7 @@ export function UserGroupHierarchyView({
     <UserGroupAvailableUsersPanel
       activeGroup={activeGroup}
       isUnassignedFolder={isUnassignedFolder}
+      canAssignUsers={canAssignUsers}
       availableUsers={availableUsers}
       selectedUserIds={selectedPoolIds}
       onPoolSelectionChange={(ids) => {
