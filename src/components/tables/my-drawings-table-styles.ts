@@ -362,28 +362,41 @@ export const myDrawingsBreadcrumbsSx: SxProps<Theme> = {
     minWidth: 0,
   },
   '& .MuiBreadcrumbs-separator': {
-    color: MY_DRAWINGS_GRID.textMuted,
+    color: MY_DRAWINGS_TOOLBAR.depthDotActive,
     fontSize: '18px',
-    mx: 1,
+    mx: 0.75,
   },
+}
+
+export const myDrawingsBreadcrumbShellSx: SxProps<Theme> = {
+  mx: 1,
+  mt: 0.5,
+  mb: 0.5,
+  px: 1.5,
+  py: 1,
+  borderRadius: 1,
+  bgcolor: MY_DRAWINGS_TABLE.activeRowBg,
+  flexShrink: 0,
 }
 
 export const myDrawingsBreadcrumbLinkSx: SxProps<Theme> = {
   cursor: 'pointer',
-  color: MY_DRAWINGS_GRID.textMuted,
+  color: MY_DRAWINGS_TOOLBAR.depthDotActive,
   fontFamily: 'Roboto, sans-serif',
-  fontSize: '16px',
-  p: 1,
+  fontSize: '14px',
+  fontWeight: 500,
+  p: 0,
   borderRadius: 1,
   transition: 'all 0.2s',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
-  maxWidth: 200,
+  maxWidth: 220,
   textDecoration: 'none',
   '&:hover': {
-    color: MY_DRAWINGS_TABLE.accent,
-    bgcolor: 'rgba(41, 50, 229, 0.08)',
+    color: MY_DRAWINGS_TOOLBAR.depthDotActive,
+    textDecoration: 'underline',
+    bgcolor: 'transparent',
   },
 }
 
@@ -391,10 +404,10 @@ export const myDrawingsBreadcrumbCurrentSx = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: 0.5,
-  color: MY_DRAWINGS_GRID.textPrimary,
+  color: MY_DRAWINGS_TOOLBAR.depthDotActive,
   fontWeight: 600,
   fontFamily: 'Roboto, sans-serif',
-  fontSize: '16px',
+  fontSize: '14px',
   minWidth: 0,
 }
 

@@ -112,3 +112,29 @@ export function getDirectChildGroups(
     .filter((group) => groupParentIds(group).includes(parentId))
     .sort((a, b) => a.name.localeCompare(b.name))
 }
+
+export interface GroupFolderBreadcrumbItem {
+  id: string
+  name: string
+}
+
+/** Root-to-folder path using parentGroupIds (matches camera group assign breadcrumbs). */
+export function buildGroupAncestorBreadcrumbs(
+  groups: GroupListItem[],
+  groupId: string,
+): GroupFolderBreadcrumbItem[] {
+  const path: GroupFolderBreadcrumbItem[] = []
+  const visited = new Set<string>()
+  let currentId: string | null = groupId
+
+  while (currentId && !visited.has(currentId)) {
+    visited.add(currentId)
+    const group = groups.find((item) => item.id === currentId)
+    if (!group) break
+    path.unshift({ id: group.id, name: group.name })
+    const parents = groupParentIds(group)
+    currentId = parents[0] ?? null
+  }
+
+  return path
+}

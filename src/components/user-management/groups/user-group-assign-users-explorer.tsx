@@ -7,6 +7,10 @@ import { USER_GROUP_ASSIGN_USER_COLUMNS } from '@/lib/explorer-list-table/user-m
 import { UserManagementExplorerTable } from '@/src/components/user-management/user-management-explorer-table'
 import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
 import { renderUserDirectoryCell } from '@/src/components/user-management/user-directory-table-cells'
+import {
+  UserGroupFolderBreadcrumbs,
+  type UserGroupFolderBreadcrumb,
+} from '@/src/components/user-management/groups/user-group-folder-breadcrumbs'
 import { filterPanelUsers } from '@/src/lib/user-management/user-panel-filters'
 import { getUserRowCellValue } from '@/src/lib/user-management/user-row-values'
 import type { UserListItem } from '@/src/types/user-management'
@@ -17,6 +21,8 @@ export type UserGroupAssignUsersExplorerProps = {
   searchQuery: string
   onSearchChange: (value: string) => void
   emptyMessage: string
+  breadcrumbItems?: UserGroupFolderBreadcrumb[]
+  onBreadcrumbNavigate?: (segmentIndex: number) => void
   selectedIds?: string[]
   onSelectedIdsChange?: (ids: string[]) => void
   checkboxSelection?: boolean
@@ -33,6 +39,8 @@ export function UserGroupAssignUsersExplorer({
   searchQuery,
   onSearchChange,
   emptyMessage,
+  breadcrumbItems = [],
+  onBreadcrumbNavigate,
   selectedIds,
   onSelectedIdsChange,
   checkboxSelection = false,
@@ -61,6 +69,9 @@ export function UserGroupAssignUsersExplorer({
         resultCount={filteredUsers.length}
         resultLabel="user"
       />
+      {breadcrumbItems.length > 0 && onBreadcrumbNavigate ? (
+        <UserGroupFolderBreadcrumbs items={breadcrumbItems} onNavigate={onBreadcrumbNavigate} />
+      ) : null}
       <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <UserManagementExplorerTable
           embedded

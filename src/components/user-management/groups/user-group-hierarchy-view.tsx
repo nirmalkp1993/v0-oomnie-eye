@@ -19,11 +19,12 @@ import {
   isUnassignedUsersFolder,
 } from '@/src/constants/user-groups'
 import { getUnassignedUsers } from '@/src/lib/user-management/group-members.utils'
+import { buildGroupAncestorBreadcrumbs } from '@/src/lib/user-management/user-group-tree.utils'
 import {
   UserGroupAvailableUsersPanel,
   UserGroupMembersPanel,
-  type UserGroupFolderBreadcrumb,
 } from './user-group-members-panel'
+import type { UserGroupFolderBreadcrumb } from './user-group-folder-breadcrumbs'
 import { UserGroupTreePanel } from './user-group-tree-panel'
 
 export type UserGroupPanelId = 'groups' | 'in-folder' | 'all'
@@ -165,16 +166,9 @@ export function UserGroupHierarchyView({
     if (isUnassignedFolder) {
       return [{ id: UNASSIGNED_USERS_FOLDER_ID, name: UNASSIGNED_USERS_FOLDER_NAME }]
     }
-    if (!selectedGroupId || !selectedGroup) return []
-    const items: UserGroupFolderBreadcrumb[] = [
-      { id: selectedGroupId, name: selectedGroup.name },
-    ]
-    for (const groupId of inFolderStack) {
-      const group = groups.find((item) => item.id === groupId)
-      items.push({ id: groupId, name: group?.name ?? groupId })
-    }
-    return items
-  }, [isUnassignedFolder, selectedGroupId, selectedGroup, inFolderStack, groups])
+    if (!activeFolderId) return []
+    return buildGroupAncestorBreadcrumbs(groups, activeFolderId)
+  }, [isUnassignedFolder, activeFolderId, groups])
 
   useEffect(() => {
     setSelectedMemberIds(new Set())
@@ -264,8 +258,11 @@ export function UserGroupHierarchyView({
       unassignedUsers={unassignedUsers}
       breadcrumbItems={breadcrumbItems}
       onBreadcrumbNavigate={(index) => {
-        if (index <= 0) setInFolderStack([])
-        else setInFolderStack((prev) => prev.slice(0, index))
+        if (isUnassignedFolder || breadcrumbItems.length === 0) return
+        const rootId = breadcrumbItems[0]?.id
+        if (!rootId) return
+        setSelectedGroupId(rootId)
+        setInFolderStack(breadcrumbItems.slice(1, index + 1).map((item) => item.id))
       }}
       onOpenSubfolder={(groupId) => setInFolderStack((prev) => [...prev, groupId])}
       selectedMemberIds={selectedMemberIds}

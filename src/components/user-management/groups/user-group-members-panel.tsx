@@ -4,8 +4,6 @@ import { useMemo, useState, type DragEvent } from 'react'
 import FolderIcon from '@mui/icons-material/Folder'
 import {
   Box,
-  Breadcrumbs,
-  Link,
   Paper,
   Table,
   TableBody,
@@ -20,6 +18,7 @@ import { useUserGroupStore } from '@/lib/user-group-store'
 import { CameraAssignPanelHeader } from '@/components/camera/camera-assign-panel-header'
 import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
 import { UserGroupAssignUsersExplorer } from '@/src/components/user-management/groups/user-group-assign-users-explorer'
+import type { UserGroupFolderBreadcrumb } from '@/src/components/user-management/groups/user-group-folder-breadcrumbs'
 import { getDirectChildGroups } from '@/src/lib/user-management/user-group-tree.utils'
 import { getGroupMembers } from '@/src/lib/user-management/group-members.utils'
 import {
@@ -32,10 +31,7 @@ import {
 } from '@/src/components/tables/my-drawings-table-styles'
 import type { GroupListItem, UserListItem } from '@/src/types/user-management'
 
-export interface UserGroupFolderBreadcrumb {
-  id: string
-  name: string
-}
+export type { UserGroupFolderBreadcrumb } from '@/src/components/user-management/groups/user-group-folder-breadcrumbs'
 
 export function UserGroupMembersPanel({
   activeGroup,
@@ -87,6 +83,7 @@ export function UserGroupMembersPanel({
   const isDynamic = !isUnassignedFolder && activeGroup?.type === 'dynamic'
   const showMemberTable = Boolean(activeGroup) || isUnassignedFolder
   const memberCheckboxSelection = Boolean(activeGroup) && activeGroup?.type === 'static'
+  const currentFolderName = breadcrumbItems[breadcrumbItems.length - 1]?.name
 
   return (
     <Paper
@@ -112,7 +109,7 @@ export function UserGroupMembersPanel({
       })}
     >
       <CameraAssignPanelHeader
-        title="Users in folder"
+        title={currentFolderName ? `Users in ${currentFolderName}` : 'Users in folder'}
         subtitle={
           isUnassignedFolder
             ? 'Users not linked to any group'
@@ -123,33 +120,6 @@ export function UserGroupMembersPanel({
         isFullscreen={isFullscreen}
         onToggleFullscreen={onToggleFullscreen}
       />
-
-      {breadcrumbItems.length > 0 ? (
-        <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}>
-          <Breadcrumbs aria-label="Group folder path">
-            {breadcrumbItems.map((item, index) => {
-              const isLast = index === breadcrumbItems.length - 1
-              return isLast ? (
-                <Typography key={item.id} variant="body2" sx={{ fontWeight: 600 }}>
-                  {item.name}
-                </Typography>
-              ) : (
-                <Link
-                  key={item.id}
-                  component="button"
-                  type="button"
-                  underline="hover"
-                  color="inherit"
-                  onClick={() => onBreadcrumbNavigate(index)}
-                  sx={{ fontSize: 14 }}
-                >
-                  {item.name}
-                </Link>
-              )
-            })}
-          </Breadcrumbs>
-        </Box>
-      ) : null}
 
       {!showMemberTable ? (
         <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
@@ -203,6 +173,8 @@ export function UserGroupMembersPanel({
             users={members}
             searchQuery={panelSearch}
             onSearchChange={setPanelSearch}
+            breadcrumbItems={breadcrumbItems}
+            onBreadcrumbNavigate={onBreadcrumbNavigate}
             emptyMessage={
               isUnassignedFolder
                 ? 'All users are assigned to at least one group.'
