@@ -13,6 +13,12 @@ import {
 } from '@/components/ui/resizable'
 import type { GroupListItem, UserListItem } from '@/src/types/user-management'
 import {
+  UNASSIGNED_USERS_FOLDER_ID,
+  UNASSIGNED_USERS_FOLDER_NAME,
+  isUnassignedUsersFolder,
+} from '@/src/constants/user-groups'
+import { getUnassignedUsers } from '@/src/lib/user-management/group-members.utils'
+import {
   UserGroupAvailableUsersPanel,
   UserGroupMembersPanel,
   type UserGroupFolderBreadcrumb,
@@ -114,27 +120,49 @@ export function UserGroupHierarchyView({
   )
 
   useEffect(() => {
-    if (selectedGroupId && groups.some((group) => group.id === selectedGroupId)) return
+    if (
+      selectedGroupId &&
+      (groups.some((group) => group.id === selectedGroupId) ||
+        isUnassignedUsersFolder(selectedGroupId))
+    ) {
+      return
+    }
     const roots = groups.filter((group) => (group.parentGroupIds ?? []).length === 0)
     setSelectedGroupId(roots[0]?.id ?? null)
   }, [groups, selectedGroupId, setSelectedGroupId])
+
+  const isUnassignedFolder = isUnassignedUsersFolder(selectedGroupId)
+
+  useEffect(() => {
+    if (!isUnassignedFolder) return
+    setInFolderStack([])
+  }, [isUnassignedFolder])
 
   useEffect(() => {
     setInFolderStack([])
   }, [selectedGroupId])
 
   const activeFolderId = useMemo(() => {
+    if (isUnassignedFolder) return null
     if (!selectedGroupId) return null
     if (inFolderStack.length === 0) return selectedGroupId
     return inFolderStack[inFolderStack.length - 1] ?? selectedGroupId
-  }, [selectedGroupId, inFolderStack])
+  }, [isUnassignedFolder, selectedGroupId, inFolderStack])
 
   const activeGroup = useMemo(
     () => groups.find((group) => group.id === activeFolderId) ?? null,
     [groups, activeFolderId],
   )
 
+  const unassignedUsers = useMemo(
+    () => getUnassignedUsers(groups, directoryUsers),
+    [groups, directoryUsers],
+  )
+
   const breadcrumbItems = useMemo((): UserGroupFolderBreadcrumb[] => {
+    if (isUnassignedFolder) {
+      return [{ id: UNASSIGNED_USERS_FOLDER_ID, name: UNASSIGNED_USERS_FOLDER_NAME }]
+    }
     if (!selectedGroupId || !selectedGroup) return []
     const items: UserGroupFolderBreadcrumb[] = [
       { id: selectedGroupId, name: selectedGroup.name },
@@ -144,7 +172,7 @@ export function UserGroupHierarchyView({
       items.push({ id: groupId, name: group?.name ?? groupId })
     }
     return items
-  }, [selectedGroupId, selectedGroup, inFolderStack, groups])
+  }, [isUnassignedFolder, selectedGroupId, selectedGroup, inFolderStack, groups])
 
   useEffect(() => {
     setSelectedMemberIds(new Set())
@@ -156,7 +184,7 @@ export function UserGroupHierarchyView({
     return directoryUsers.filter((user) => !userInGroup(activeGroup, user.id))
   }, [activeGroup, directoryUsers])
 
-  const assignmentDisabled = !activeGroup || activeGroup.type !== 'static'
+  const assignmentDisabled = isUnassignedFolder || !activeGroup || activeGroup.type !== 'static'
 
   const addToGroup = useCallback(
     (userIds: string[]) => {
@@ -216,6 +244,8 @@ export function UserGroupHierarchyView({
   const inFolderPanel = (
     <UserGroupMembersPanel
       activeGroup={activeGroup}
+      isUnassignedFolder={isUnassignedFolder}
+      unassignedUsers={unassignedUsers}
       breadcrumbItems={breadcrumbItems}
       onBreadcrumbNavigate={(index) => {
         if (index <= 0) setInFolderStack([])
@@ -235,6 +265,7 @@ export function UserGroupHierarchyView({
   const allUsersPanel = (
     <UserGroupAvailableUsersPanel
       activeGroup={activeGroup}
+      isUnassignedFolder={isUnassignedFolder}
       availableUsers={availableUsers}
       selectedUserIds={selectedPoolIds}
       onToggleUserSelect={togglePoolSelect}

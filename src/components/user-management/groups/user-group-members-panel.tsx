@@ -94,6 +94,8 @@ function MemberList({
 
 export function UserGroupMembersPanel({
   activeGroup,
+  isUnassignedFolder = false,
+  unassignedUsers = [],
   breadcrumbItems,
   onBreadcrumbNavigate,
   onOpenSubfolder,
@@ -104,6 +106,8 @@ export function UserGroupMembersPanel({
   onToggleFullscreen,
 }: {
   activeGroup: GroupListItem | null
+  isUnassignedFolder?: boolean
+  unassignedUsers?: UserListItem[]
   breadcrumbItems: UserGroupFolderBreadcrumb[]
   onBreadcrumbNavigate: (segmentIndex: number) => void
   onOpenSubfolder: (groupId: string) => void
@@ -121,12 +125,12 @@ export function UserGroupMembersPanel({
     [activeGroup, groups],
   )
 
-  const members = useMemo(
-    () => (activeGroup ? getGroupMembers(activeGroup, directoryUsers) : []),
-    [activeGroup, directoryUsers],
-  )
+  const members = useMemo(() => {
+    if (isUnassignedFolder) return unassignedUsers
+    return activeGroup ? getGroupMembers(activeGroup, directoryUsers) : []
+  }, [isUnassignedFolder, unassignedUsers, activeGroup, directoryUsers])
 
-  const isDynamic = activeGroup?.type === 'dynamic'
+  const isDynamic = !isUnassignedFolder && activeGroup?.type === 'dynamic'
 
   return (
     <Paper
@@ -145,9 +149,11 @@ export function UserGroupMembersPanel({
       <CameraAssignPanelHeader
         title="Users in folder"
         subtitle={
-          activeGroup
-            ? `Managing ${activeGroup.name}`
-            : 'Select a group on the left'
+          isUnassignedFolder
+            ? 'Users not linked to any group'
+            : activeGroup
+              ? `Managing ${activeGroup.name}`
+              : 'Select a group on the left'
         }
         isFullscreen={isFullscreen}
         onToggleFullscreen={onToggleFullscreen}
@@ -180,10 +186,62 @@ export function UserGroupMembersPanel({
         </Box>
       ) : null}
 
-      {!activeGroup ? (
+      {!activeGroup && !isUnassignedFolder ? (
         <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
           Select a group on the left to view members and subgroups.
         </Typography>
+      ) : isUnassignedFolder ? (
+        <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+          <TableContainer>
+            <Table size="small" sx={myDrawingsTableSx}>
+              <TableHead sx={myDrawingsTableHeadSx}>
+                <TableRow hover={false}>
+                  <TableCell sx={myDrawingsTableCellSx}>
+                    <Typography variant="body2" sx={myDrawingsHeaderTypographySx}>
+                      Members
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody sx={myDrawingsTableBodySx}>
+                {members.length === 0 ? (
+                  <TableRow hover={false}>
+                    <TableCell sx={{ ...myDrawingsTableCellSx, py: 3, textAlign: 'center' }}>
+                      <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
+                        All users are assigned to at least one group.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  members.map((member) => (
+                    <TableRow
+                      key={member.id}
+                      hover={false}
+                      onClick={() => onViewUser(member)}
+                      sx={{ ...myDrawingsBodyRowSx({ depth: 0 }), cursor: 'pointer' }}
+                    >
+                      <TableCell sx={myDrawingsTableCellSx}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                          <Avatar sx={{ width: 28, height: 28, fontSize: 12 }}>
+                            {userInitials(member.name)}
+                          </Avatar>
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                              {member.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" noWrap display="block">
+                              {member.email}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
       ) : isDynamic ? (
         <Box sx={{ p: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -309,6 +367,7 @@ export function UserGroupMembersPanel({
 
 export function UserGroupAvailableUsersPanel({
   activeGroup,
+  isUnassignedFolder = false,
   availableUsers,
   selectedUserIds,
   onToggleUserSelect,
@@ -317,6 +376,7 @@ export function UserGroupAvailableUsersPanel({
   onToggleFullscreen,
 }: {
   activeGroup: GroupListItem | null
+  isUnassignedFolder?: boolean
   availableUsers: UserListItem[]
   selectedUserIds: Set<string>
   onToggleUserSelect: (userId: string) => void
@@ -341,19 +401,25 @@ export function UserGroupAvailableUsersPanel({
       <CameraAssignPanelHeader
         title="All users"
         subtitle={
-          activeGroup?.type === 'static'
-            ? `Add users to ${activeGroup.name} — double-click or use arrows`
-            : activeGroup
-              ? 'Only static groups support manual member assignment'
-              : 'Select a group to assign users'
+          isUnassignedFolder
+            ? 'Select a static group on the left to assign users'
+            : activeGroup?.type === 'static'
+              ? `Add users to ${activeGroup.name} — double-click or use arrows`
+              : activeGroup
+                ? 'Only static groups support manual member assignment'
+                : 'Select a group to assign users'
         }
         isFullscreen={isFullscreen}
         onToggleFullscreen={onToggleFullscreen}
       />
       <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-        {!activeGroup ? (
+        {!activeGroup && !isUnassignedFolder ? (
           <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
             Select a group on the left to assign users.
+          </Typography>
+        ) : isUnassignedFolder ? (
+          <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+            Pick a static group from the tree, then add users from the list here.
           </Typography>
         ) : activeGroup.type !== 'static' ? (
           <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>

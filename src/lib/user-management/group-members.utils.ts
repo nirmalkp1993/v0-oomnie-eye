@@ -36,3 +36,18 @@ export function getGroupMembers(group: GroupListItem, users: UserListItem[]): Us
     user.groups.some((name) => name.toLowerCase() === group.name.toLowerCase()),
   )
 }
+
+export function getAssignedUserIds(groups: GroupListItem[], users: UserListItem[]): Set<string> {
+  const assigned = new Set<string>()
+  for (const group of groups) {
+    for (const member of getGroupMembers(group, users)) {
+      assigned.add(member.id)
+    }
+  }
+  return assigned
+}
+
+export function getUnassignedUsers(groups: GroupListItem[], users: UserListItem[]): UserListItem[] {
+  const assigned = getAssignedUserIds(groups, users)
+  return users.filter((user) => !assigned.has(user.id))
+}

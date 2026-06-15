@@ -6,6 +6,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import FolderIcon from '@mui/icons-material/Folder'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
+import PersonOffOutlinedIcon from '@mui/icons-material/PersonOffOutlined'
 import {
   Box,
   Button,
@@ -21,7 +22,14 @@ import {
   Typography,
 } from '@mui/material'
 import { FolderPlus } from 'lucide-react'
+import { useUserDirectoryStore } from '@/lib/user-directory-store'
 import { useUserGroupStore } from '@/lib/user-group-store'
+import {
+  UNASSIGNED_USERS_FOLDER_ID,
+  UNASSIGNED_USERS_FOLDER_NAME,
+  isUnassignedUsersFolder,
+} from '@/src/constants/user-groups'
+import { getUnassignedUsers } from '@/src/lib/user-management/group-members.utils'
 import { CameraAssignPanelHeader } from '@/components/camera/camera-assign-panel-header'
 import {
   ContextMenu,
@@ -200,6 +208,7 @@ export function UserGroupTreePanel({
   onDeleteGroup: (group: UserGroupTableNode['group']) => void
 }) {
   const groups = useUserGroupStore((state) => state.groups)
+  const directoryUsers = useUserDirectoryStore((state) => state.users)
   const selectedGroupId = useUserGroupStore((state) => state.selectedGroupId)
   const setSelectedGroupId = useUserGroupStore((state) => state.setSelectedGroupId)
   const searchQuery = useUserGroupStore((state) => state.searchQuery)
@@ -216,6 +225,19 @@ export function UserGroupTreePanel({
     () => getGroupTree(),
     [getGroupTree, groups, searchQuery, listGroupExpanded],
   )
+
+  const unassignedCount = useMemo(
+    () => getUnassignedUsers(groups, directoryUsers).length,
+    [groups, directoryUsers],
+  )
+
+  const showUnassignedFolder = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return true
+    return UNASSIGNED_USERS_FOLDER_NAME.toLowerCase().includes(query)
+  }, [searchQuery])
+
+  const isUnassignedSelected = isUnassignedUsersFolder(selectedGroupId)
 
   return (
     <Paper
@@ -295,7 +317,7 @@ export function UserGroupTreePanel({
             </TableRow>
           </TableHead>
           <TableBody sx={myDrawingsTableBodySx}>
-            {rootTrees.length === 0 ? (
+            {rootTrees.length === 0 && !showUnassignedFolder ? (
               <TableRow hover={false}>
                 <TableCell colSpan={2} sx={{ ...myDrawingsTableCellSx, py: 4, textAlign: 'center' }}>
                   <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
@@ -306,18 +328,65 @@ export function UserGroupTreePanel({
                 </TableCell>
               </TableRow>
             ) : (
-              rootTrees.map((node) =>
-                renderGroupNode(node, 0, '', {
-                  groups,
-                  listGroupExpanded,
-                  selectedGroupId,
-                  onSelectGroup: setSelectedGroupId,
-                  onToggleExpand: toggleListGroupExpanded,
-                  onCreateSubgroup,
-                  onEditGroup,
-                  onDeleteGroup,
-                }),
-              )
+              <>
+                {rootTrees.map((node) =>
+                  renderGroupNode(node, 0, '', {
+                    groups,
+                    listGroupExpanded,
+                    selectedGroupId,
+                    onSelectGroup: setSelectedGroupId,
+                    onToggleExpand: toggleListGroupExpanded,
+                    onCreateSubgroup,
+                    onEditGroup,
+                    onDeleteGroup,
+                  }),
+                )}
+                {showUnassignedFolder ? (
+                  <TableRow
+                    hover={false}
+                    onClick={() => setSelectedGroupId(UNASSIGNED_USERS_FOLDER_ID)}
+                    sx={{
+                      ...myDrawingsBodyRowSx({ depth: 0 }),
+                      cursor: 'pointer',
+                      borderTop: rootTrees.length > 0 ? 1 : 0,
+                      borderColor: 'divider',
+                      ...(isUnassignedSelected
+                        ? {
+                            bgcolor: 'action.selected',
+                            '&:hover': { bgcolor: 'action.selected' },
+                          }
+                        : {}),
+                    }}
+                  >
+                    <TableCell sx={myDrawingsTableCellSx}>
+                      <NameCellShell depth={0}>
+                        <Box sx={{ width: 24, height: 24, mr: 0.25 }} />
+                        <PersonOffOutlinedIcon
+                          sx={{
+                            fontSize: 18,
+                            color: isUnassignedSelected
+                              ? MY_DRAWINGS_TABLE.folderOpen
+                              : MY_DRAWINGS_TABLE.folderClosed,
+                          }}
+                        />
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
+                            {UNASSIGNED_USERS_FOLDER_NAME}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" noWrap display="block">
+                            No group linked
+                          </Typography>
+                        </Box>
+                      </NameCellShell>
+                    </TableCell>
+                    <TableCell align="right" sx={myDrawingsTableCellSx}>
+                      <Typography variant="body2" sx={myDrawingsBodySecondaryTypographySx}>
+                        {unassignedCount}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </>
             )}
           </TableBody>
         </Table>
