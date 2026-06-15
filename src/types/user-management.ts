@@ -116,6 +116,7 @@ export interface GroupListItem {
   scope: string
   status: GroupStatus
   lastUpdated: string
+  parentGroupIds?: string[]
   memberUserIds?: string[]
   ruleMatchMode?: RuleMatchMode
   rules?: DynamicRule[]

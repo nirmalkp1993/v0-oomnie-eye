@@ -1,15 +1,17 @@
-import { MOCK_GROUPS } from '@/src/mock-data/groups'
+import { useUserGroupStore } from '@/lib/user-group-store'
 import type { GroupListItem, UserListItem } from '@/src/types/user-management'
 
 export function groupNameToMockId(name: string): string | null {
-  const match = MOCK_GROUPS.find(
+  const groups = useUserGroupStore.getState().groups
+  const match = groups.find(
     (group) => group.name.toLowerCase() === name.trim().toLowerCase(),
   )
   return match?.id ?? null
 }
 
 export function groupMockIdToName(id: string): string | null {
-  return MOCK_GROUPS.find((group) => group.id === id)?.name ?? null
+  const groups = useUserGroupStore.getState().groups
+  return groups.find((group) => group.id === id)?.name ?? null
 }
 
 export function userGroupNamesToMockIds(names: string[]): string[] {

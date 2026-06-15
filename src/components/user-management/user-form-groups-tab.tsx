@@ -23,7 +23,7 @@ import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-c
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { selectionCardSx } from '@/src/components/user-management/user-detail/user-detail-styles'
 import { getGroupMembers } from '@/src/lib/user-management/group-members.utils'
-import { MOCK_GROUPS } from '@/src/mock-data/groups'
+import { useUserGroupStore } from '@/lib/user-group-store'
 import type { GroupListItem } from '@/src/types/user-management'
 
 const outlineFieldSx = {
@@ -48,20 +48,21 @@ export function UserFormGroupsTab({
   readOnly?: boolean
 }) {
   const directoryUsers = useUserDirectoryStore((state) => state.users)
+  const allGroups = useUserGroupStore((state) => state.groups)
   const [searchInput, setSearchInput] = useState('')
   const [focusedGroupId, setFocusedGroupId] = useState<string | null>(null)
 
   const selectedGroups = useMemo(
     () =>
       groupIds
-        .map((id) => MOCK_GROUPS.find((group) => group.id === id))
+        .map((id) => allGroups.find((group) => group.id === id))
         .filter((group): group is GroupListItem => Boolean(group)),
-    [groupIds],
+    [groupIds, allGroups],
   )
 
   const availableGroups = useMemo(
-    () => MOCK_GROUPS.filter((group) => !groupIds.includes(group.id)),
-    [groupIds],
+    () => allGroups.filter((group) => !groupIds.includes(group.id)),
+    [allGroups, groupIds],
   )
 
   const focusedGroup = useMemo(
