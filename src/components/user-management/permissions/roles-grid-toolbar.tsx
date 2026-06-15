@@ -60,7 +60,12 @@ export function RolesHeaderCell({
     <Box sx={{ minWidth: BITRIX_ACCESS_UI.actionColumnWidth - 16 }}>
       <Typography
         variant="body2"
-        sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.primary', mb: 1 }}
+        sx={{
+          fontWeight: 600,
+          fontSize: '0.8125rem',
+          color: BITRIX_ACCESS_UI.textPrimary,
+          mb: 1,
+        }}
       >
         Roles
       </Typography>

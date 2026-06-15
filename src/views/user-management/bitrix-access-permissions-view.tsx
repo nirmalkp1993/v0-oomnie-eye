@@ -120,11 +120,15 @@ export function BitrixAccessPermissionsView() {
   return (
     <Box
       sx={{
-        border: '1px solid',
-        borderColor: BITRIX_ACCESS_UI.borderColor,
-        borderRadius: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+        bgcolor: '#fff',
+        border: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
+        borderRadius: 0.5,
         overflow: 'hidden',
-        bgcolor: 'background.paper',
+        fontFamily: BITRIX_ACCESS_UI.fontFamily,
       }}
     >
       <Box
@@ -132,31 +136,37 @@ export function BitrixAccessPermissionsView() {
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
-          gap: 1.5,
+          gap: 1.25,
           px: 2,
-          py: 1.25,
+          minHeight: BITRIX_ACCESS_UI.toolbarHeight,
           borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
           bgcolor: BITRIX_ACCESS_UI.headerBg,
         }}
       >
-        <FormControl size="small" sx={{ minWidth: 150, flexShrink: 0 }}>
+        <FormControl size="small" sx={{ minWidth: 148, flexShrink: 0 }}>
           <Select
             value={employeeFilter}
             onChange={(e) => setEmployeeFilter(e.target.value)}
             displayEmpty
             variant="outlined"
             sx={{
-              fontSize: '0.875rem',
+              fontSize: '0.8125rem',
               bgcolor: '#fff',
-              borderRadius: 2,
+              borderRadius: 1.5,
+              height: 34,
               '& .MuiOutlinedInput-notchedOutline': {
                 borderColor: BITRIX_ACCESS_UI.borderColor,
               },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#cfd5da',
+              },
             }}
           >
-            <MenuItem value="all">All employees</MenuItem>
+            <MenuItem value="all" sx={{ fontSize: '0.8125rem' }}>
+              All employees
+            </MenuItem>
             {MOCK_USERS.map((u) => (
-              <MenuItem key={u.id} value={u.id}>
+              <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.8125rem' }}>
                 {u.name}
               </MenuItem>
             ))}
@@ -169,19 +179,21 @@ export function BitrixAccessPermissionsView() {
           onChange={(e) => setSearch(e.target.value)}
           sx={{
             flex: 1,
-            minWidth: 200,
-            maxWidth: 640,
+            minWidth: 180,
+            maxWidth: 720,
             '& .MuiOutlinedInput-root': {
-              fontSize: '0.875rem',
+              fontSize: '0.8125rem',
               bgcolor: '#fff',
-              borderRadius: 2,
+              borderRadius: 1.5,
+              height: 34,
               '& fieldset': { borderColor: BITRIX_ACCESS_UI.borderColor },
+              '&:hover fieldset': { borderColor: '#cfd5da' },
             },
           }}
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
-                <SearchIcon fontSize="small" sx={{ color: BITRIX_ACCESS_UI.textSecondary }} />
+                <SearchIcon sx={{ fontSize: 18, color: BITRIX_ACCESS_UI.textSecondary }} />
               </InputAdornment>
             ),
           }}
@@ -189,24 +201,26 @@ export function BitrixAccessPermissionsView() {
         <Button
           size="small"
           sx={{
-            ml: 'auto',
+            ml: { xs: 0, md: 'auto' },
             textTransform: 'none',
-            color: 'text.primary',
+            color: BITRIX_ACCESS_UI.textPrimary,
             fontWeight: 400,
-            fontSize: '0.875rem',
+            fontSize: '0.8125rem',
             minWidth: 'auto',
-            px: 1.5,
-            borderRadius: 2,
+            px: 1.75,
+            height: 34,
+            borderRadius: 1.5,
             border: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
             bgcolor: '#fff',
-            '&:hover': { bgcolor: BITRIX_ACCESS_UI.sectionBg },
+            boxShadow: 'none',
+            '&:hover': { bgcolor: BITRIX_ACCESS_UI.sectionBg, boxShadow: 'none' },
           }}
         >
           Help
         </Button>
       </Box>
 
-      <Box sx={{ display: 'flex', minHeight: 480 }}>
+      <Box sx={{ display: 'flex', flex: 1, minHeight: 520 }}>
         <PermissionCategorySidebar
           selectedCategory={selectedCategory}
           onSelectCategory={handleSelectCategory}

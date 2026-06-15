@@ -22,11 +22,17 @@ export function PermissionBooleanCell({
       disabled={disabled}
       inputProps={{ 'aria-label': label }}
       sx={{
-        '& .MuiSwitch-switchBase.Mui-checked': {
-          color: BITRIX_ACCESS_UI.primaryBlue,
+        '& .MuiSwitch-switchBase': {
+          '&.Mui-checked': {
+            color: BITRIX_ACCESS_UI.primaryBlue,
+            '& + .MuiSwitch-track': {
+              backgroundColor: BITRIX_ACCESS_UI.primaryBlue,
+              opacity: 1,
+            },
+          },
         },
-        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-          backgroundColor: BITRIX_ACCESS_UI.primaryBlue,
+        '& .MuiSwitch-track': {
+          opacity: 0.35,
         },
       }}
     />

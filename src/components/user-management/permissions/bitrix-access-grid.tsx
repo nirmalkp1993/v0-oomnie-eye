@@ -8,7 +8,6 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import {
   Box,
   IconButton,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -23,7 +22,8 @@ import {
 } from '@/src/constants/permissions-page-matrix'
 import {
   BITRIX_ACCESS_UI,
-  getModuleAccentColor,
+  bitrixHeaderCellSx,
+  bitrixTableCellSx,
 } from '@/src/constants/bitrix-access-ui'
 import {
   getBitrixGrant,
@@ -37,6 +37,7 @@ import type {
   PermissionMatrixModule,
   ScopeGrantValue,
 } from '@/src/types/permissions-page'
+import { BitrixModuleIcon } from './bitrix-module-icon'
 import { PermissionBooleanCell } from './permission-boolean-cell'
 import { PermissionScopeCell } from './permission-scope-cell'
 import { RoleColumnHeader } from './role-column-header'
@@ -83,34 +84,38 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   const colSpan = colSpanForRoles(visibleRoles.length)
 
   return (
-    <Paper
-      elevation={0}
+    <Box
       sx={{
         flex: 1,
         minWidth: 0,
-        border: '1px solid',
-        borderColor: BITRIX_ACCESS_UI.borderColor,
-        borderRadius: 0,
-        overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
+        bgcolor: '#fff',
+        overflow: 'hidden',
       }}
     >
-      <TableContainer sx={{ maxHeight: 640, overflow: 'auto' }}>
-        <Table stickyHeader size="small" sx={{ minWidth: 900 }}>
+      <TableContainer sx={{ flex: 1, maxHeight: 'calc(100vh - 280px)', overflow: 'auto' }}>
+        <Table
+          stickyHeader
+          size="small"
+          sx={{
+            minWidth: 900,
+            fontFamily: BITRIX_ACCESS_UI.fontFamily,
+            '& .MuiTableCell-root': { fontFamily: 'inherit' },
+          }}
+        >
           <TableHead>
             <TableRow>
               <TableCell
                 sx={{
+                  ...bitrixHeaderCellSx,
                   position: 'sticky',
                   left: 0,
-                  zIndex: 4,
-                  bgcolor: BITRIX_ACCESS_UI.headerBg,
-                  borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
-                  borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
+                  zIndex: 5,
                   minWidth: BITRIX_ACCESS_UI.actionColumnWidth,
-                  py: 1.25,
+                  py: 1.5,
                   verticalAlign: 'top',
+                  height: 'auto',
                 }}
               >
                 <RolesHeaderCell
@@ -125,12 +130,11 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
                   key={role.id}
                   align="center"
                   sx={{
-                    bgcolor: BITRIX_ACCESS_UI.headerBg,
-                    borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
-                    borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
+                    ...bitrixHeaderCellSx,
                     minWidth: BITRIX_ACCESS_UI.roleColumnMinWidth,
-                    py: 1.5,
+                    py: 1.25,
                     verticalAlign: 'top',
+                    height: 'auto',
                   }}
                 >
                   <RoleColumnHeader
@@ -144,11 +148,11 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
               <TableCell
                 align="center"
                 sx={{
-                  bgcolor: BITRIX_ACCESS_UI.headerBg,
-                  borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
-                  minWidth: 48,
-                  py: 1.5,
+                  ...bitrixHeaderCellSx,
+                  minWidth: 52,
+                  py: 1.25,
                   verticalAlign: 'middle',
+                  height: 'auto',
                 }}
               >
                 <IconButton
@@ -168,13 +172,14 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
               </TableCell>
               <TableCell
                 sx={{
-                  bgcolor: BITRIX_ACCESS_UI.headerBg,
-                  borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
-                  width: 32,
+                  ...bitrixHeaderCellSx,
+                  width: 28,
                   p: 0.5,
+                  borderRight: 'none',
+                  height: 'auto',
                 }}
               >
-                <ChevronRightIcon sx={{ fontSize: 18, color: BITRIX_ACCESS_UI.textSecondary }} />
+                <ChevronRightIcon sx={{ fontSize: 16, color: BITRIX_ACCESS_UI.textSecondary }} />
               </TableCell>
             </TableRow>
           </TableHead>
@@ -182,7 +187,7 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
           <TableBody>
             {modules.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={colSpan} sx={{ py: 6, textAlign: 'center' }}>
+                <TableCell colSpan={colSpan} sx={{ py: 6, textAlign: 'center', border: 'none' }}>
                   <Typography variant="body2" color="text.secondary">
                     No modules match your search.
                   </Typography>
@@ -207,7 +212,7 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
           </TableBody>
         </Table>
       </TableContainer>
-    </Paper>
+    </Box>
   )
 })
 
@@ -239,7 +244,6 @@ const ModuleSection = memo(function ModuleSection({
 }) {
   const displayName = getModuleDisplayName(module)
   const actions = useMemo(() => getStandardActionsForModule(module), [module])
-  const accent = getModuleAccentColor(module.id)
 
   return (
     <>
@@ -250,15 +254,16 @@ const ModuleSection = memo(function ModuleSection({
           bgcolor: expanded ? '#fff' : BITRIX_ACCESS_UI.sectionBg,
           cursor: 'pointer',
           '& td': { borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}` },
-          '&:hover': { bgcolor: '#f8fafb' },
+          '&:hover': { bgcolor: BITRIX_ACCESS_UI.rowHoverBg },
         }}
         onClick={onToggle}
       >
         <TableCell
           colSpan={colSpan}
           sx={{
-            py: 1.1,
+            py: 0.875,
             px: 1.5,
+            height: 40,
             position: 'sticky',
             left: 0,
             borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
@@ -266,27 +271,15 @@ const ModuleSection = memo(function ModuleSection({
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {expanded ? (
-              <ExpandLessIcon sx={{ fontSize: 20, color: BITRIX_ACCESS_UI.textSecondary }} />
+              <ExpandLessIcon sx={{ fontSize: 18, color: BITRIX_ACCESS_UI.textSecondary }} />
             ) : (
-              <ExpandMoreIcon sx={{ fontSize: 20, color: BITRIX_ACCESS_UI.textSecondary }} />
+              <ExpandMoreIcon sx={{ fontSize: 18, color: BITRIX_ACCESS_UI.textSecondary }} />
             )}
-            <Box
-              sx={{
-                width: 22,
-                height: 22,
-                borderRadius: 1,
-                bgcolor: accent,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
+            <BitrixModuleIcon moduleId={module.id} />
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, fontSize: '0.875rem', color: BITRIX_ACCESS_UI.textPrimary }}
             >
-              <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#fff' }}>
-                {displayName.charAt(0).toUpperCase()}
-              </Typography>
-            </Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.875rem' }}>
               {displayName}
             </Typography>
           </Box>
@@ -351,21 +344,26 @@ const ActionRow = memo(function ActionRow({
   return (
     <TableRow
       hover={false}
-      sx={{ '& td': { borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}` } }}
+      sx={{
+        bgcolor: '#fff',
+        '&:hover': { bgcolor: BITRIX_ACCESS_UI.rowHoverBg },
+        '& td': bitrixTableCellSx,
+      }}
     >
       <TableCell
         sx={{
-          pl: 5.5,
-          py: 0.75,
+          pl: 5,
           position: 'sticky',
           left: 0,
           zIndex: 1,
-          bgcolor: 'background.paper',
-          borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
+          bgcolor: 'inherit',
           minWidth: BITRIX_ACCESS_UI.actionColumnWidth,
         }}
       >
-        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.primary' }}>
+        <Typography
+          variant="body2"
+          sx={{ fontSize: '0.8125rem', color: BITRIX_ACCESS_UI.textPrimary }}
+        >
           {BITRIX_ACTION_LABELS[action] ?? action}
         </Typography>
       </TableCell>
@@ -378,12 +376,8 @@ const ActionRow = memo(function ActionRow({
         return (
           <TableCell
             key={role.id}
-            sx={{
-              py: 0.5,
-              px: 1,
-              borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
-              minWidth: BITRIX_ACCESS_UI.roleColumnMinWidth,
-            }}
+            align="center"
+            sx={{ minWidth: BITRIX_ACCESS_UI.roleColumnMinWidth }}
           >
             <PermissionScopeCell
               value={locked ? lockedScope : value}
@@ -394,8 +388,8 @@ const ActionRow = memo(function ActionRow({
           </TableCell>
         )
       })}
-      <TableCell sx={{ borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}` }} />
       <TableCell />
+      <TableCell sx={{ borderRight: 'none' }} />
     </TableRow>
   )
 })
@@ -418,20 +412,22 @@ const BooleanRow = memo(function BooleanRow({
   return (
     <TableRow
       hover={false}
-      sx={{ '& td': { borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}` } }}
+      sx={{
+        bgcolor: '#fff',
+        '&:hover': { bgcolor: BITRIX_ACCESS_UI.rowHoverBg },
+        '& td': bitrixTableCellSx,
+      }}
     >
       <TableCell
         sx={{
-          pl: 5.5,
-          py: 0.75,
+          pl: 5,
           position: 'sticky',
           left: 0,
           zIndex: 1,
-          bgcolor: 'background.paper',
-          borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
+          bgcolor: 'inherit',
         }}
       >
-        <Typography variant="body2" sx={{ fontSize: '0.8125rem' }}>
+        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: BITRIX_ACCESS_UI.textPrimary }}>
           {permLabel}
         </Typography>
       </TableCell>
@@ -441,11 +437,7 @@ const BooleanRow = memo(function BooleanRow({
           ? true
           : getBooleanGrant(booleanGrants, moduleId, permId, role.id)
         return (
-          <TableCell
-            key={role.id}
-            align="center"
-            sx={{ borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}` }}
-          >
+          <TableCell key={role.id} align="center">
             <PermissionBooleanCell
               checked={checked}
               disabled={locked}
@@ -456,7 +448,7 @@ const BooleanRow = memo(function BooleanRow({
         )
       })}
       <TableCell />
-      <TableCell />
+      <TableCell sx={{ borderRight: 'none' }} />
     </TableRow>
   )
 })

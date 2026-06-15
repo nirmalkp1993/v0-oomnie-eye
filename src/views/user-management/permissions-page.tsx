@@ -1,13 +1,13 @@
 'use client'
 
 import { lazy, Suspense, useState } from 'react'
-import { Box, CircularProgress, Tab, Tabs } from '@mui/material'
+import { Box, CircularProgress, Tab, Tabs, Typography } from '@mui/material'
 import GridViewOutlinedIcon from '@mui/icons-material/GridViewOutlined'
 import ViewColumnOutlinedIcon from '@mui/icons-material/ViewColumnOutlined'
 import PreviewOutlinedIcon from '@mui/icons-material/PreviewOutlined'
-import { settingsChildTabsSx } from '@/src/components/settings/settings-module-tabs.styles'
+import { BITRIX_ACCESS_UI } from '@/src/constants/bitrix-access-ui'
+import { bitrixPermissionsTabsSx } from '@/src/components/user-management/permissions/bitrix-permissions-tabs.styles'
 import { BitrixPermissionsProvider } from '@/src/contexts/bitrix-permissions-context'
-import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
 import { EffectivePreviewTab } from '@/src/components/user-management/permissions/effective-preview-tab'
 import { FieldPermissionsTab } from '@/src/components/user-management/permissions/field-permissions-tab'
 import type { PermissionsTabId } from '@/src/types/permissions-page'
@@ -32,7 +32,30 @@ export function PermissionsPage() {
 
   return (
     <BitrixPermissionsProvider>
-      <UserManagementPageShell title="Permissions" description="">
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          minHeight: 0,
+          p: { xs: 2, md: 3 },
+          bgcolor: 'background.default',
+        }}
+      >
+        <Typography
+          variant="h5"
+          component="h1"
+          sx={{
+            fontWeight: 600,
+            fontSize: '1.25rem',
+            color: BITRIX_ACCESS_UI.textPrimary,
+            fontFamily: BITRIX_ACCESS_UI.fontFamily,
+            mb: 2,
+          }}
+        >
+          Permissions
+        </Typography>
+
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
           <Tabs
             value={activeTab}
@@ -40,7 +63,7 @@ export function PermissionsPage() {
             variant="scrollable"
             scrollButtons={false}
             aria-label="Permissions sections"
-            sx={settingsChildTabsSx}
+            sx={bitrixPermissionsTabsSx}
           >
             <Tab
               value="access"
@@ -72,7 +95,12 @@ export function PermissionsPage() {
             role="tabpanel"
             id={`permissions-tabpanel-${activeTab}`}
             aria-labelledby={`permissions-tab-${activeTab}`}
-            sx={{ flex: 1, minHeight: 0, overflow: 'auto', pt: 2 }}
+            sx={{
+              flex: 1,
+              minHeight: 0,
+              overflow: 'auto',
+              pt: activeTab === 'access' ? 1.5 : 2,
+            }}
           >
             {activeTab === 'access' ? (
               <Suspense fallback={<TabLoader />}>
@@ -83,7 +111,7 @@ export function PermissionsPage() {
             {activeTab === 'effective' ? <EffectivePreviewTab /> : null}
           </Box>
         </Box>
-      </UserManagementPageShell>
+      </Box>
     </BitrixPermissionsProvider>
   )
 }

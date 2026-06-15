@@ -1,16 +1,19 @@
 'use client'
 
+import AutoAwesomeMotionOutlinedIcon from '@mui/icons-material/AutoAwesomeMotionOutlined'
+import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import HubOutlinedIcon from '@mui/icons-material/HubOutlined'
+import ViewQuiltOutlinedIcon from '@mui/icons-material/ViewQuiltOutlined'
 import {
   Box,
   List,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
-  Typography,
 } from '@mui/material'
 import {
-  BITRIX_ACCESS_MODULES,
   BITRIX_CATEGORY_LABELS,
   getModuleDisplayName,
   getModulesByCategory,
@@ -25,6 +28,14 @@ const CATEGORY_ORDER: BitrixModuleCategory[] = [
   'automations',
   'platform',
 ]
+
+const CATEGORY_ICONS: Record<BitrixModuleCategory, typeof CategoryOutlinedIcon> = {
+  crm: CategoryOutlinedIcon,
+  forms: ViewQuiltOutlinedIcon,
+  widgets: HubOutlinedIcon,
+  automations: AutoAwesomeMotionOutlinedIcon,
+  platform: CategoryOutlinedIcon,
+}
 
 /** Bitrix sidebar: top-level sections; CRM shows entity list underneath. */
 export function PermissionCategorySidebar({
@@ -47,11 +58,10 @@ export function PermissionCategorySidebar({
       sx={{
         width: BITRIX_ACCESS_UI.sidebarWidth,
         flexShrink: 0,
-        borderRight: '1px solid',
-        borderColor: BITRIX_ACCESS_UI.borderColor,
-        bgcolor: 'background.paper',
-        maxHeight: 640,
+        borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
+        bgcolor: '#fff',
         overflow: 'auto',
+        fontFamily: BITRIX_ACCESS_UI.fontFamily,
       }}
     >
       {CATEGORY_ORDER.map((category) => {
@@ -64,6 +74,7 @@ export function PermissionCategorySidebar({
 
         const isCategorySelected = selectedCategory === category
         const isCrm = category === 'crm'
+        const CategoryIcon = CATEGORY_ICONS[category]
 
         return (
           <Box key={category}>
@@ -71,21 +82,30 @@ export function PermissionCategorySidebar({
               selected={isCategorySelected && !isCrm}
               onClick={() => onSelectCategory(category)}
               sx={{
-                py: 1.25,
-                px: 2,
-                borderBottom: '1px solid',
-                borderColor: BITRIX_ACCESS_UI.borderColor,
-                bgcolor: isCategorySelected ? '#e8f7fc' : 'transparent',
-                '&.Mui-selected': { bgcolor: '#e8f7fc' },
-                '&.Mui-selected:hover': { bgcolor: '#dff3fa' },
+                py: 1.1,
+                px: 1.75,
+                borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
+                bgcolor: isCategorySelected ? '#eef9fc' : 'transparent',
+                '&.Mui-selected': { bgcolor: '#eef9fc' },
+                '&.Mui-selected:hover': { bgcolor: '#e3f5fa' },
+                '&:hover': { bgcolor: isCategorySelected ? '#e3f5fa' : BITRIX_ACCESS_UI.sectionBg },
               }}
             >
+              <ListItemIcon sx={{ minWidth: 32 }}>
+                <CategoryIcon
+                  sx={{
+                    fontSize: 18,
+                    color: isCategorySelected ? BITRIX_ACCESS_UI.linkBlue : BITRIX_ACCESS_UI.textSecondary,
+                  }}
+                />
+              </ListItemIcon>
               <ListItemText
                 primary={BITRIX_CATEGORY_LABELS[category]}
                 primaryTypographyProps={{
                   variant: 'body2',
+                  fontSize: '0.8125rem',
                   fontWeight: isCategorySelected ? 600 : 500,
-                  color: isCategorySelected ? BITRIX_ACCESS_UI.linkBlue : 'text.primary',
+                  color: isCategorySelected ? BITRIX_ACCESS_UI.linkBlue : BITRIX_ACCESS_UI.textPrimary,
                 }}
               />
               {isCategorySelected ? (
@@ -96,7 +116,7 @@ export function PermissionCategorySidebar({
             </ListItemButton>
 
             {isCategorySelected && isCrm ? (
-              <List dense disablePadding sx={{ pb: 1 }}>
+              <List dense disablePadding sx={{ pb: 0.5, bgcolor: '#fff' }}>
                 {modules.map((mod) => {
                   const selected = selectedModuleId === mod.id
                   return (
@@ -105,12 +125,14 @@ export function PermissionCategorySidebar({
                       selected={selected}
                       onClick={() => onSelectModule(mod.id)}
                       sx={{
-                        py: 0.65,
-                        pl: 3,
-                        pr: 2,
+                        py: 0.55,
+                        pl: 4.5,
+                        pr: 1.75,
+                        minHeight: 32,
                         bgcolor: selected ? '#f0f9fc' : 'transparent',
                         borderLeft: '3px solid',
                         borderColor: selected ? BITRIX_ACCESS_UI.primaryBlue : 'transparent',
+                        '&:hover': { bgcolor: selected ? '#f0f9fc' : BITRIX_ACCESS_UI.sectionBg },
                       }}
                     >
                       <ListItemText
@@ -119,7 +141,7 @@ export function PermissionCategorySidebar({
                           variant: 'body2',
                           fontSize: '0.8125rem',
                           fontWeight: selected ? 600 : 400,
-                          color: selected ? BITRIX_ACCESS_UI.linkBlue : 'text.primary',
+                          color: selected ? BITRIX_ACCESS_UI.linkBlue : BITRIX_ACCESS_UI.textPrimary,
                         }}
                       />
                     </ListItemButton>
@@ -133,9 +155,3 @@ export function PermissionCategorySidebar({
     </Box>
   )
 }
-
-export function getDefaultCategoryModules(category: BitrixModuleCategory) {
-  return getModulesByCategory(category)
-}
-
-export { BITRIX_ACCESS_MODULES }
