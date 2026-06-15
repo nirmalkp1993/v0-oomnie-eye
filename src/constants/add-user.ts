@@ -12,6 +12,14 @@ export const USER_STATUS_FORM_OPTIONS: { value: UserStatus; label: string }[] = 
   { value: 'archived', label: 'Archived' },
 ]
 
+export const OFFICE_OPTIONS = [
+  'Head Office',
+  'Regional Office - North',
+  'Regional Office - South',
+  'Branch Office - East',
+  'Branch Office - West',
+] as const
+
 export const DEPARTMENT_OPTIONS = [
   'Operations',
   'Finance',

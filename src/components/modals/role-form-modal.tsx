@@ -15,8 +15,6 @@ import { AppDialog, DialogFormField } from '@/src/components/modals/app-dialog'
 import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
-import { DataScopePicker } from '@/src/components/user-management/roles/data-scope-picker'
-import { PermissionsEditor } from '@/src/components/user-management/roles/permissions-editor'
 import { DEFAULT_TENANT_NAME, INITIAL_CREATE_ROLE_FORM } from '@/src/constants/role-catalog'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import {
@@ -24,7 +22,7 @@ import {
   roleToFormValues,
   validateCreateRoleForm,
 } from '@/src/lib/user-management/add-role-form.utils'
-import type { CreateRoleFormValues, DataScopeId, RoleListItem, RoleStatus } from '@/src/types/user-management'
+import type { CreateRoleFormValues, RoleListItem, RoleStatus } from '@/src/types/user-management'
 
 const outlineFieldSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } } as const
 
@@ -47,6 +45,7 @@ export function RoleFormModal({
 }: RoleFormModalProps) {
   const { showMessage } = useAdminSnackbar()
   const isEdit = mode === 'edit' && initial != null
+  const isSystemRole = initial?.badges.includes('system') ?? false
   const [form, setForm] = useState<CreateRoleFormValues>(INITIAL_CREATE_ROLE_FORM)
   const [submitting, setSubmitting] = useState(false)
 
@@ -60,32 +59,6 @@ export function RoleFormModal({
 
   const update = <K extends keyof CreateRoleFormValues>(key: K, value: CreateRoleFormValues[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
-  }
-
-  const togglePermission = (key: string) => {
-    setForm((prev) => ({
-      ...prev,
-      selectedPermissions: prev.selectedPermissions.includes(key)
-        ? prev.selectedPermissions.filter((k) => k !== key)
-        : [...prev.selectedPermissions, key],
-    }))
-  }
-
-  const setModulePermissions = (_moduleId: string, keys: string[], selected: boolean) => {
-    setForm((prev) => {
-      const set = new Set(prev.selectedPermissions)
-      keys.forEach((k) => (selected ? set.add(k) : set.delete(k)))
-      return { ...prev, selectedPermissions: [...set] }
-    })
-  }
-
-  const toggleScope = (scopeId: DataScopeId) => {
-    setForm((prev) => ({
-      ...prev,
-      dataScopeIds: prev.dataScopeIds.includes(scopeId)
-        ? prev.dataScopeIds.filter((id) => id !== scopeId)
-        : [...prev.dataScopeIds, scopeId],
-    }))
   }
 
   const handleClose = () => {
@@ -117,7 +90,7 @@ export function RoleFormModal({
       title={isEdit ? 'Edit role' : 'Add role'}
       description={`${DEFAULT_TENANT_NAME} · RBAC catalog`}
       icon={Shield}
-      maxWidth="4xl"
+      maxWidth="md"
       footer={
         <DialogFormFooter
           isCreate={!isEdit}
@@ -125,12 +98,12 @@ export function RoleFormModal({
           onClose={handleClose}
           onEdit={() => {}}
           onSave={() => void handleSubmit()}
-          onDelete={onDeleteRequest}
+          onDelete={isSystemRole ? undefined : onDeleteRequest}
           deleteLabel="Delete role"
         />
       }
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, maxHeight: 'min(68vh, 640px)', overflowY: 'auto', py: 1 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, py: 1 }}>
         <EarthDialogSectionCard
           title="Role details"
           icon={Shield}
@@ -149,6 +122,7 @@ export function RoleFormModal({
                 id="roleName"
                 fullWidth
                 autoFocus
+                disabled={isSystemRole}
                 value={form.name}
                 onChange={(e) => update('name', e.target.value)}
                 sx={outlineFieldSx}
@@ -183,7 +157,12 @@ export function RoleFormModal({
           <Box sx={{ mt: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 2, py: 1.5 }}>
             <FormControlLabel
               control={
-                <Switch checked={form.highRisk} onChange={(e) => update('highRisk', e.target.checked)} color="primary" />
+                <Switch
+                  checked={form.highRisk}
+                  onChange={(e) => update('highRisk', e.target.checked)}
+                  color="primary"
+                  disabled={isSystemRole}
+                />
               }
               label={
                 <Box>
@@ -198,20 +177,25 @@ export function RoleFormModal({
               sx={{ alignItems: 'flex-start', m: 0 }}
             />
           </Box>
+          <Box
+            sx={{
+              mt: 2,
+              p: 2,
+              borderRadius: 2,
+              bgcolor: 'action.hover',
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Module permissions
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Configure Read, Add, Edit, Delete, Export, Import scopes per role in the{' '}
+              <strong>Permissions → Access permissions</strong> tab (Bitrix-style grid).
+            </Typography>
+          </Box>
         </EarthDialogSectionCard>
-
-        <PermissionsEditor
-          selectedPermissions={form.selectedPermissions}
-          onTogglePermission={togglePermission}
-          onSetModulePermissions={setModulePermissions}
-          disabled={submitting}
-        />
-
-        <DataScopePicker
-          selectedScopeIds={form.dataScopeIds}
-          onToggleScope={toggleScope}
-          disabled={submitting}
-        />
       </Box>
     </AppDialog>
   )

@@ -18,14 +18,16 @@ export function validateCreateRoleForm(form: CreateRoleFormValues): boolean {
 }
 
 const DATA_SCOPE_DISPLAY_LABELS: Record<string, string> = {
-  own_records: 'Own records',
-  assigned_records: 'Assigned records',
-  department: 'Department',
+  own_records: "User's items",
+  assigned_records: 'Assigned items',
+  department: 'User department',
+  office: 'Office',
   country: 'Country',
   territory: 'Territory',
   region: 'Region',
   business_unit: 'Business unit',
-  all_tenant_data: 'All tenant data',
+  public_data: 'Public',
+  all_tenant_data: 'All',
   global_all_tenants: 'Global (all tenants)',
   custom_filter: 'Custom filter',
 }
