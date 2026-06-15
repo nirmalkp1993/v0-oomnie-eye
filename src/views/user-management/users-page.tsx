@@ -7,6 +7,7 @@ import MoreVertIcon from '@mui/icons-material/MoreVert'
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined'
 import PersonOffOutlinedIcon from '@mui/icons-material/PersonOffOutlined'
 import SecurityUpdateGoodOutlinedIcon from '@mui/icons-material/SecurityUpdateGoodOutlined'
+import SwitchAccountOutlinedIcon from '@mui/icons-material/SwitchAccountOutlined'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { Box, Button, IconButton, Menu, MenuItem, Typography } from '@mui/material'
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
@@ -34,6 +35,7 @@ import {
   isUserRetired,
 } from '@/src/lib/user-management/user-lifecycle.utils'
 import { getUserRowCellValue } from '@/src/lib/user-management/user-row-values'
+import { openUserImpersonationTab } from '@/src/lib/user-management/user-impersonation.utils'
 import { useUserDirectoryStore } from '@/lib/user-directory-store'
 import { MOCK_USERS } from '@/src/mock-data/users'
 import type { UserListItem, UserStatus } from '@/src/types/user-management'
@@ -158,6 +160,19 @@ export function UsersPage() {
   const openAssignGroups = useCallback((user: UserListItem) => {
     openEdit(user, 'groups')
   }, [openEdit])
+
+  const handleImpersonate = useCallback(
+    (user: UserListItem) => {
+      if (isUserRetired(user)) {
+        showMessage('Cannot impersonate a retired user', 'warning')
+        closeMenu()
+        return
+      }
+      openUserImpersonationTab(user)
+      closeMenu()
+    },
+    [showMessage],
+  )
 
   const isRowActionTarget = (target: HTMLElement) =>
     Boolean(
@@ -458,6 +473,12 @@ export function UsersPage() {
         </MenuItem>
         <MenuItem onClick={() => menuUser && openAssignRole(menuUser)}>
           <SecurityUpdateGoodOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Assign role
+        </MenuItem>
+        <MenuItem
+          onClick={() => menuUser && handleImpersonate(menuUser)}
+          disabled={Boolean(menuUser && isUserRetired(menuUser))}
+        >
+          <SwitchAccountOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Impersonation
         </MenuItem>
       </Menu>
 
