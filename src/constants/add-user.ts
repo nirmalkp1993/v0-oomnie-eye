@@ -35,18 +35,18 @@ export const TERRITORY_OPTIONS = ['Europe', 'America', 'Asia'] as const
 
 export const OFFICE_OPTIONS = [
   'Kadel Labs, Singhvi Square, IT Park, Madri, Udaipur, Rajasthan 313001, India',
-  'Kadel Labs Corporate Office, Jaipur, Rajasthan, India',
-  'Kadel Labs Technology Center, Ahmedabad, Gujarat, India',
-  'Kadel Labs Innovation Center, Pune, Maharashtra, India',
-  'Kadel Labs Development Hub, Bengaluru, Karnataka, India',
-  'Kadel Labs Digital Solutions Center, Hyderabad, Telangana, India',
-  'Kadel Labs Engineering Office, Chennai, Tamil Nadu, India',
-  'Kadel Labs Research & Development Center, Gurugram, Haryana, India',
-  'Kadel Labs Business Operations Center, Noida, Uttar Pradesh, India',
-  'Kadel Labs Technology Hub, Indore, Madhya Pradesh, India',
-  'Kadel Labs Corporate Branch, Mumbai, Maharashtra, India',
-  'Kadel Labs Innovation Lab, Kochi, Kerala, India',
-  'Kadel Labs Software Development Center, Chandigarh, India',
+  'Kadel Labs Corporate Office, Corporate Office, Jaipur, Rajasthan 302001, India',
+  'Kadel Labs Technology Center, Technology Center, Ahmedabad, Gujarat 380001, India',
+  'Kadel Labs Innovation Center, Innovation Center, Pune, Maharashtra 411001, India',
+  'Kadel Labs Development Hub, Development Hub, Bengaluru, Karnataka 560001, India',
+  'Kadel Labs Digital Solutions Center, Digital Solutions Center, Hyderabad, Telangana 500001, India',
+  'Kadel Labs Engineering Office, Engineering Office, Chennai, Tamil Nadu 600001, India',
+  'Kadel Labs Research & Development Center, Research & Development Center, Gurugram, Haryana 122001, India',
+  'Kadel Labs Business Operations Center, Business Operations Center, Noida, Uttar Pradesh 201301, India',
+  'Kadel Labs Technology Hub, Technology Hub, Indore, Madhya Pradesh 452001, India',
+  'Kadel Labs Corporate Branch, Corporate Branch, Mumbai, Maharashtra 400001, India',
+  'Kadel Labs Innovation Lab, Innovation Lab, Kochi, Kerala 682001, India',
+  'Kadel Labs Software Development Center, Software Development Center, Chandigarh, Chandigarh 160001, India',
 ] as const
 
 export const REGION_OPTIONS = ['Americas', 'EMEA', 'APAC'] as const

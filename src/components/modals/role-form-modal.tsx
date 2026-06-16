@@ -24,7 +24,7 @@ import {
   roleToFormValues,
   validateCreateRoleForm,
 } from '@/src/lib/user-management/add-role-form.utils'
-import type { CreateRoleFormValues, RoleListItem, RoleStatus } from '@/src/types/user-management'
+import type { CreateRoleFormValues, DataScopeId, RoleListItem, RoleStatus } from '@/src/types/user-management'
 
 const outlineFieldSx = { '& .MuiOutlinedInput-root': { borderRadius: 2 } } as const
 
@@ -33,7 +33,7 @@ interface RoleFormModalProps {
   mode: 'create' | 'edit'
   initial?: RoleListItem | null
   onClose: () => void
-  onSubmit: (role: RoleListItem) => void | boolean
+  onSubmit: (role: RoleListItem) => void
   onDeleteRequest?: () => void
 }
 
@@ -47,7 +47,6 @@ export function RoleFormModal({
 }: RoleFormModalProps) {
   const { showMessage } = useAdminSnackbar()
   const isEdit = mode === 'edit' && initial != null
-  const isSystemRole = initial?.badges.includes('system') ?? false
   const [form, setForm] = useState<CreateRoleFormValues>(INITIAL_CREATE_ROLE_FORM)
   const [submitting, setSubmitting] = useState(false)
 
@@ -86,8 +85,7 @@ export function RoleFormModal({
     }
     setSubmitting(true)
     try {
-      const saved = onSubmit(buildRoleListItemFromForm(form, initial ?? undefined))
-      if (saved === false) return
+      onSubmit(buildRoleListItemFromForm(form, initial ?? undefined))
       reset()
       onClose()
     } finally {
@@ -110,12 +108,12 @@ export function RoleFormModal({
           onClose={handleClose}
           onEdit={() => {}}
           onSave={() => void handleSubmit()}
-          onDelete={isSystemRole ? undefined : onDeleteRequest}
+          onDelete={onDeleteRequest}
           deleteLabel="Delete role"
         />
       }
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, py: 1 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, maxHeight: 'min(68vh, 640px)', overflowY: 'auto', py: 1 }}>
         <EarthDialogSectionCard
           title="Role details"
           icon={Shield}
@@ -134,7 +132,6 @@ export function RoleFormModal({
                 id="roleName"
                 fullWidth
                 autoFocus
-                disabled={isSystemRole}
                 value={form.name}
                 onChange={(e) => update('name', e.target.value)}
                 sx={outlineFieldSx}
@@ -169,12 +166,7 @@ export function RoleFormModal({
           <Box sx={{ mt: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 2, py: 1.5 }}>
             <FormControlLabel
               control={
-                <Switch
-                  checked={form.highRisk}
-                  onChange={(e) => update('highRisk', e.target.checked)}
-                  color="primary"
-                  disabled={isSystemRole}
-                />
+                <Switch checked={form.highRisk} onChange={(e) => update('highRisk', e.target.checked)} color="primary" />
               }
               label={
                 <Box>
@@ -188,24 +180,6 @@ export function RoleFormModal({
               }
               sx={{ alignItems: 'flex-start', m: 0 }}
             />
-          </Box>
-          <Box
-            sx={{
-              mt: 2,
-              p: 2,
-              borderRadius: 2,
-              bgcolor: 'action.hover',
-              border: '1px solid',
-              borderColor: 'divider',
-            }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Module permissions
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Configure Read, Add, Edit, Delete, Export, Import scopes per role in the{' '}
-              <strong>Permissions → Access permissions</strong> tab (Bitrix-style grid).
-            </Typography>
           </Box>
         </EarthDialogSectionCard>
 

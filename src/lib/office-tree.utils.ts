@@ -1,7 +1,14 @@
 import {
+  formatOfficeAddress,
+  formatOfficeLabel,
+  normalizeOfficeAddress,
+  normalizeOfficeName,
+} from '@/src/lib/office-address.utils'
+import {
   collectNestedPathOptions,
   type HierarchyTreeNode,
 } from '@/src/lib/nested-tree-path-options'
+import type { OfficeAddress, OfficeTreeNode } from '@/src/types/office'
 
 export function findOfficeNode(
   nodes: HierarchyTreeNode[],
@@ -39,13 +46,27 @@ function mapOfficeTree(
   })
 }
 
+function officeNodeFromDetails(
+  officeName: string,
+  address: OfficeAddress,
+): Pick<OfficeTreeNode, 'name' | 'officeName' | 'address'> {
+  const normalized = normalizeOfficeAddress(address)
+  const normalizedName = normalizeOfficeName(officeName)
+  return {
+    name: formatOfficeLabel(normalizedName, normalized),
+    officeName: normalizedName || undefined,
+    address: normalized,
+  }
+}
+
 export function addOfficeRoot(
   nodes: HierarchyTreeNode[],
-  name: string,
+  officeName: string,
+  address: OfficeAddress,
 ): { tree: HierarchyTreeNode[]; id: string } {
   const id = crypto.randomUUID()
   return {
-    tree: [...nodes, { id, name: name.trim() }],
+    tree: [...nodes, { id, ...officeNodeFromDetails(officeName, address) }],
     id,
   }
 }
@@ -53,12 +74,13 @@ export function addOfficeRoot(
 export function addOfficeChild(
   nodes: HierarchyTreeNode[],
   parentId: string,
-  name: string,
+  officeName: string,
+  address: OfficeAddress,
 ): { tree: HierarchyTreeNode[]; id: string } | null {
   if (!findOfficeNode(nodes, parentId)) return null
 
   const id = crypto.randomUUID()
-  const child: HierarchyTreeNode = { id, name: name.trim() }
+  const child: OfficeTreeNode = { id, ...officeNodeFromDetails(officeName, address) }
 
   const tree = mapOfficeTree(nodes, (node) => {
     if (node.id !== parentId) return node
@@ -69,14 +91,14 @@ export function addOfficeChild(
   return { tree, id }
 }
 
-export function updateOfficeName(
+export function updateOfficeAddress(
   nodes: HierarchyTreeNode[],
   id: string,
-  name: string,
+  officeName: string,
+  address: OfficeAddress,
 ): HierarchyTreeNode[] {
-  return mapOfficeTree(nodes, (node) =>
-    node.id === id ? { ...node, name: name.trim() } : node,
-  )
+  const next = officeNodeFromDetails(officeName, address)
+  return mapOfficeTree(nodes, (node) => (node.id === id ? { ...node, ...next } : node))
 }
 
 function filterOfficeTree(

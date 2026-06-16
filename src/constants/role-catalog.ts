@@ -45,14 +45,11 @@ export const DATA_SCOPE_OPTIONS: {
   title: string
   description: string
 }[] = [
-  { id: 'all_tenant_data', title: 'All', description: 'Full access to all records in the module' },
-  { id: 'own_records', title: "User's items", description: 'Only records owned by the user' },
-  { id: 'assigned_records', title: 'Assigned items', description: 'Records assigned to the user' },
-  { id: 'department', title: 'User department', description: 'All records in the user department' },
-  { id: 'office', title: 'Office', description: 'Records in the user office' },
-  { id: 'territory', title: 'Territory', description: 'Records in assigned territories' },
+  { id: 'own_records', title: 'Own records', description: 'Only records owned by the user' },
+  { id: 'assigned_records', title: 'Assigned records', description: 'Records assigned to the user' },
+  { id: 'department', title: 'Department', description: 'All records in the user department' },
   { id: 'country', title: 'Country', description: 'Records in assigned countries' },
-  { id: 'public_data', title: 'Public', description: 'Public records visible to everyone' },
+  { id: 'territory', title: 'Territory', description: 'Records in assigned territories' },
 ]
 
 /** Labels for all scope values (display in grid cells and legacy data). */
@@ -87,12 +84,12 @@ export const BITRIX_SCOPE_DROPDOWN_OPTIONS: {
   {
     id: 'office',
     title: SCOPE_GRANT_LABELS.office,
-    description: 'Records in the user\'s assigned office.',
+    description: "Records in the user's assigned office.",
   },
   {
     id: 'department',
     title: SCOPE_GRANT_LABELS.department,
-    description: 'Records belonging to the user\'s department.',
+    description: "Records belonging to the user's department.",
   },
   {
     id: 'department_subdepartments',

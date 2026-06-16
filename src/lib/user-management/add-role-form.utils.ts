@@ -31,17 +31,14 @@ export function validateCreateRoleForm(form: CreateRoleFormValues): boolean {
 }
 
 const DATA_SCOPE_DISPLAY_LABELS: Record<string, string> = {
-  own_records: "User's items",
-  assigned_records: 'Assigned items',
-  department: "User department's items",
-  department_subdepartments: "User dept. subdepartment's items",
-  office: "User's office",
+  own_records: 'Own records',
+  assigned_records: 'Assigned records',
+  department: 'Department',
   country: 'Country',
   territory: 'Territory',
   region: 'Region',
   business_unit: 'Business unit',
-  public_data: 'All items marked as "Available to everyone"',
-  all_tenant_data: 'All',
+  all_tenant_data: 'All tenant data',
   global_all_tenants: 'Global (all tenants)',
   custom_filter: 'Custom filter',
 }

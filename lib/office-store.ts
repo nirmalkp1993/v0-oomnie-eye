@@ -7,57 +7,68 @@ import {
   collectSubtreePathLabels,
   deleteOfficeNode,
   officeNameExists,
-  updateOfficeName,
+  updateOfficeAddress,
 } from '@/src/lib/office-tree.utils'
+import {
+  formatOfficeAddress,
+  formatOfficeLabel,
+  isOfficeAddressComplete,
+  isOfficeNameComplete,
+  normalizeOfficeAddress,
+  normalizeOfficeName,
+} from '@/src/lib/office-address.utils'
 import type { HierarchyTreeNode } from '@/src/lib/nested-tree-path-options'
+import type { OfficeAddress } from '@/src/types/office'
 import { OFFICE_HIERARCHY_TREE } from '@/src/mock-data/office-hierarchy'
 
 interface OfficeStore {
   tree: HierarchyTreeNode[]
 
-  createRoot: (name: string) => string | null
-  createChild: (parentId: string, name: string) => string | null
-  rename: (id: string, name: string) => boolean
+  createRoot: (officeName: string, address: OfficeAddress) => string | null
+  createChild: (parentId: string, officeName: string, address: OfficeAddress) => string | null
+  updateOffice: (id: string, officeName: string, address: OfficeAddress) => boolean
   remove: (id: string) => string[]
   getSubtreePathLabels: (id: string) => string[]
-  nameExists: (name: string, excludeId?: string) => boolean
+  officeExists: (officeName: string, address: OfficeAddress, excludeId?: string) => boolean
 }
 
-function validateName(
-  name: string,
+function validateOfficeDetails(
+  officeName: string,
+  address: OfficeAddress,
   tree: HierarchyTreeNode[],
   excludeId?: string,
 ): string | null {
-  const trimmed = name.trim()
-  if (!trimmed) return 'Name is required'
-  if (officeNameExists(tree, trimmed, excludeId)) return 'A office with this name already exists'
+  if (!isOfficeNameComplete(officeName)) return 'Office name is required'
+  if (!isOfficeAddressComplete(address)) return 'All address fields are required'
+  const label = formatOfficeLabel(normalizeOfficeName(officeName), normalizeOfficeAddress(address))
+  if (officeNameExists(tree, label, excludeId)) return 'An office with this address already exists'
   return null
 }
 
 export const useOfficeStore = create<OfficeStore>((set, get) => ({
   tree: OFFICE_HIERARCHY_TREE.map((node) => structuredClone(node)),
 
-  createRoot: (name) => {
-    const error = validateName(name, get().tree)
+  createRoot: (officeName, address) => {
+    const error = validateOfficeDetails(officeName, address, get().tree)
     if (error) return null
-    const { tree, id } = addOfficeRoot(get().tree, name)
+    const { tree, id } = addOfficeRoot(get().tree, officeName, address)
     set({ tree })
     return id
   },
 
-  createChild: (parentId, name) => {
-    const error = validateName(name, get().tree)
+  createChild: (parentId, officeName, address) => {
+    const error = validateOfficeDetails(officeName, address, get().tree)
     if (error) return null
-    const result = addOfficeChild(get().tree, parentId, name)
+    const result = addOfficeChild(get().tree, parentId, officeName, address)
     if (!result) return null
     set({ tree: result.tree })
     return result.id
   },
 
-  rename: (id, name) => {
-    const error = validateName(name, get().tree, id)
+  updateOffice: (id, officeName, address) => {
+    const error = validateOfficeDetails(officeName, address, get().tree, id)
     if (error) return false
-    set({ tree: updateOfficeName(get().tree, id, name) })
+    set({ tree: updateOfficeAddress(get().tree, id, officeName, address) })
     return true
   },
 
@@ -69,5 +80,10 @@ export const useOfficeStore = create<OfficeStore>((set, get) => ({
 
   getSubtreePathLabels: (id) => collectSubtreePathLabels(get().tree, id),
 
-  nameExists: (name, excludeId) => officeNameExists(get().tree, name, excludeId),
+  officeExists: (officeName, address, excludeId) =>
+    officeNameExists(
+      get().tree,
+      formatOfficeLabel(normalizeOfficeName(officeName), normalizeOfficeAddress(address)),
+      excludeId,
+    ),
 }))
