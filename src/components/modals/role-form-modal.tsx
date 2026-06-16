@@ -15,6 +15,8 @@ import { AppDialog, DialogFormField } from '@/src/components/modals/app-dialog'
 import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
+import { DataScopePicker } from '@/src/components/user-management/roles/data-scope-picker'
+import { RolePermissionMatrixEditor } from '@/src/components/user-management/roles/role-permission-matrix-editor'
 import { DEFAULT_TENANT_NAME, INITIAL_CREATE_ROLE_FORM } from '@/src/constants/role-catalog'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import {
@@ -61,6 +63,15 @@ export function RoleFormModal({
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  const toggleScope = (scopeId: DataScopeId) => {
+    setForm((prev) => ({
+      ...prev,
+      dataScopeIds: prev.dataScopeIds.includes(scopeId)
+        ? prev.dataScopeIds.filter((id) => id !== scopeId)
+        : [...prev.dataScopeIds, scopeId],
+    }))
+  }
+
   const handleClose = () => {
     if (!submitting) {
       reset()
@@ -91,7 +102,7 @@ export function RoleFormModal({
       title={isEdit ? 'Edit role' : 'Add role'}
       description={`${DEFAULT_TENANT_NAME} · RBAC catalog`}
       icon={Shield}
-      maxWidth="md"
+      maxWidth="6xl"
       footer={
         <DialogFormFooter
           isCreate={!isEdit}
@@ -197,6 +208,18 @@ export function RoleFormModal({
             </Typography>
           </Box>
         </EarthDialogSectionCard>
+
+        <RolePermissionMatrixEditor
+          grants={form.permissionMatrix}
+          onChange={(permissionMatrix) => setForm((prev) => ({ ...prev, permissionMatrix }))}
+          disabled={submitting}
+        />
+
+        <DataScopePicker
+          selectedScopeIds={form.dataScopeIds}
+          onToggleScope={toggleScope}
+          disabled={submitting}
+        />
       </Box>
     </AppDialog>
   )

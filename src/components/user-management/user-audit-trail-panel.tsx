@@ -1,13 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Box, Stack, Typography } from '@mui/material'
 import { History } from 'lucide-react'
+import { useUserAuditStore } from '@/lib/user-audit-store'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { USER_AUDIT_CATEGORIES } from '@/src/constants/user-audit-categories'
+import { formatAuditDate } from '@/src/lib/user-management/user-audit-log.utils'
 import { countAuditByCategory, filterAuditEntries } from '@/src/lib/user-management/user-audit.utils'
-import { getUserAuditEntries } from '@/src/mock-data/user-audit'
 import type { UserAuditCategory } from '@/src/types/user-management'
 import { auditCardSx } from '@/src/components/user-management/user-detail/user-detail-styles'
 
@@ -74,13 +75,25 @@ function AuditSummaryCard({
   )
 }
 
-export function UserAuditTrailPanel({ userId }: { userId: string | null }) {
+export function UserAuditTrailPanel({ user }: { user: UserListItem | null }) {
   const [activeCategory, setActiveCategory] = useState<UserAuditCategory | null>(null)
+  const hydrateFromUsers = useUserAuditStore((state) => state.hydrateFromUsers)
+  const ensureUserLogs = useUserAuditStore((state) => state.ensureUserLogs)
+  const entriesByUserId = useUserAuditStore((state) => state.entriesByUserId)
 
-  const entries = useMemo(
-    () => (userId ? getUserAuditEntries(userId) : []),
-    [userId],
-  )
+  useEffect(() => {
+    hydrateFromUsers([])
+  }, [hydrateFromUsers])
+
+  useEffect(() => {
+    if (user) ensureUserLogs(user)
+  }, [ensureUserLogs, user])
+
+  const entries = useMemo(() => {
+    if (!user) return []
+    const list = entriesByUserId[user.id] ?? []
+    return [...list].sort((a, b) => b.date.localeCompare(a.date))
+  }, [entriesByUserId, user])
 
   const counts = useMemo(() => countAuditByCategory(entries), [entries])
 
@@ -91,14 +104,14 @@ export function UserAuditTrailPanel({ userId }: { userId: string | null }) {
 
   return (
     <EarthDialogSectionCard
-      title="Audit trail"
+      title="History log"
       icon={History}
-      tooltip="Recent activity for this user"
+      tooltip="Actions such as user added, updated, retired, and removed"
       accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
     >
-      {!userId ? (
+      {!user ? (
         <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-          Save the user first to view audit history.
+          Save the user first to view history.
         </Typography>
       ) : (
         <>
@@ -136,7 +149,7 @@ export function UserAuditTrailPanel({ userId }: { userId: string | null }) {
           <Stack spacing={1.25}>
             {visibleEntries.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                No audit events in this category.
+                No history events yet.
               </Typography>
             ) : (
               visibleEntries.map((entry) => (
@@ -154,7 +167,7 @@ export function UserAuditTrailPanel({ userId }: { userId: string | null }) {
                     color="text.secondary"
                     sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
                   >
-                    {entry.date}
+                    {formatAuditDate(entry.date)}
                   </Typography>
                 </Box>
               ))

@@ -31,13 +31,21 @@ export function PlacemarkOpacitySlider({
   ariaLabel?: string
 }) {
   return (
-    <>
+    <Box
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.75,
+        flexShrink: 0,
+        minHeight: 32,
+      }}
+    >
       <Tooltip title="Change opacity">
         <Box
           component="span"
           sx={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', color: 'text.secondary' }}
         >
-          <OpacityIcon sx={{ fontSize: 22 }} aria-hidden />
+          <OpacityIcon sx={{ fontSize: 20 }} aria-hidden />
         </Box>
       </Tooltip>
       <Slider
@@ -51,6 +59,6 @@ export function PlacemarkOpacitySlider({
         aria-label={ariaLabel}
         sx={placemarkOpacitySliderSx}
       />
-    </>
+    </Box>
   )
 }

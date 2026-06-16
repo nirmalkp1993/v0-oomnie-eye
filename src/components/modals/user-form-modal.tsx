@@ -291,7 +291,7 @@ export function UserFormModal({
       title={dialogTitle}
       description={dialogDescription}
       icon={UserRound}
-      maxWidth="5xl"
+      maxWidth="6xl"
       footer={
         <DialogFormFooter
           isCreate={mode === 'create'}
@@ -642,7 +642,7 @@ export function UserFormModal({
         {mode !== 'create' ? (
           <CameraEarthTabPanel value={activeTabIndex} index={3}>
             <Box sx={{ py: 1 }}>
-              <UserAuditTrailPanel userId={initial?.id ?? null} />
+              <UserAuditTrailPanel user={initial ?? null} />
             </Box>
           </CameraEarthTabPanel>
         ) : null}

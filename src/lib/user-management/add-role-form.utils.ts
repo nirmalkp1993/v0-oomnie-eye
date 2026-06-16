@@ -3,6 +3,11 @@ import {
   ROLE_PERMISSION_MODULES,
   SELECTABLE_DATA_SCOPE_IDS,
 } from '@/src/constants/role-catalog'
+import {
+  cloneRoleMatrixGrants,
+  countGrantedMatrixCells,
+  getMatrixGrantsForRoleId,
+} from '@/src/constants/user-role-permission-matrix'
 import { MOCK_ROLES } from '@/src/mock-data/roles'
 import type { CreateRoleFormValues, DataScopeId, RoleListItem } from '@/src/types/user-management'
 
@@ -108,6 +113,8 @@ export function roleToFormValues(role: RoleListItem): CreateRoleFormValues {
   const scopeIds = filterSelectableScopeIds(rawScopeIds)
 
   const permissions = role.selectedPermissions ?? ROLE_EDIT_PERMISSION_PRESETS[role.id] ?? []
+  const permissionMatrix =
+    role.permissionMatrix ?? cloneRoleMatrixGrants(getMatrixGrantsForRoleId(role.id))
 
   return {
     name: role.name,
@@ -115,6 +122,7 @@ export function roleToFormValues(role: RoleListItem): CreateRoleFormValues {
     status: role.status,
     highRisk: role.highRisk ?? role.badges.includes('high-risk'),
     selectedPermissions: [...permissions],
+    permissionMatrix,
     dataScopeIds: [...scopeIds],
   }
 }
@@ -144,11 +152,12 @@ export function buildRoleListItemFromForm(
     iconVariant,
     userCount: existing?.userCount ?? 0,
     groupCount: existing?.groupCount ?? 0,
-    permissionCount: form.selectedPermissions.length,
+    permissionCount: countGrantedMatrixCells(form.permissionMatrix),
     dataScope: formatDataScopeLabel(form.dataScopeIds),
     status: form.status,
     lastUpdated: new Date().toISOString().slice(0, 10),
     selectedPermissions: [...form.selectedPermissions],
+    permissionMatrix: cloneRoleMatrixGrants(form.permissionMatrix),
     dataScopeIds: [...form.dataScopeIds],
     highRisk: form.highRisk,
   }

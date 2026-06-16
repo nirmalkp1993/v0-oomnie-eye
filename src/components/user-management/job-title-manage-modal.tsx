@@ -1,27 +1,22 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import AddIcon from '@mui/icons-material/Add'
 import CloseIcon from '@mui/icons-material/Close'
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
-import SearchIcon from '@mui/icons-material/Search'
-import SubdirectoryArrowRightIcon from '@mui/icons-material/SubdirectoryArrowRight'
 import {
   Box,
   Button,
   Dialog,
   IconButton,
-  InputAdornment,
-  List,
-  ListItemButton,
   Paper,
   Stack,
   TextField,
   Typography,
 } from '@mui/material'
 import { alpha, useTheme } from '@mui/material/styles'
+import type { OrgChartTreeNode } from '@/src/components/org-chart/hierarchy-flow-types'
+import { HierarchyManageTreePanel } from '@/src/components/user-management/hierarchy-manage-tree-panel'
 import { Briefcase } from 'lucide-react'
 import { useJobTitleStore } from '@/lib/job-title-store'
 import { useUserDirectoryStore } from '@/lib/user-directory-store'
@@ -33,14 +28,11 @@ import {
 import { findJobTitleNode } from '@/src/lib/job-title-tree.utils'
 import {
   collectNestedPathOptions,
-  filterNestedPathOptions,
   type HierarchyTreeNode,
 } from '@/src/lib/nested-tree-path-options'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 
-const ROW_HEIGHT = 40
-const INDENT_PX = 20
-const MANAGE_MODAL_WIDTH_PX = 860
+const MANAGE_MODAL_WIDTH_PX = 980
 const FORM_DIALOG_WIDTH_PX = 520
 
 const responsiveModalWidthSx = (widthPx: number) =>
@@ -58,84 +50,6 @@ function getJobTitlePathLabel(tree: HierarchyTreeNode[], id: string): string {
   const option = collectNestedPathOptions(tree).find((item) => item.id === id)
   if (option) return option.label
   return findJobTitleNode(tree, id)?.name ?? ''
-}
-
-function TreeConnector({ depth }: { depth: number }) {
-  if (depth <= 0) return null
-
-  return (
-    <Box
-      aria-hidden
-      sx={{
-        position: 'relative',
-        width: 14,
-        height: 14,
-        flexShrink: 0,
-        mr: 0.75,
-        color: 'text.disabled',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          left: 4,
-          top: 0,
-          bottom: '50%',
-          width: '1px',
-          bgcolor: 'currentColor',
-        }}
-      />
-      <Box
-        sx={{
-          position: 'absolute',
-          left: 4,
-          top: '50%',
-          width: 8,
-          height: '1px',
-          bgcolor: 'currentColor',
-        }}
-      />
-    </Box>
-  )
-}
-
-function renderManageTree(
-  nodes: HierarchyTreeNode[],
-  depth: number,
-  selectedId: string | null,
-  onSelect: (id: string) => void,
-): ReactNode[] {
-  const rows: ReactNode[] = []
-
-  for (const node of nodes) {
-    rows.push(
-      <ListItemButton
-        key={node.id}
-        selected={selectedId === node.id}
-        onClick={() => onSelect(node.id)}
-        sx={{
-          minHeight: ROW_HEIGHT,
-          py: 0.5,
-          pl: `${12 + depth * INDENT_PX}px`,
-          pr: 1,
-          '&.Mui-selected': {
-            bgcolor: 'action.selected',
-            '&:hover': { bgcolor: 'action.selected' },
-          },
-        }}
-      >
-        <TreeConnector depth={depth} />
-        <Typography variant="body2" noWrap sx={{ fontWeight: depth === 0 ? 600 : 400 }}>
-          {node.name}
-        </Typography>
-      </ListItemButton>,
-    )
-    if (node.children?.length) {
-      rows.push(...renderManageTree(node.children, depth + 1, selectedId, onSelect))
-    }
-  }
-
-  return rows
 }
 
 const outlineFieldSx = {
@@ -345,27 +259,24 @@ export interface JobTitleManageOverlayProps {
 export function JobTitleManageOverlay({ onClose, onTreeChanged }: JobTitleManageOverlayProps) {
   const { showMessage } = useAdminSnackbar()
   const tree = useJobTitleStore((state) => state.tree)
+  const ensureSeeded = useJobTitleStore((state) => state.ensureSeeded)
   const remove = useJobTitleStore((state) => state.remove)
   const getSubtreePathLabels = useJobTitleStore((state) => state.getSubtreePathLabels)
   const directoryUsers = useUserDirectoryStore((state) => state.users)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [formMode, setFormMode] = useState<JobTitleFormMode | null>(null)
-
-  const allOptions = useMemo(() => collectNestedPathOptions(tree), [tree])
-  const isSearching = searchQuery.trim().length > 0
-  const filteredOptions = useMemo(
-    () => filterNestedPathOptions(allOptions, searchQuery),
-    [allOptions, searchQuery],
-  )
 
   const selectedPathLabel = selectedId ? getJobTitlePathLabel(tree, selectedId) : ''
 
   const notifyTreeChanged = () => {
     onTreeChanged?.()
   }
+
+  useEffect(() => {
+    ensureSeeded()
+  }, [ensureSeeded])
 
   const closeForm = () => setFormMode(null)
 
@@ -393,25 +304,24 @@ export function JobTitleManageOverlay({ onClose, onTreeChanged }: JobTitleManage
     return () => window.removeEventListener('keydown', onKeyDown, true)
   }, [confirmDeleteOpen, formMode, onClose])
 
-  const getAssignedUsersForSelection = () => {
-    if (!selectedId) return []
-    const pathLabels = getSubtreePathLabels(selectedId)
+  const getAssignedUsersForNode = (nodeId: string) => {
+    const pathLabels = getSubtreePathLabels(nodeId)
     return findUsersAssignedToJobTitlePaths(directoryUsers, pathLabels)
   }
 
-  const requestDelete = () => {
-    if (!selectedId) return
-    const assignedUsers = getAssignedUsersForSelection()
+  const requestDeleteForNode = (nodeId: string) => {
+    const assignedUsers = getAssignedUsersForNode(nodeId)
     if (assignedUsers.length > 0) {
       showMessage(formatJobTitleDeleteBlockedMessage(assignedUsers), 'warning')
       return
     }
+    setSelectedId(nodeId)
     setConfirmDeleteOpen(true)
   }
 
   const handleDelete = () => {
     if (!selectedId) return
-    const assignedUsers = getAssignedUsersForSelection()
+    const assignedUsers = getAssignedUsersForNode(selectedId)
     if (assignedUsers.length > 0) {
       showMessage(formatJobTitleDeleteBlockedMessage(assignedUsers), 'warning')
       setConfirmDeleteOpen(false)
@@ -424,6 +334,18 @@ export function JobTitleManageOverlay({ onClose, onTreeChanged }: JobTitleManage
     notifyTreeChanged()
   }
 
+  const handleSelectNode = (node: OrgChartTreeNode) => setSelectedId(node.id)
+
+  const handleEditNode = (node: OrgChartTreeNode) => {
+    setSelectedId(node.id)
+    setFormMode({ type: 'edit', nodeId: node.id })
+  }
+
+  const handleAddChildNode = (node: OrgChartTreeNode) => {
+    setSelectedId(node.id)
+    setFormMode({ type: 'add-child', parentId: node.id })
+  }
+
   return (
     <>
       <Paper
@@ -431,7 +353,7 @@ export function JobTitleManageOverlay({ onClose, onTreeChanged }: JobTitleManage
         onClick={(e) => e.stopPropagation()}
         sx={{
           ...responsiveModalWidthSx(MANAGE_MODAL_WIDTH_PX),
-          maxHeight: 'min(640px, 88vh)',
+          maxHeight: 'min(760px, 90vh)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -476,7 +398,17 @@ export function JobTitleManageOverlay({ onClose, onTreeChanged }: JobTitleManage
           </IconButton>
         </Box>
 
-        <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto', px: 2.5, py: 2 }}>
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflow: 'hidden',
+            px: 2.5,
+            py: 2,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
           {confirmDeleteOpen ? (
             <Stack spacing={2}>
               <Typography variant="subtitle1" fontWeight={600}>
@@ -495,67 +427,19 @@ export function JobTitleManageOverlay({ onClose, onTreeChanged }: JobTitleManage
               </Box>
             </Stack>
           ) : (
-            <Stack spacing={2.5}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Search job titles..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={outlineFieldSx}
+            <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
+              <HierarchyManageTreePanel
+                nodes={tree}
+                entityLabel="job titles"
+                childLabelSingular="1 sub-title"
+                childLabelPlural="{count} sub-titles"
+                selectedId={selectedId}
+                onSelect={handleSelectNode}
+                onEdit={handleEditNode}
+                onDelete={(node) => requestDeleteForNode(node.id)}
+                onAddChild={handleAddChildNode}
+                emptyMessage='No job titles yet. Use "Add root" to create one.'
               />
-
-              <Box
-                sx={{
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  maxHeight: 280,
-                  overflowY: 'auto',
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <List dense disablePadding>
-                  {!isSearching ? (
-                    tree.length === 0 ? (
-                      <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          No job titles yet. Use &quot;Add root&quot; to create one.
-                        </Typography>
-                      </Box>
-                    ) : (
-                      renderManageTree(tree, 0, selectedId, setSelectedId)
-                    )
-                  ) : filteredOptions.length === 0 ? (
-                    <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        No job titles match your search.
-                      </Typography>
-                    </Box>
-                  ) : (
-                    filteredOptions.map((option) => (
-                      <ListItemButton
-                        key={option.id}
-                        selected={selectedId === option.id}
-                        onClick={() => setSelectedId(option.id)}
-                        sx={{ minHeight: ROW_HEIGHT, py: 0.5, px: 1.5 }}
-                      >
-                        <Typography variant="body2" noWrap>
-                          {option.label}
-                        </Typography>
-                      </ListItemButton>
-                    ))
-                  )}
-                </List>
-              </Box>
 
               {selectedId ? (
                 <Box
@@ -566,6 +450,7 @@ export function JobTitleManageOverlay({ onClose, onTreeChanged }: JobTitleManage
                     bgcolor: 'action.hover',
                     border: 1,
                     borderColor: 'divider',
+                    flexShrink: 0,
                   }}
                 >
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
@@ -577,7 +462,7 @@ export function JobTitleManageOverlay({ onClose, onTreeChanged }: JobTitleManage
                 </Box>
               ) : null}
 
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, flexShrink: 0 }}>
                 <Button
                   variant="outlined"
                   size="small"
@@ -586,46 +471,6 @@ export function JobTitleManageOverlay({ onClose, onTreeChanged }: JobTitleManage
                   sx={{ textTransform: 'none' }}
                 >
                   Add root
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<SubdirectoryArrowRightIcon />}
-                  onClick={() => {
-                    if (!selectedId) {
-                      showMessage('Select a parent job title first', 'warning')
-                      return
-                    }
-                    setFormMode({ type: 'add-child', parentId: selectedId })
-                  }}
-                  disabled={!selectedId}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Add child
-                </Button>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<EditOutlinedIcon />}
-                  onClick={() => {
-                    if (!selectedId) return
-                    setFormMode({ type: 'edit', nodeId: selectedId })
-                  }}
-                  disabled={!selectedId}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  color="error"
-                  startIcon={<DeleteOutlineIcon />}
-                  onClick={requestDelete}
-                  disabled={!selectedId}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Delete
                 </Button>
               </Box>
             </Stack>

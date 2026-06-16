@@ -11,8 +11,16 @@ export interface UserAuditCategoryMeta {
 
 export const USER_AUDIT_CATEGORIES: UserAuditCategoryMeta[] = [
   {
+    id: 'user_lifecycle',
+    heading: 'User changes',
+    description: 'User added, updated, and retired',
+    bg: '#E0E7FF',
+    border: '#818CF8',
+    countColor: '#4338CA',
+  },
+  {
     id: 'user_delete',
-    heading: 'User deletes',
+    heading: 'User removed',
     description: 'User removal and delete actions',
     bg: '#FEE2E2',
     border: '#F87171',

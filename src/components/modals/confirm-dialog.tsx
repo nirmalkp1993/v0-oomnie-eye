@@ -63,7 +63,8 @@ export function ConfirmDialog({
       onClose={onClose}
       title={title}
       description={description}
-      maxWidth="lg"
+      maxWidth="confirm"
+      showOpacityControl={false}
       headerIcon={HeaderIcon ? <ConfirmDialogIcon icon={HeaderIcon} /> : undefined}
       footer={
         <>
@@ -82,7 +83,7 @@ export function ConfirmDialog({
         </>
       }
     >
-      <Box sx={{ px: 3, py: 1 }} />
+      {null}
     </EarthDialogShell>
   )
 }

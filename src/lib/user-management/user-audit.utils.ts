@@ -3,6 +3,7 @@ import type { UserAuditCategory, UserAuditEntry } from '@/src/types/user-managem
 
 export function countAuditByCategory(entries: UserAuditEntry[]): Record<UserAuditCategory, number> {
   const counts: Record<UserAuditCategory, number> = {
+    user_lifecycle: 0,
     user_delete: 0,
     admin_data_add: 0,
     general_data_add: 0,

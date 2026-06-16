@@ -55,7 +55,7 @@ export function UserDetailModal({
       title={user.name}
       description={user.email}
       headerIcon={<PersonIcon sx={{ fontSize: 28 }} />}
-      maxWidth="4xl"
+      maxWidth="6xl"
       showOpacityControl
       footer={
         onEditProfile ? (

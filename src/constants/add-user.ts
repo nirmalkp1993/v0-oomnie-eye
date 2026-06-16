@@ -34,14 +34,19 @@ export const JOB_TITLE_OPTIONS = [
 export const TERRITORY_OPTIONS = ['Europe', 'America', 'Asia'] as const
 
 export const OFFICE_OPTIONS = [
-  'United States',
-  'Canada',
-  'United Kingdom',
-  'Germany',
-  'United Arab Emirates',
-  'India',
-  'Singapore',
-  'Australia',
+  'Kadel Labs, Singhvi Square, IT Park, Madri, Udaipur, Rajasthan 313001, India',
+  'Kadel Labs Corporate Office, Jaipur, Rajasthan, India',
+  'Kadel Labs Technology Center, Ahmedabad, Gujarat, India',
+  'Kadel Labs Innovation Center, Pune, Maharashtra, India',
+  'Kadel Labs Development Hub, Bengaluru, Karnataka, India',
+  'Kadel Labs Digital Solutions Center, Hyderabad, Telangana, India',
+  'Kadel Labs Engineering Office, Chennai, Tamil Nadu, India',
+  'Kadel Labs Research & Development Center, Gurugram, Haryana, India',
+  'Kadel Labs Business Operations Center, Noida, Uttar Pradesh, India',
+  'Kadel Labs Technology Hub, Indore, Madhya Pradesh, India',
+  'Kadel Labs Corporate Branch, Mumbai, Maharashtra, India',
+  'Kadel Labs Innovation Lab, Kochi, Kerala, India',
+  'Kadel Labs Software Development Center, Chandigarh, India',
 ] as const
 
 export const REGION_OPTIONS = ['Americas', 'EMEA', 'APAC'] as const

@@ -1,4 +1,5 @@
 import { DEFAULT_TENANT_NAME } from '@/src/constants/add-user'
+import { createEmptyRoleMatrixGrants } from '@/src/constants/user-role-permission-matrix'
 import type { CreateRoleFormValues, DataScopeId } from '@/src/types/user-management'
 
 export interface PermissionModule {
@@ -124,5 +125,6 @@ export const INITIAL_CREATE_ROLE_FORM: CreateRoleFormValues = {
   status: "active",
   highRisk: false,
   selectedPermissions: [],
+  permissionMatrix: createEmptyRoleMatrixGrants(),
   dataScopeIds: ["own_records", "assigned_records"],
 };

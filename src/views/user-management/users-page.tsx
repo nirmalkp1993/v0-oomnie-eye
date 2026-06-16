@@ -36,7 +36,13 @@ import {
 } from '@/src/lib/user-management/user-lifecycle.utils'
 import { getUserRowCellValue } from '@/src/lib/user-management/user-row-values'
 import { openUserImpersonationTab } from '@/src/lib/user-management/user-impersonation.utils'
+import {
+  logUserRemoved,
+  logUserRetired,
+  logUserUpdated,
+} from '@/src/lib/user-management/user-audit-log.utils'
 import { useUserDirectoryStore } from '@/lib/user-directory-store'
+import { useUserAuditStore } from '@/lib/user-audit-store'
 import { MOCK_USERS } from '@/src/mock-data/users'
 import type { UserListItem, UserStatus } from '@/src/types/user-management'
 
@@ -74,6 +80,14 @@ export function UsersPage() {
   const [confirmSingleDelete, setConfirmSingleDelete] = useState<UserListItem | null>(null)
   const [confirmSingleRetire, setConfirmSingleRetire] = useState<UserListItem | null>(null)
   const setDirectoryUsers = useUserDirectoryStore((state) => state.setUsers)
+  const hydrateAuditFromUsers = useUserAuditStore((state) => state.hydrateFromUsers)
+  const ensureUserAuditLogs = useUserAuditStore((state) => state.ensureUserLogs)
+
+  useEffect(() => {
+    if (!loading && rows.length > 0) {
+      hydrateAuditFromUsers(rows)
+    }
+  }, [hydrateAuditFromUsers, loading, rows])
 
   useEffect(() => {
     setLoading(true)
@@ -204,17 +218,20 @@ export function UsersPage() {
       if (existingId) {
         const saved = { ...user, id: existingId }
         setRows((prev) => prev.map((r) => (r.id === existingId ? saved : r)))
+        logUserUpdated(existingId, saved.name)
         showMessage('User updated')
       } else {
         setRows((prev) => [user, ...prev])
+        ensureUserAuditLogs(user)
         showMessage('User created')
       }
       setUserModal({ open: false, mode: 'create', user: null })
     },
-    [userModal.user?.id, showMessage]
+    [ensureUserAuditLogs, userModal.user?.id, showMessage]
   )
 
-  const retireUser = useCallback((userId: string) => {
+  const retireUser = useCallback((userId: string, userName: string) => {
+    logUserRetired(userId, userName)
     setRows((prev) =>
       prev.map((row) => (row.id === userId ? { ...row, status: RETIRED_USER_STATUS } : row)),
     )
@@ -226,9 +243,9 @@ export function UsersPage() {
   }, [])
 
   const bulkRetire = () => {
-    const idSet = new Set(
-      selectedUsers.filter((user) => !isUserRetired(user)).map((user) => user.id),
-    )
+    const usersToRetire = selectedUsers.filter((user) => !isUserRetired(user))
+    const idSet = new Set(usersToRetire.map((user) => user.id))
+    usersToRetire.forEach((user) => logUserRetired(user.id, user.name))
     setRows((prev) =>
       prev.map((row) => (idSet.has(row.id) ? { ...row, status: RETIRED_USER_STATUS } : row)),
     )
@@ -237,9 +254,11 @@ export function UsersPage() {
   }
 
   const bulkDelete = () => {
-    const idSet = new Set(selectedIds)
+    const usersToRemove = selectedUsers.filter((user) => isUserRetired(user))
+    const idSet = new Set(usersToRemove.map((user) => user.id))
+    usersToRemove.forEach((user) => logUserRemoved(user.id, user.name))
     setRows((prev) => prev.filter((r) => !idSet.has(r.id)))
-    setSelectedIds([])
+    setSelectedIds((prev) => prev.filter((id) => !idSet.has(id)))
     setConfirmBulkDelete(false)
     showMessage(`${idSet.size} user(s) removed`, 'info')
   }
@@ -264,7 +283,7 @@ export function UsersPage() {
 
   const confirmRetireUser = useCallback(() => {
     if (!confirmSingleRetire) return
-    retireUser(confirmSingleRetire.id)
+    retireUser(confirmSingleRetire.id, confirmSingleRetire.name)
     showMessage(`${confirmSingleRetire.name} retired`, 'info')
     setConfirmSingleRetire(null)
   }, [confirmSingleRetire, retireUser, showMessage])
@@ -276,6 +295,7 @@ export function UsersPage() {
       setConfirmSingleDelete(null)
       return
     }
+    logUserRemoved(confirmSingleDelete.id, confirmSingleDelete.name)
     setRows((prev) => prev.filter((r) => r.id !== confirmSingleDelete.id))
     setSelectedIds((prev) => prev.filter((id) => id !== confirmSingleDelete.id))
     showMessage('User deleted', 'info')
