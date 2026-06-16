@@ -21,6 +21,7 @@ interface JobTitleStore {
   remove: (id: string) => string[]
   getSubtreePathLabels: (id: string) => string[]
   nameExists: (name: string, excludeId?: string) => boolean
+  ensureSeeded: () => void
 }
 
 function validateName(
@@ -70,4 +71,10 @@ export const useJobTitleStore = create<JobTitleStore>((set, get) => ({
   getSubtreePathLabels: (id) => collectSubtreePathLabels(get().tree, id),
 
   nameExists: (name, excludeId) => jobTitleNameExists(get().tree, name, excludeId),
+
+  ensureSeeded: () => {
+    if (get().tree.length === 0) {
+      set({ tree: JOB_TITLE_HIERARCHY_TREE.map((node) => structuredClone(node)) })
+    }
+  },
 }))
