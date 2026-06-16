@@ -5,15 +5,19 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import { Box, Button } from '@mui/material'
+import type { ReactNode } from 'react'
 
 export interface DialogFormFooterProps {
   isCreate: boolean
   isEditing: boolean
   onClose: () => void
-  onEdit: () => void
+  onEdit?: () => void
   onSave: () => void
   onDelete?: () => void
   deleteLabel?: string
+  deleteIcon?: ReactNode
+  deleteColor?: 'error' | 'warning'
+  editLabel?: string
 }
 
 export function DialogFormFooter({
@@ -24,6 +28,9 @@ export function DialogFormFooter({
   onSave,
   onDelete,
   deleteLabel = 'Delete',
+  deleteIcon = <DeleteOutlineIcon />,
+  deleteColor = 'error',
+  editLabel = 'Edit',
 }: DialogFormFooterProps) {
   if (isCreate) {
     return (
@@ -45,8 +52,8 @@ export function DialogFormFooter({
         <Button
           type="button"
           variant="contained"
-          color="error"
-          startIcon={<DeleteOutlineIcon />}
+          color={deleteColor}
+          startIcon={deleteIcon}
           sx={{ mr: 'auto' }}
           onClick={onDelete}
         >
@@ -62,11 +69,11 @@ export function DialogFormFooter({
         <Button type="button" variant="contained" startIcon={<SaveOutlinedIcon />} onClick={onSave}>
           Save
         </Button>
-      ) : (
+      ) : onEdit ? (
         <Button type="button" variant="contained" startIcon={<EditOutlinedIcon />} onClick={onEdit}>
-          Edit
+          {editLabel}
         </Button>
-      )}
+      ) : null}
     </>
   )
 }

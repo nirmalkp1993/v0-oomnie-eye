@@ -12,22 +12,13 @@ export const USER_STATUS_FORM_OPTIONS: { value: UserStatus; label: string }[] = 
   { value: 'archived', label: 'Archived' },
 ]
 
-export const OFFICE_OPTIONS = [
-  'Head Office',
-  'Regional Office - North',
-  'Regional Office - South',
-  'Branch Office - East',
-  'Branch Office - West',
-] as const
-
 export const DEPARTMENT_OPTIONS = [
-  'Operations',
+  'HR',
+  'IT',
   'Finance',
-  'Security',
-  'Engineering',
   'Sales',
-  'Customer Support',
-  'Human Resources',
+  'Marketing',
+  'Administration',
 ] as const
 
 export const JOB_TITLE_OPTIONS = [
@@ -40,9 +31,9 @@ export const JOB_TITLE_OPTIONS = [
   'Executive',
 ] as const
 
-export const TERRITORY_OPTIONS = ['North', 'South', 'East', 'West', 'Central'] as const
+export const TERRITORY_OPTIONS = ['Europe', 'America', 'Asia'] as const
 
-export const COUNTRY_OPTIONS = [
+export const OFFICE_OPTIONS = [
   'United States',
   'Canada',
   'United Kingdom',
@@ -63,17 +54,19 @@ export const BUSINESS_UNIT_OPTIONS = [
 ] as const
 
 export const INITIAL_CREATE_USER_FORM: CreateUserFormValues = {
-  firstName: '',
-  lastName: '',
+  fullName: '',
+  avatarUrl: '',
   email: '',
   phone: '',
   department: SELECT_EMPTY_VALUE,
   jobTitle: SELECT_EMPTY_VALUE,
   territory: SELECT_EMPTY_VALUE,
-  country: SELECT_EMPTY_VALUE,
+  office: SELECT_EMPTY_VALUE,
   region: SELECT_EMPTY_VALUE,
   businessUnit: SELECT_EMPTY_VALUE,
   status: 'pending',
+  roleId: SELECT_EMPTY_VALUE,
+  groupIds: [],
   customAttributes: '',
 }
 

@@ -12,6 +12,8 @@ import { GroupsPage } from '@/src/views/user-management/groups-page'
 import { PermissionsPage } from '@/src/views/user-management/permissions-page'
 import { RolesPage } from '@/src/views/user-management/roles-page'
 import { UsersPage } from '@/src/views/user-management/users-page'
+import { useImpersonationStore } from '@/lib/impersonation-store'
+import { ImpersonationBanner } from '@/src/components/user-management/impersonation-banner'
 
 function usesEnterpriseTheme(tab: AppTab): boolean {
   return isCameraTab(tab) || tab === 'reports' || isUserManagementTab(tab)
@@ -34,6 +36,10 @@ export default function Home() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  useEffect(() => {
+    useImpersonationStore.getState().hydrate()
   }, [])
 
   const mainContent = (
@@ -64,6 +70,7 @@ export default function Home() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <AppHeader sidebarExpanded={sidebarExpanded} onSidebarToggle={toggleSidebar} />
+      <ImpersonationBanner />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <AppSidebar
           activeTab={activeTab}

@@ -63,7 +63,8 @@ export function groupToFormValues(group: GroupListItem): CreateGroupFormValues {
 
 export function buildGroupListItemFromForm(
   form: CreateGroupFormValues,
-  existingId?: string
+  existing?: GroupListItem,
+  parentGroupId?: string | null,
 ): GroupListItem {
   const inheritedRoles = GROUP_INHERITABLE_ROLES.filter((r) =>
     form.inheritedRoleIds.includes(r.id)
@@ -73,7 +74,7 @@ export function buildGroupListItemFromForm(
     form.groupType === 'static' ? form.selectedUserIds.length : countMatchedUsers(form)
 
   return {
-    id: existingId ?? `grp-${Date.now()}`,
+    id: existing?.id ?? `grp-${Date.now()}`,
     name: form.name.trim(),
     description: form.description.trim() || '—',
     type: form.groupType,
@@ -82,6 +83,9 @@ export function buildGroupListItemFromForm(
     scope: buildScopeLabel(form),
     status: form.status,
     lastUpdated: new Date().toISOString().slice(0, 10),
+    parentGroupIds:
+      existing?.parentGroupIds ??
+      (parentGroupId ? [parentGroupId] : []),
     memberUserIds: form.groupType === 'static' ? [...form.selectedUserIds] : undefined,
     ruleMatchMode: form.groupType === 'dynamic' ? form.ruleMatchMode : undefined,
     rules: form.groupType === 'dynamic' ? [...form.rules] : undefined,

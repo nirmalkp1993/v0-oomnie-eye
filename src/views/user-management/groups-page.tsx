@@ -1,243 +1,145 @@
 'use client'
 
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
-import { Box, Button, IconButton, Menu, MenuItem, Typography } from '@mui/material'
-import MoreVertIcon from '@mui/icons-material/MoreVert'
-import CreateNewFolderOutlinedIcon from '@mui/icons-material/CreateNewFolderOutlined'
-import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
-import { ExplorerListTableProvider } from '@/components/tables/explorer-list-table-context'
-import { GROUP_LIST_COLUMNS } from '@/lib/explorer-list-table/user-management-columns'
+import { useCallback, useEffect, useState } from 'react'
+import { Box } from '@mui/material'
+import { useUserDirectoryStore } from '@/lib/user-directory-store'
+import { useUserGroupStore } from '@/lib/user-group-store'
 import { AddGroupModal } from '@/src/components/user-management/groups/add-group-modal'
+import { UserGroupHierarchyView } from '@/src/components/user-management/groups/user-group-hierarchy-view'
+import { UserFormModal } from '@/src/components/modals/user-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
-import { UserManagementExplorerTable } from '@/src/components/user-management/user-management-explorer-table'
 import { UserManagementPageShell } from '@/src/components/user-management/user-management-page-shell'
-import { UserManagementTableToolbar } from '@/src/components/user-management/user-management-table-toolbar'
-import {
-  UmPrimaryText,
-  UmSecondaryText,
-  myDrawingsPrimaryButtonSx,
-  myDrawingsToolbarIconButtonSx,
-  umStatusTextSx,
-} from '@/src/components/user-management/user-management-table-primitives'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
-import { getGroupRowCellValue } from '@/src/lib/user-management/group-row-values'
-import { MOCK_GROUPS } from '@/src/mock-data/groups'
 import { MOCK_USERS } from '@/src/mock-data/users'
-import type { GroupListItem } from '@/src/types/user-management'
+import type { GroupListItem, UserListItem } from '@/src/types/user-management'
 
-const directoryUsers = MOCK_USERS.map((u) => ({
-  id: u.id,
-  name: u.name,
-  email: u.email,
+const directoryUsers = MOCK_USERS.map((user) => ({
+  id: user.id,
+  name: user.name,
+  email: user.email,
 }))
 
 export function GroupsPage() {
   const { showMessage } = useAdminSnackbar()
-  const [rows, setRows] = useState<GroupListItem[]>([])
+  const upsertGroup = useUserGroupStore((state) => state.upsertGroup)
+  const removeGroup = useUserGroupStore((state) => state.removeGroup)
+  const groups = useUserGroupStore((state) => state.groups)
+  const setDirectoryUsers = useUserDirectoryStore((state) => state.setUsers)
+
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
-  const [menuRow, setMenuRow] = useState<GroupListItem | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editGroup, setEditGroup] = useState<GroupListItem | null>(null)
+  const [parentGroupId, setParentGroupId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<GroupListItem | null>(null)
+  const [viewUser, setViewUser] = useState<UserListItem | null>(null)
+
+  useEffect(() => {
+    setDirectoryUsers(MOCK_USERS.map((user) => ({ ...user })))
+  }, [setDirectoryUsers])
 
   useEffect(() => {
     setLoading(true)
-    const t = window.setTimeout(() => {
-      setRows(MOCK_GROUPS.map((g) => ({ ...g })))
-      setLoading(false)
-    }, 600)
-    return () => window.clearTimeout(t)
+    const timer = window.setTimeout(() => setLoading(false), 400)
+    return () => window.clearTimeout(timer)
   }, [])
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter(
-      (r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.description.toLowerCase().includes(q) ||
-        r.scope.toLowerCase().includes(q)
-    )
-  }, [rows, search])
-
-  const closeMenu = () => {
-    setMenuAnchor(null)
-    setMenuRow(null)
-  }
-
-  const handleOpenCreate = () => {
-    setEditGroup(null)
-    setModalOpen(true)
-  }
-
-  const handleGroupSelect = useCallback((group: GroupListItem) => {
-    setEditGroup(group)
-    setModalOpen(true)
-  }, [])
+  const parentGroupName = parentGroupId
+    ? groups.find((group) => group.id === parentGroupId)?.name ?? null
+    : null
 
   const handleModalClose = () => {
     setModalOpen(false)
+    setEditGroup(null)
+    setParentGroupId(null)
   }
 
-  const handleGroupCreated = useCallback((group: GroupListItem) => {
-    setRows((prev) => [group, ...prev])
+  const handleOpenCreateRoot = useCallback(() => {
+    setEditGroup(null)
+    setParentGroupId(null)
+    setModalOpen(true)
   }, [])
 
-  const handleGroupUpdated = useCallback((group: GroupListItem) => {
-    setRows((prev) => prev.map((r) => (r.id === group.id ? group : r)))
+  const handleCreateSubgroup = useCallback((parentId: string) => {
+    setEditGroup(null)
+    setParentGroupId(parentId)
+    setModalOpen(true)
+  }, [])
+
+  const handleEditGroup = useCallback((group: GroupListItem) => {
     setEditGroup(group)
+    setParentGroupId(null)
+    setModalOpen(true)
   }, [])
 
-  const handleRowClick = useCallback(
-    (row: GroupListItem, event: MouseEvent<HTMLTableRowElement>) => {
-      const target = event.target as HTMLElement
-      if (target.closest('[data-um-actions]') || target.closest('button')) {
-        return
-      }
-      handleGroupSelect(row)
+  const handleViewUser = useCallback((user: UserListItem) => {
+    setViewUser(user)
+  }, [])
+
+  const handleGroupCreated = useCallback(
+    (group: GroupListItem) => {
+      upsertGroup(group)
     },
-    [handleGroupSelect]
+    [upsertGroup],
   )
 
-  const requestDeleteGroup = useCallback((row: GroupListItem) => {
+  const handleGroupUpdated = useCallback(
+    (group: GroupListItem) => {
+      upsertGroup(group)
+      setEditGroup(group)
+    },
+    [upsertGroup],
+  )
+
+  const requestDeleteGroup = useCallback((group: GroupListItem) => {
     setModalOpen(false)
-    setConfirmDelete(row)
+    setConfirmDelete(group)
   }, [])
 
   const confirmDeleteGroup = useCallback(() => {
     if (!confirmDelete) return
-    setRows((prev) => prev.filter((r) => r.id !== confirmDelete.id))
+    removeGroup(confirmDelete.id)
     showMessage('Group deleted', 'info')
     setConfirmDelete(null)
     setEditGroup(null)
-  }, [confirmDelete, showMessage])
-
-  const renderCell = useCallback((row: GroupListItem, columnId: string) => {
-    switch (columnId) {
-      case 'name':
-        return <UmPrimaryText>{row.name}</UmPrimaryText>
-      case 'description':
-        return <UmSecondaryText>{row.description}</UmSecondaryText>
-      case 'type':
-        return (
-          <Typography variant="body2" sx={umStatusTextSx('muted')}>
-            {row.type === 'static' ? 'Static' : 'Dynamic'}
-          </Typography>
-        )
-      case 'memberCount':
-        return <UmSecondaryText>{row.memberCount}</UmSecondaryText>
-      case 'inheritedRoles':
-        return <UmSecondaryText>{row.inheritedRoles.join(', ') || '—'}</UmSecondaryText>
-      case 'scope':
-        return <UmSecondaryText>{row.scope}</UmSecondaryText>
-      case 'status':
-        return (
-          <Typography variant="body2" sx={umStatusTextSx(row.status === 'active' ? 'active' : 'muted')}>
-            {row.status}
-          </Typography>
-        )
-      case 'lastUpdated':
-        return <UmSecondaryText>{row.lastUpdated}</UmSecondaryText>
-      case 'actions':
-        return (
-          <IconButton
-            size="small"
-            aria-label="Row actions"
-            data-um-actions
-            sx={myDrawingsToolbarIconButtonSx}
-            onClick={(e) => {
-              e.stopPropagation()
-              setMenuRow(row)
-              setMenuAnchor(e.currentTarget)
-            }}
-          >
-            <MoreVertIcon fontSize="small" />
-          </IconButton>
-        )
-      default:
-        return null
-    }
-  }, [])
+  }, [confirmDelete, removeGroup, showMessage])
 
   return (
     <>
       <UserManagementPageShell title="Groups" description="">
-        <ExplorerListTableProvider storageKey="explorer-list-table:groups" columns={GROUP_LIST_COLUMNS}>
-          <UserManagementTableToolbar
-            search={search}
-            onSearchChange={setSearch}
-            searchPlaceholder="Search groups…"
-            resultCount={filtered.length}
-            resultLabel="group"
-            trailingActions={
-              <Button
-                variant="contained"
-                disableElevation
-                size="small"
-                startIcon={<CreateNewFolderOutlinedIcon />}
-                onClick={handleOpenCreate}
-                sx={myDrawingsPrimaryButtonSx}
-              >
-                New group
-              </Button>
-            }
+        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, display: 'flex', opacity: loading ? 0.6 : 1 }}>
+          <UserGroupHierarchyView
+            onOpenCreateRoot={handleOpenCreateRoot}
+            onCreateSubgroup={handleCreateSubgroup}
+            onEditGroup={handleEditGroup}
+            onDeleteGroup={requestDeleteGroup}
+            onViewUser={handleViewUser}
           />
-
-          <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <UserManagementExplorerTable
-              rows={filtered}
-              loading={loading}
-              getRowId={(r) => r.id}
-              getCellValue={getGroupRowCellValue}
-              renderCell={renderCell}
-              onRowClick={handleRowClick}
-              primaryColumnId="name"
-              minHeight={480}
-              emptyMessage={
-                search.trim()
-                  ? 'No groups match your search or filters.'
-                  : 'No groups yet. Add a group to get started.'
-              }
-            />
-          </Box>
-        </ExplorerListTableProvider>
+        </Box>
       </UserManagementPageShell>
-
-      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
-        <MenuItem
-          onClick={() => {
-            if (menuRow) handleGroupSelect(menuRow)
-            closeMenu()
-          }}
-        >
-          <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Edit
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            if (menuRow) requestDeleteGroup(menuRow)
-            closeMenu()
-          }}
-        >
-          <DeleteOutlineIcon fontSize="small" sx={{ mr: 1 }} /> Delete
-        </MenuItem>
-      </Menu>
 
       <AddGroupModal
         open={modalOpen}
         editGroup={editGroup}
+        parentGroupId={parentGroupId}
+        parentGroupName={parentGroupName}
         onClose={handleModalClose}
         onCreated={handleGroupCreated}
         onUpdated={handleGroupUpdated}
         directoryUsers={directoryUsers}
       />
 
+      <UserFormModal
+        open={Boolean(viewUser)}
+        mode="view"
+        initial={viewUser ?? undefined}
+        onClose={() => setViewUser(null)}
+        onSubmit={() => {}}
+      />
+
       <ConfirmDialog
         open={Boolean(confirmDelete)}
         title="Delete group?"
-        description={`Remove ${confirmDelete?.name ?? ''}?`}
+        description={`Remove ${confirmDelete?.name ?? ''} and all nested subgroups?`}
         destructive
         confirmLabel="Delete"
         onClose={() => setConfirmDelete(null)}

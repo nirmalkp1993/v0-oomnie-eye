@@ -1,0 +1,60 @@
+---
+description: Prototype has no backend — use isolated client state per module
+alwaysApply: true
+---
+
+# Prototype: Client-Only State (No Backend)
+
+This app is a UI prototype. There is no server, database, or REST API. All data lives in client state and resets on refresh.
+
+## Module boundaries
+
+Each feature owns its state. Changes in one module must not leak into others.
+
+| Module | State location | Seed data |
+|--------|----------------|-----------|
+| Camera | `lib/camera-store.ts` | `lib/mock-data.ts` |
+| Earth pins | `lib/pin-store.ts` | inline in store |
+| Report placemarks | `lib/report-placemark-store.ts` | `lib/report-placemark-mock-data.ts` |
+| Earth dock filter | `lib/earth-dock-filter-store.ts` | — |
+| User management | page-level `useState` in `src/views/user-management/*` | `src/mock-data/*` |
+
+## Rules when adding or changing code
+
+1. **Never add backend calls** — no `fetch('/api/...')`, axios, or server actions for CRUD. External media streams (e.g. WHEP) are the only exception.
+2. **Mutate only through the owning store or page state** — never import and mutate mock arrays in place.
+3. **Seed from mock data, then copy** — initialize with `.map((x) => ({ ...x }))` or store actions; treat `src/mock-data/*` and `lib/mock-data.ts` as read-only seeds.
+4. **New shared domain data → new Zustand store** in `lib/*-store.ts`, following existing stores (`create`, typed interface, actions, selectors).
+5. **Page-only UI state stays local** — modals, search, filters, selection: `useState` in the page or a colocated hook under `src/hooks/`.
+6. **Types stay in module types** — `types/*` or `src/types/*`; do not reuse another module's types unless the link is intentional (e.g. pin ↔ camera id).
+7. **Cross-module reads only** — one module may read another store (e.g. pin links a camera id) but must not write to it. Update each domain through its own actions.
+8. **Keep diffs scoped** — touch files in one module folder when possible; avoid editing shared UI primitives or global layout for a single-feature change.
+
+## Zustand store pattern
+
+```typescript
+'use client'
+import { create } from 'zustand'
+
+interface FooStore {
+  items: Foo[]
+  addItem: (data: Omit<Foo, 'id'>) => void
+}
+
+export const useFooStore = create<FooStore>((set) => ({
+  items: mockFoos,
+  addItem: (data) =>
+    set((s) => ({ items: [...s.items, { ...data, id: crypto.randomUUID() }] })),
+}))
+```
+
+## Page-level pattern (user management style)
+
+```typescript
+const [rows, setRows] = useState<Item[]>([])
+useEffect(() => {
+  setRows(MOCK_ITEMS.map((r) => ({ ...r })))
+}, [])
+```
+
+Components receive data and callbacks via props; they do not import mock files directly unless read-only and scoped to that subtree.

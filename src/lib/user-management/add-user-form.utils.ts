@@ -2,6 +2,14 @@ import {
   INITIAL_CREATE_USER_FORM,
   SELECT_EMPTY_VALUE,
 } from '@/src/constants/add-user'
+import {
+  catalogIdToRoleName,
+  roleNameToCatalogId,
+} from '@/src/constants/user-detail'
+import {
+  groupMockIdsToNames,
+  userGroupNamesToMockIds,
+} from '@/src/lib/user-management/group-members.utils'
 import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -21,8 +29,7 @@ export function parseCustomAttributes(raw: string): Record<string, string> {
 }
 
 export function validateCreateUserForm(form: CreateUserFormValues): string | null {
-  if (!form.firstName.trim()) return 'firstName'
-  if (!form.lastName.trim()) return 'lastName'
+  if (!form.fullName.trim()) return 'fullName'
   if (!form.email.trim()) return 'email'
   if (!EMAIL_PATTERN.test(form.email.trim())) return 'emailInvalid'
   return null
@@ -46,23 +53,24 @@ function customAttributesToFormString(attrs?: Record<string, string>): string {
 }
 
 export function userToFormValues(user: UserListItem): CreateUserFormValues {
-  const nameParts = user.name.trim().split(/\s+/)
-  const firstName = nameParts[0] ?? ''
-  const lastName = nameParts.slice(1).join(' ')
-
   return {
     ...INITIAL_CREATE_USER_FORM,
-    firstName,
-    lastName,
+    fullName: user.name,
+    avatarUrl: user.avatarUrl ?? '',
     email: user.email,
     phone: user.phone ?? SELECT_EMPTY_VALUE,
     department: fieldFromUser(user.department),
     jobTitle: fieldFromUser(user.jobTitle),
     territory: fieldFromUser(user.territory),
-    country: fieldFromUser(user.country),
+    office: fieldFromUser(user.office),
     region: fieldFromUser(user.region),
     businessUnit: fieldFromUser(user.businessUnit),
     status: user.status,
+    roleId:
+      user.roles
+        .map((name) => roleNameToCatalogId(name))
+        .find((id): id is string => Boolean(id)) ?? SELECT_EMPTY_VALUE,
+    groupIds: userGroupNamesToMockIds(user.groups),
     customAttributes: customAttributesToFormString(user.customAttributes),
   }
 }
@@ -71,24 +79,26 @@ export function buildUserListItemFromForm(
   form: CreateUserFormValues,
   existing?: UserListItem
 ): UserListItem {
-  const firstName = form.firstName.trim()
-  const lastName = form.lastName.trim()
   const customAttributes = parseCustomAttributes(form.customAttributes)
 
   return {
     id: existing?.id ?? `user-${Date.now()}`,
-    name: [firstName, lastName].filter(Boolean).join(' '),
+    name: form.fullName.trim(),
+    avatarUrl: form.avatarUrl.trim() || undefined,
     email: form.email.trim(),
     phone: orEmpty(form.phone),
     department: orEmpty(form.department) ?? '—',
     jobTitle: orEmpty(form.jobTitle),
     territory: orEmpty(form.territory),
-    country: orEmpty(form.country) ?? '—',
+    office: orEmpty(form.office) ?? '—',
     region: orEmpty(form.region),
     businessUnit: orEmpty(form.businessUnit),
     status: form.status,
-    roles: existing?.roles ?? [],
-    groups: existing?.groups ?? [],
+    roles: (() => {
+      const name = catalogIdToRoleName(form.roleId)
+      return name ? [name] : []
+    })(),
+    groups: groupMockIdsToNames(form.groupIds),
     lastLogin: existing?.lastLogin ?? null,
     customAttributes:
       Object.keys(customAttributes).length > 0 ? customAttributes : undefined,

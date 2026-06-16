@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, type MouseEvent, type ReactNode } from 'react'
+import { useMemo, type DragEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   Box,
   Checkbox,
@@ -32,10 +32,16 @@ import {
 export type UserManagementExplorerTableProps<TRow> = {
   rows: TRow[]
   loading?: boolean
+  embedded?: boolean
   getRowId: (row: TRow) => string
   getCellValue: (row: TRow, columnId: string) => string
   renderCell: (row: TRow, columnId: string) => ReactNode
   onRowClick?: (row: TRow, event: MouseEvent<HTMLTableRowElement>) => void
+  onRowDoubleClick?: (row: TRow, event: MouseEvent<HTMLTableRowElement>) => void
+  onRowContextMenu?: (row: TRow, event: MouseEvent<HTMLTableRowElement>) => void
+  rowClickToggleSelect?: boolean
+  isRowDraggable?: (row: TRow) => boolean
+  onRowDragStart?: (row: TRow, event: DragEvent<HTMLTableRowElement>) => void
   emptyMessage?: string
   primaryColumnId?: string
   checkboxSelection?: boolean
@@ -47,10 +53,16 @@ export type UserManagementExplorerTableProps<TRow> = {
 export function UserManagementExplorerTable<TRow>({
   rows,
   loading = false,
+  embedded = false,
   getRowId,
   getCellValue,
   renderCell,
   onRowClick,
+  onRowDoubleClick,
+  onRowContextMenu,
+  rowClickToggleSelect = false,
+  isRowDraggable,
+  onRowDragStart,
   emptyMessage = 'No rows match your search or filters.',
   primaryColumnId: _primaryColumnId,
   checkboxSelection = false,
@@ -101,20 +113,8 @@ export function UserManagementExplorerTable<TRow>({
 
   const colSpan = visibleColumns.length + (checkboxSelection ? 1 : 0)
 
-  return (
-    <Paper
-      elevation={0}
-      sx={(theme) => ({
-        overflow: 'hidden',
-        minHeight,
-        position: 'relative',
-        flex: 1,
-        minWidth: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        ...getEnterpriseSettingsCardSx(theme),
-      })}
-    >
+  const tableContent = (
+    <>
       {loading ? (
         <Box
           sx={{
@@ -156,14 +156,33 @@ export function UserManagementExplorerTable<TRow>({
             {displayRows.map((row) => {
               const id = getRowId(row)
               const isSelected = selectedIds.includes(id)
+              const draggable = isRowDraggable?.(row) ?? false
+              const isInteractive =
+                Boolean(onRowClick) ||
+                Boolean(onRowContextMenu) ||
+                rowClickToggleSelect ||
+                draggable
               return (
                 <TableRow
                   key={id}
                   hover={false}
-                  onClick={onRowClick ? (e) => onRowClick(row, e) : undefined}
+                  draggable={draggable}
+                  onDragStart={onRowDragStart ? (e) => onRowDragStart(row, e) : undefined}
+                  onClick={(e) => {
+                    if (onRowClick) {
+                      onRowClick(row, e)
+                      return
+                    }
+                    if (rowClickToggleSelect) {
+                      toggleRow(id)
+                    }
+                  }}
+                  onDoubleClick={onRowDoubleClick ? (e) => onRowDoubleClick(row, e) : undefined}
+                  onContextMenu={onRowContextMenu ? (e) => onRowContextMenu(row, e) : undefined}
                   sx={{
                     ...myDrawingsBodyRowSx({ selected: isSelected }),
-                    cursor: onRowClick ? 'pointer' : 'default',
+                    cursor: draggable ? 'grab' : isInteractive ? 'pointer' : 'default',
+                    ...(draggable ? { '&:active': { cursor: 'grabbing' } } : {}),
                   }}
                 >
                   {checkboxSelection ? (
@@ -210,6 +229,42 @@ export function UserManagementExplorerTable<TRow>({
           </TableBody>
         </Table>
       </TableContainer>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <Box
+        sx={{
+          overflow: 'hidden',
+          minHeight,
+          position: 'relative',
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {tableContent}
+      </Box>
+    )
+  }
+
+  return (
+    <Paper
+      elevation={0}
+      sx={(theme) => ({
+        overflow: 'hidden',
+        minHeight,
+        position: 'relative',
+        flex: 1,
+        minWidth: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        ...getEnterpriseSettingsCardSx(theme),
+      })}
+    >
+      {tableContent}
     </Paper>
   )
 }

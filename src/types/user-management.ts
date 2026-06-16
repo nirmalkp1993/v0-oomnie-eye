@@ -6,30 +6,34 @@ export type UserStatus =
   | 'pending'
   | 'suspended'
   | 'archived'
+  | 'retired'
 
 export interface CreateUserFormValues {
-  firstName: string
-  lastName: string
+  fullName: string
+  avatarUrl: string
   email: string
   phone: string
   department: string
   jobTitle: string
   territory: string
-  country: string
+  office: string
   region: string
   businessUnit: string
   status: UserStatus
+  roleId: string
+  groupIds: string[]
   customAttributes: string
 }
 
 export interface UserListItem {
   id: string
   name: string
+  avatarUrl?: string
   email: string
   roles: string[]
   groups: string[]
   department: string
-  country: string
+  office: string
   status: UserStatus
   lastLogin: string | null
   jobTitle?: string
@@ -52,11 +56,18 @@ export interface UserGroupOption {
   description: string
 }
 
+export type UserAuditCategory =
+  | 'user_delete'
+  | 'admin_data_add'
+  | 'general_data_add'
+  | 'read_view'
+
 export interface UserAuditEntry {
   id: string
   action: string
   context: string
   date: string
+  category: UserAuditCategory
 }
 
 export type GroupType = 'static' | 'dynamic'
@@ -105,6 +116,7 @@ export interface GroupListItem {
   scope: string
   status: GroupStatus
   lastUpdated: string
+  parentGroupIds?: string[]
   memberUserIds?: string[]
   ruleMatchMode?: RuleMatchMode
   rules?: DynamicRule[]

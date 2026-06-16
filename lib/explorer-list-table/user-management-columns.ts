@@ -10,7 +10,7 @@ export const USER_LIST_COLUMNS: ExplorerListColumnDef[] = [
   { id: 'roles', label: 'Roles', headerClassName: 'min-w-[160px]' },
   { id: 'groups', label: 'Groups', headerClassName: 'min-w-[160px]' },
   { id: 'department', label: 'Department', headerClassName: 'min-w-[130px]' },
-  { id: 'country', label: 'Country', headerClassName: 'min-w-[120px]' },
+  { id: 'office', label: 'Office', headerClassName: 'min-w-[120px]' },
   { id: 'lastLogin', label: 'Last Login', headerClassName: 'min-w-[120px]' },
   { id: 'status', label: 'Status', headerClassName: 'min-w-[100px]' },
   {
@@ -22,6 +22,11 @@ export const USER_LIST_COLUMNS: ExplorerListColumnDef[] = [
     headerClassName: 'sticky right-0 z-10 min-w-[72px] bg-card text-right',
   },
 ]
+
+/** User directory columns for group assignment panels (no row actions). */
+export const USER_GROUP_ASSIGN_USER_COLUMNS: ExplorerListColumnDef[] = USER_LIST_COLUMNS.filter(
+  (column) => column.id !== 'actions',
+)
 
 export const GROUP_LIST_COLUMNS: ExplorerListColumnDef[] = [
   {

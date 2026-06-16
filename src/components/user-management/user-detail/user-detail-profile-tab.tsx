@@ -28,7 +28,7 @@ export function UserDetailProfileTab({ user }: { user: UserListItem }) {
     { label: 'Department', value: user.department?.trim() || dash },
     { label: 'Business unit', value: user.businessUnit?.trim() || dash },
     { label: 'Territory', value: user.territory?.trim() || dash },
-    { label: 'Country', value: user.country?.trim() || dash },
+    { label: 'Office', value: user.office?.trim() || dash },
     { label: 'Region', value: user.region?.trim() || dash },
     { label: 'Last login', value: user.lastLogin?.trim() || dash },
   ]

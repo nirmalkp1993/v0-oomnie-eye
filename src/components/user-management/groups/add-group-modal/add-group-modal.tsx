@@ -21,6 +21,8 @@ export interface AddGroupModalProps {
   open: boolean
   onClose: () => void
   editGroup?: GroupListItem | null
+  parentGroupId?: string | null
+  parentGroupName?: string | null
   onCreated: (group: GroupListItem) => void
   onUpdated?: (group: GroupListItem) => void
   tenantName?: string
@@ -31,6 +33,8 @@ export function AddGroupModal({
   open,
   onClose,
   editGroup = null,
+  parentGroupId = null,
+  parentGroupName = null,
   onCreated,
   onUpdated,
   tenantName = DEFAULT_TENANT_NAME,
@@ -99,7 +103,7 @@ export function AddGroupModal({
 
     setSubmitting(true)
     try {
-      const group = buildGroupListItemFromForm(form, editGroup?.id)
+      const group = buildGroupListItemFromForm(form, editGroup ?? undefined, parentGroupId)
       if (isEdit && onUpdated) {
         onUpdated(group)
         showMessage('Group updated')
@@ -120,11 +124,13 @@ export function AddGroupModal({
     <AppDialog
       open={open}
       onClose={handleClose}
-      title={isEdit ? 'Edit group' : 'New group'}
+      title={isEdit ? 'Edit group' : parentGroupId ? 'New subgroup' : 'New group'}
       description={
         isEdit
           ? 'Update membership rules, manual members, and inherited roles.'
-          : `Create a static or dynamic group in ${tenantName}.`
+          : parentGroupName
+            ? `Create a subgroup under ${parentGroupName} in ${tenantName}.`
+            : `Create a static or dynamic group in ${tenantName}.`
       }
       icon={UsersRound}
       maxWidth="4xl"

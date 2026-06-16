@@ -11,7 +11,21 @@ export const MOCK_GROUPS: GroupListItem[] = [
     scope: '2 manually selected',
     status: 'active',
     lastUpdated: '2026-05-15',
+    parentGroupIds: [],
     memberUserIds: ['0', '1'],
+  },
+  {
+    id: 'grp-operations-field',
+    name: 'Field operations',
+    description: 'Field staff within operations',
+    type: 'static',
+    memberCount: 1,
+    inheritedRoles: ['Operations Manager'],
+    scope: '1 manually selected',
+    status: 'active',
+    lastUpdated: '2026-05-14',
+    parentGroupIds: ['grp-operations'],
+    memberUserIds: ['1'],
   },
   {
     id: 'grp-security',
@@ -23,6 +37,7 @@ export const MOCK_GROUPS: GroupListItem[] = [
     scope: '1 manually selected',
     status: 'active',
     lastUpdated: '2026-05-14',
+    parentGroupIds: [],
     memberUserIds: ['0'],
   },
   {
@@ -35,6 +50,7 @@ export const MOCK_GROUPS: GroupListItem[] = [
     scope: 'Department equals Finance + 1 more (ALL)',
     status: 'active',
     lastUpdated: '2026-05-12',
+    parentGroupIds: [],
     ruleMatchMode: 'ALL',
     rules: [
       { id: 'r1', field: 'department', operator: 'equals', value: 'Finance' },
