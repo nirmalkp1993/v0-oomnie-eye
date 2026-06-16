@@ -55,7 +55,6 @@ export function RolePermissionMatrixEditor({
       <RolePermissionMatrixTable
         grants={grants}
         readOnly={disabled}
-        maxHeight={360}
         onScopeChange={handleScopeChange}
       />
     </EarthDialogSectionCard>

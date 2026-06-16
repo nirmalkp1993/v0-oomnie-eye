@@ -5,7 +5,7 @@ import { RolePermissionMatrixTable } from '@/src/components/user-management/role
 
 export function RolePermissionMatrixReadonly({
   grants,
-  maxHeight = 420,
+  maxHeight,
 }: {
   grants: UserRoleMatrixGrants
   maxHeight?: number

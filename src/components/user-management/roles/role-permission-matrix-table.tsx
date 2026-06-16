@@ -56,7 +56,7 @@ const actionBodySx = {
 export function RolePermissionMatrixTable({
   grants,
   readOnly = true,
-  maxHeight = 420,
+  maxHeight,
   onScopeChange,
 }: {
   grants: UserRoleMatrixGrants;
@@ -68,6 +68,8 @@ export function RolePermissionMatrixTable({
     scope: RoleMatrixScope,
   ) => void;
 }) {
+  const scrollable = maxHeight != null;
+
   return (
     <Paper
       elevation={0}
@@ -80,9 +82,9 @@ export function RolePermissionMatrixTable({
         ...getEnterpriseSettingsCardSx(theme),
       })}
     >
-      <TableContainer sx={{ maxHeight, overflowY: "auto" }}>
+      <TableContainer sx={scrollable ? { maxHeight, overflowY: "auto" } : undefined}>
         <Table
-          stickyHeader
+          stickyHeader={scrollable}
           size="small"
           aria-label="Role permission matrix"
           sx={{ tableLayout: "fixed", width: "100%" }}
