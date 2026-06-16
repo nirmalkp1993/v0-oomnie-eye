@@ -1,4 +1,4 @@
-import { USER_MANAGEMENT_FORM_FIELDS } from '@/src/constants/field-permissions'
+import { USER_MANAGEMENT_FORM_FIELDS, USERS_FORM_ID } from '@/src/constants/field-permissions'
 import type {
   FieldPermissionFlag,
   FieldPermissionFlags,
@@ -49,8 +49,8 @@ export function canPrint(flags: FieldPermissionFlags): boolean {
 }
 
 export function getFieldsForForm(formId: string): FormFieldDefinition[] {
-  if (formId === "user_management_form" || formId === "user_profile_form") {
-    return USER_MANAGEMENT_FORM_FIELDS;
+  if (formId === USERS_FORM_ID) {
+    return USER_MANAGEMENT_FORM_FIELDS
   }
-  return USER_MANAGEMENT_FORM_FIELDS.slice(0, 6);
+  return USER_MANAGEMENT_FORM_FIELDS
 }

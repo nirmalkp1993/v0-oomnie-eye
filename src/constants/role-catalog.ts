@@ -45,11 +45,65 @@ export const DATA_SCOPE_OPTIONS: {
   title: string
   description: string
 }[] = [
-  { id: 'own_records', title: 'Own records', description: 'Only records owned by the user' },
-  { id: 'assigned_records', title: 'Assigned records', description: 'Records assigned to the user' },
-  { id: 'department', title: 'Department', description: 'All records in the user department' },
-  { id: 'country', title: 'Country', description: 'Records in assigned countries' },
+  { id: 'all_tenant_data', title: 'All', description: 'Full access to all records in the module' },
+  { id: 'own_records', title: "User's items", description: 'Only records owned by the user' },
+  { id: 'assigned_records', title: 'Assigned items', description: 'Records assigned to the user' },
+  { id: 'department', title: 'User department', description: 'All records in the user department' },
+  { id: 'office', title: 'Office', description: 'Records in the user office' },
   { id: 'territory', title: 'Territory', description: 'Records in assigned territories' },
+  { id: 'country', title: 'Country', description: 'Records in assigned countries' },
+  { id: 'public_data', title: 'Public', description: 'Public records visible to everyone' },
+]
+
+/** Labels for all scope values (display in grid cells and legacy data). */
+export const SCOPE_GRANT_LABELS: Record<DataScopeId | 'deny', string> = {
+  deny: 'No',
+  office: "User's office",
+  department: "User department's items",
+  department_subdepartments: "User dept. subdepartment's items",
+  public_data: 'All items marked as "Available to everyone"',
+  own_records: "User's items",
+  assigned_records: 'Assigned items',
+  country: 'Country',
+  territory: 'Territory',
+  region: 'Region',
+  business_unit: 'Business unit',
+  all_tenant_data: 'All',
+  global_all_tenants: 'Global (all tenants)',
+  custom_filter: 'Custom filter',
+}
+
+/** Bitrix access grid — scope options shown in the permission cell menu. */
+export const BITRIX_SCOPE_DROPDOWN_OPTIONS: {
+  id: DataScopeId | 'deny'
+  title: string
+  description: string
+}[] = [
+  {
+    id: 'deny',
+    title: 'No access',
+    description: 'User cannot perform this action.',
+  },
+  {
+    id: 'office',
+    title: SCOPE_GRANT_LABELS.office,
+    description: 'Records in the user\'s assigned office.',
+  },
+  {
+    id: 'department',
+    title: SCOPE_GRANT_LABELS.department,
+    description: 'Records belonging to the user\'s department.',
+  },
+  {
+    id: 'department_subdepartments',
+    title: SCOPE_GRANT_LABELS.department_subdepartments,
+    description: 'Department records including all subdepartments.',
+  },
+  {
+    id: 'public_data',
+    title: SCOPE_GRANT_LABELS.public_data,
+    description: 'Records shared publicly across the organization.',
+  },
 ]
 
 export const SELECTABLE_DATA_SCOPE_IDS = new Set(

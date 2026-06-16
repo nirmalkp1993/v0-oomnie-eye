@@ -1,47 +1,21 @@
 import type { FieldPermissionFlags, FormFieldDefinition } from '@/src/types/field-permissions'
 
 export const FIELD_PERMISSION_COLUMNS: { key: keyof FieldPermissionFlags; labelKey: string }[] = [
-  { key: "visible", labelKey: "visible" },
-  { key: "readOnly", labelKey: "readOnly" },
-  { key: "masked", labelKey: "masked" },
-  { key: "required", labelKey: "required" },
-  { key: "exportable", labelKey: "exportable" },
-  { key: "printable", labelKey: "printable" },
-  { key: "denyExport", labelKey: "denyExport" },
-  { key: "denyPrint", labelKey: "denyPrint" },
-];
+  { key: 'visible', labelKey: 'visible' },
+  { key: 'readOnly', labelKey: 'readOnly' },
+  { key: 'masked', labelKey: 'masked' },
+  { key: 'required', labelKey: 'required' },
+  { key: 'exportable', labelKey: 'exportable' },
+  { key: 'printable', labelKey: 'printable' },
+  { key: 'denyExport', labelKey: 'denyExport' },
+  { key: 'denyPrint', labelKey: 'denyPrint' },
+]
 
-export const FIELD_ROLE_OPTIONS = [
-  { id: "auditor", label: "Auditor" },
-  { id: "admin", label: "Admin" },
-  { id: "tenant_admin", label: "Tenant Admin" },
-  { id: "operations_manager", label: "Operations Manager" },
-  { id: "viewer", label: "Viewer" },
-] as const;
-
-export const FIELD_MODULE_OPTIONS = [
-  { id: "all", labelKey: "allModules" },
-  { id: "user_management", labelKey: "userManagement" },
-  { id: "finance", labelKey: "finance" },
-] as const;
+export const USERS_FORM_ID = 'um_users_form' as const
 
 export const FIELD_FORM_OPTIONS = [
-  { id: "user_management_form", label: "FORM - User Management Form" },
-  { id: "user_profile_form", label: "FORM - User Profile Form" },
-  { id: "expense_report", label: "REPORT - Expense Summary" },
-] as const;
-
-export const FIELD_PREVIEW_USERS = [
-  { id: "jerry", label: "Jerry Chen" },
-  { id: "avery", label: "Avery Chen" },
-  { id: "priya", label: "Priya Shah" },
-] as const;
-
-export const FIELD_PREVIEW_PERSPECTIVES = [
-  { id: "admin", labelKey: "admin" },
-  { id: "team_lead", labelKey: "teamLead" },
-  { id: "operations_manager", labelKey: "operationsManager" },
-] as const;
+  { id: USERS_FORM_ID, label: 'Users — User Management Form' },
+] as const
 
 /** Fields for User Management form (matches mock). */
 export const USER_MANAGEMENT_FORM_FIELDS: FormFieldDefinition[] = [

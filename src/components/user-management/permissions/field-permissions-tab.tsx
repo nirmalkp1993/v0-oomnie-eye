@@ -19,15 +19,19 @@ import {
   Typography,
 } from '@mui/material'
 import {
-  AUDITOR_FIELD_GRANTS,
-  cloneFieldGrants,
-  DEFAULT_FIELD_GRANTS,
   FIELD_FORM_OPTIONS,
   FIELD_PERMISSION_COLUMNS,
-  FIELD_ROLE_OPTIONS,
+  USERS_FORM_ID,
 } from '@/src/constants/field-permissions'
+import {
+  cloneFieldGrants,
+  DEFAULT_FIELD_ROLE_ID,
+  getFieldGrantsForRole,
+} from '@/src/mock-data/field-permissions'
+import { MOCK_ROLES } from '@/src/mock-data/roles'
+import { MOCK_USERS } from '@/src/mock-data/users'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
-import type { FieldPermissionFlag, FieldPreviewPerspective } from '@/src/types/field-permissions'
+import type { FieldPermissionFlag } from '@/src/types/field-permissions'
 import { FieldPermissionsSidebar } from './field-permissions-sidebar'
 import { filterFormFields, getFieldsForForm, toggleFieldFlag } from '@/src/lib/user-management/field-permissions.utils'
 import { PermissionsDrawingsTableShell } from './permissions-drawings-table-shell'
@@ -61,34 +65,31 @@ const FLAG_LABELS: Record<string, string> = {
   denyPrint: 'Deny print',
 }
 
-const ROLE_GRANTS: Record<string, typeof DEFAULT_FIELD_GRANTS> = {
-  auditor: AUDITOR_FIELD_GRANTS,
-  admin: DEFAULT_FIELD_GRANTS,
-  tenant_admin: DEFAULT_FIELD_GRANTS,
-  operations_manager: DEFAULT_FIELD_GRANTS,
-  viewer: DEFAULT_FIELD_GRANTS,
-}
-
 export function FieldPermissionsTab() {
   const { showMessage } = useAdminSnackbar()
-  const [roleId, setRoleId] = useState('auditor')
-  const [formId, setFormId] = useState('user_management_form')
+  const [roleId, setRoleId] = useState(DEFAULT_FIELD_ROLE_ID)
+  const [formId, setFormId] = useState(USERS_FORM_ID)
   const [search, setSearch] = useState('')
-  const [previewUserId, setPreviewUserId] = useState('jerry')
-  const [perspective, setPerspective] = useState<FieldPreviewPerspective>('admin')
-  const [grants, setGrants] = useState(() => cloneFieldGrants(AUDITOR_FIELD_GRANTS))
-  const [savedSnapshot, setSavedSnapshot] = useState(() => cloneFieldGrants(AUDITOR_FIELD_GRANTS))
+  const [previewUserId, setPreviewUserId] = useState(MOCK_USERS[0]?.id ?? '0')
+  const [grants, setGrants] = useState(() => getFieldGrantsForRole(DEFAULT_FIELD_ROLE_ID))
+  const [savedSnapshot, setSavedSnapshot] = useState(() =>
+    cloneFieldGrants(getFieldGrantsForRole(DEFAULT_FIELD_ROLE_ID)),
+  )
 
   const allFields = useMemo(() => getFieldsForForm(formId), [formId])
   const visibleFields = useMemo(() => filterFormFields(allFields, search), [allFields, search])
 
   const handleRoleChange = useCallback((nextRole: string) => {
     setRoleId(nextRole)
-    const preset = ROLE_GRANTS[nextRole] ?? DEFAULT_FIELD_GRANTS
-    const cloned = cloneFieldGrants(preset)
-    setGrants(cloned)
+    const preset = getFieldGrantsForRole(nextRole)
+    setGrants(preset)
     setSavedSnapshot(cloneFieldGrants(preset))
   }, [])
+
+  const previewUser = useMemo(
+    () => MOCK_USERS.find((u) => u.id === previewUserId) ?? MOCK_USERS[0],
+    [previewUserId],
+  )
 
   return (
     <Box>
@@ -113,7 +114,7 @@ export function FieldPermissionsTab() {
             size="small"
             startIcon={<RefreshIcon fontSize="small" />}
             onClick={() => {
-              const preset = ROLE_GRANTS[roleId] ?? DEFAULT_FIELD_GRANTS
+              const preset = getFieldGrantsForRole(roleId)
               setGrants(cloneFieldGrants(preset))
               showMessage('Defaults applied', 'info')
             }}
@@ -159,9 +160,9 @@ export function FieldPermissionsTab() {
         <FormControl size="small" sx={umFilterSelectSx}>
           <InputLabel>Role</InputLabel>
           <Select label="Role" value={roleId} onChange={(e) => handleRoleChange(e.target.value)}>
-            {FIELD_ROLE_OPTIONS.map((opt) => (
-              <MenuItem key={opt.id} value={opt.id}>
-                {opt.label}
+            {MOCK_ROLES.map((role) => (
+              <MenuItem key={role.id} value={role.id}>
+                {role.name}
               </MenuItem>
             ))}
           </Select>
@@ -254,9 +255,8 @@ export function FieldPermissionsTab() {
           fields={allFields}
           grants={grants}
           previewUserId={previewUserId}
-          perspective={perspective}
+          previewUserRoles={previewUser?.roles ?? []}
           onPreviewUserChange={setPreviewUserId}
-          onPerspectiveChange={setPerspective}
         />
       </Box>
     </Box>

@@ -13,7 +13,12 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { DEFAULT_EFFECTIVE_USER_ID, EFFECTIVE_PREVIEW_USERS } from '@/src/constants/effective-preview'
+import { useBitrixPermissions } from '@/src/contexts/bitrix-permissions-context'
+import { MOCK_USERS } from '@/src/mock-data/users'
+import {
+  resolveEffectiveGrants,
+  toEffectivePreviewRows,
+} from '@/src/lib/user-management/permission-resolver'
 import { PermissionsDrawingsTableShell } from './permissions-drawings-table-shell'
 import { PermissionsSectionTitle } from './permissions-section-title'
 import {
@@ -30,20 +35,18 @@ import {
   umFilterSelectSx,
 } from './permissions-shared-styles'
 
-const EFFECTIVE_PREVIEW_COLUMNS = ['Resource', 'Type', 'Module', 'Action'] as const
+const EFFECTIVE_PREVIEW_COLUMNS = ['Resource', 'Type', 'Module', 'Action / Scope'] as const
 
 export function EffectivePreviewTab() {
-  const [userId, setUserId] = useState(DEFAULT_EFFECTIVE_USER_ID)
+  const { scopeGrants, booleanGrants } = useBitrixPermissions()
+  const [userId, setUserId] = useState(MOCK_USERS[0]?.id ?? '1')
 
-  const user = useMemo(
-    () => EFFECTIVE_PREVIEW_USERS.find((u) => u.id === userId) ?? EFFECTIVE_PREVIEW_USERS[0],
-    [userId]
+  const resolved = useMemo(
+    () => resolveEffectiveGrants(userId, scopeGrants, booleanGrants),
+    [userId, scopeGrants, booleanGrants],
   )
 
-  if (!user) return null
-
-  const permissionCount = user.permissions.length
-  const roleCount = user.roles.length
+  const rows = useMemo(() => toEffectivePreviewRows(resolved), [resolved])
 
   return (
     <Box>
@@ -59,7 +62,7 @@ export function EffectivePreviewTab() {
       >
         <PermissionsSectionTitle
           title="Effective permissions"
-          description="Aggregated grants for a user across all assigned roles."
+          description="Computed from Access permissions grid, direct roles, and group inheritance."
           sx={{ mb: 0, flex: '1 1 280px' }}
         />
         <FormControl size="small" sx={{ ...umFilterSelectSx, minWidth: 200 }}>
@@ -68,7 +71,7 @@ export function EffectivePreviewTab() {
             onChange={(e) => setUserId(e.target.value)}
             sx={{ fontWeight: 500, ...myDrawingsBodyPrimaryTypographySx }}
           >
-            {EFFECTIVE_PREVIEW_USERS.map((u) => (
+            {MOCK_USERS.map((u) => (
               <MenuItem key={u.id} value={u.id}>
                 {u.name}
               </MenuItem>
@@ -90,20 +93,26 @@ export function EffectivePreviewTab() {
       >
         <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
           <Typography variant="body2" sx={settingsBodySecondarySx}>
-            Effective roles ({roleCount}):
+            Effective roles ({resolved.roleNames.length}):
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-            {user.roles.map((role) => (
-              <Chip key={role} label={role} size="small" sx={rolePillSx} />
-            ))}
+            {resolved.roleNames.length === 0 ? (
+              <Typography variant="body2" sx={settingsBodySecondarySx}>
+                None
+              </Typography>
+            ) : (
+              resolved.roleNames.map((role) => (
+                <Chip key={role} label={role} size="small" sx={rolePillSx} />
+              ))
+            )}
           </Box>
         </Box>
         <Box>
           <Typography variant="body2" sx={{ ...settingsBodyPrimarySx, fontWeight: 600 }}>
-            {permissionCount} effective permissions
+            {rows.length} effective permissions
           </Typography>
           <Typography variant="caption" sx={settingsBodySecondarySx}>
-            Merged from all roles assigned to this user
+            Merged from roles and groups for {resolved.userName}
           </Typography>
         </Box>
       </Box>
@@ -121,7 +130,7 @@ export function EffectivePreviewTab() {
           </TableRow>
         </TableHead>
         <TableBody sx={myDrawingsTableBodySx}>
-          {user.permissions.length === 0 ? (
+          {rows.length === 0 ? (
             <TableRow hover={false}>
               <TableCell colSpan={4} sx={{ ...myDrawingsTableCellSx, py: 6, textAlign: 'center' }}>
                 <Typography sx={myDrawingsBodySecondaryTypographySx}>
@@ -130,7 +139,7 @@ export function EffectivePreviewTab() {
               </TableCell>
             </TableRow>
           ) : (
-            user.permissions.map((row) => (
+            rows.map((row) => (
               <TableRow key={row.id} hover={false} sx={myDrawingsBodyRowSx()}>
                 <TableCell sx={myDrawingsTableCellSx}>
                   <Typography variant="body2" sx={myDrawingsBodyPrimaryTypographySx}>

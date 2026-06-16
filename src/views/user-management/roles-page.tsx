@@ -1,5 +1,6 @@
 'use client'
 
+import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined'
@@ -101,6 +102,25 @@ export function RolesPage() {
       setModal({ open: false, mode: 'create', row: null })
     },
     [modal.row?.id, showMessage]
+  )
+
+  const cloneRole = useCallback(
+    (source: RoleListItem) => {
+      const id = `role-${Date.now()}`
+      const clone: RoleListItem = {
+        ...source,
+        id,
+        name: `${source.name} (copy)`,
+        badges: source.badges.filter((b) => b !== 'system'),
+        userCount: 0,
+        groupCount: 0,
+        lastUpdated: new Date().toISOString().slice(0, 10),
+      }
+      setRows((prev) => [clone, ...prev])
+      showMessage('Role cloned')
+      closeMenu()
+    },
+    [showMessage, closeMenu]
   )
 
   const renderCell = useCallback((row: RoleListItem, columnId: string) => {
@@ -216,8 +236,16 @@ export function RolesPage() {
         <MenuItem onClick={() => menuRow && openEdit(menuRow)}>
           <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Edit
         </MenuItem>
+        <MenuItem onClick={() => menuRow && cloneRole(menuRow)}>
+          <ContentCopyOutlinedIcon fontSize="small" sx={{ mr: 1 }} /> Clone
+        </MenuItem>
         <MenuItem
           onClick={() => {
+            if (menuRow?.badges.includes('system')) {
+              closeMenu()
+              showMessage('System roles cannot be deleted', 'warning')
+              return
+            }
             if (menuRow) {
               setModal({ open: false, mode: 'create', row: null })
               setConfirmDelete(menuRow)
