@@ -82,19 +82,30 @@ function EarthDialogShellInner({
     >
       <Box
         sx={{
-          position: 'relative',
           flexShrink: 0,
-          display: 'flex',
-          flexWrap: 'wrap',
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) auto' },
+          gridTemplateAreas: {
+            xs: `"title" "controls"`,
+            sm: `"title controls"`,
+          },
           alignItems: 'center',
-          rowGap: 1.25,
           columnGap: 2,
+          rowGap: 1.25,
           px: PL_CONTAINER_PADDING,
           py: PL_CARD_SPACING,
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: '1 1 200px', minWidth: 0 }}>
+        <Box
+          sx={{
+            gridArea: 'title',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 1.5,
+            minWidth: 0,
+          }}
+        >
           {headerIcon ? (
             <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', pt: 0.25 }}>{headerIcon}</Box>
           ) : null}
@@ -114,45 +125,43 @@ function EarthDialogShellInner({
           </Box>
         </Box>
 
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            flexWrap: 'nowrap',
-            gap: { xs: 0.5, sm: 1 },
-            flex: { xs: '1 1 100%', sm: '0 1 auto' },
-            minWidth: 0,
-            ml: { xs: 0, sm: 'auto' },
-            justifyContent: 'flex-end',
-            width: { xs: '100%', sm: 'auto' },
-            pr: showCloseButton ? 4 : 0,
-          }}
-        >
-          {showOpacityControl ? (
-            <PlacemarkOpacitySlider
-              value={cardBackgroundOpacity}
-              onChange={setCardBackgroundOpacity}
-              onChangeCommitted={setCardBackgroundOpacity}
-              ariaLabel="Dialog background opacity"
-            />
-          ) : null}
-          {showCloseButton ? (
-            <IconButton
-              aria-label="Close dialog"
-              onClick={onClose}
-              size="small"
-              sx={{
-                position: { xs: 'static', sm: 'absolute' },
-                right: { sm: 12 },
-                top: { sm: 12 },
-                flexShrink: 0,
-                color: 'text.secondary',
-              }}
-            >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          ) : null}
-        </Box>
+        {showOpacityControl || showCloseButton ? (
+          <Box
+            sx={{
+              gridArea: 'controls',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: 0.75,
+              flexShrink: 0,
+              minWidth: 0,
+              width: { xs: '100%', sm: 'auto' },
+            }}
+          >
+            {showOpacityControl ? (
+              <PlacemarkOpacitySlider
+                value={cardBackgroundOpacity}
+                onChange={setCardBackgroundOpacity}
+                onChangeCommitted={setCardBackgroundOpacity}
+                ariaLabel="Dialog background opacity"
+              />
+            ) : null}
+            {showCloseButton ? (
+              <IconButton
+                aria-label="Close dialog"
+                onClick={onClose}
+                size="small"
+                sx={{
+                  flexShrink: 0,
+                  color: 'text.secondary',
+                  alignSelf: 'center',
+                }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            ) : null}
+          </Box>
+        ) : null}
       </Box>
 
       {children != null && children !== false ? (
