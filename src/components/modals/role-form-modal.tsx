@@ -16,7 +16,7 @@ import { DialogFormFooter } from '@/src/components/modals/dialog-form-footer'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { DataScopePicker } from '@/src/components/user-management/roles/data-scope-picker'
-import { PermissionsEditor } from '@/src/components/user-management/roles/permissions-editor'
+import { RolePermissionMatrixEditor } from '@/src/components/user-management/roles/role-permission-matrix-editor'
 import { DEFAULT_TENANT_NAME, INITIAL_CREATE_ROLE_FORM } from '@/src/constants/role-catalog'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import {
@@ -60,23 +60,6 @@ export function RoleFormModal({
 
   const update = <K extends keyof CreateRoleFormValues>(key: K, value: CreateRoleFormValues[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
-  }
-
-  const togglePermission = (key: string) => {
-    setForm((prev) => ({
-      ...prev,
-      selectedPermissions: prev.selectedPermissions.includes(key)
-        ? prev.selectedPermissions.filter((k) => k !== key)
-        : [...prev.selectedPermissions, key],
-    }))
-  }
-
-  const setModulePermissions = (_moduleId: string, keys: string[], selected: boolean) => {
-    setForm((prev) => {
-      const set = new Set(prev.selectedPermissions)
-      keys.forEach((k) => (selected ? set.add(k) : set.delete(k)))
-      return { ...prev, selectedPermissions: [...set] }
-    })
   }
 
   const toggleScope = (scopeId: DataScopeId) => {
@@ -200,10 +183,9 @@ export function RoleFormModal({
           </Box>
         </EarthDialogSectionCard>
 
-        <PermissionsEditor
-          selectedPermissions={form.selectedPermissions}
-          onTogglePermission={togglePermission}
-          onSetModulePermissions={setModulePermissions}
+        <RolePermissionMatrixEditor
+          grants={form.permissionMatrix}
+          onChange={(permissionMatrix) => setForm((prev) => ({ ...prev, permissionMatrix }))}
           disabled={submitting}
         />
 

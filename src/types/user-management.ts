@@ -1,5 +1,7 @@
 /** User management types — aligned with OomniEye-DigitalTwin-Frontend */
 
+import type { UserRoleMatrixGrants } from '@/src/constants/user-role-permission-matrix'
+
 export type UserStatus =
   | 'active'
   | 'inactive'
@@ -141,12 +143,15 @@ export type DataScopeId =
   | 'global_all_tenants'
   | 'custom_filter'
 
+import type { UserRoleMatrixGrants } from '@/src/constants/user-role-permission-matrix'
+
 export interface CreateRoleFormValues {
   name: string
   description: string
   status: RoleStatus
   highRisk: boolean
   selectedPermissions: string[]
+  permissionMatrix: UserRoleMatrixGrants
   dataScopeIds: DataScopeId[]
 }
 
@@ -163,6 +168,7 @@ export interface RoleListItem {
   status: RoleStatus
   lastUpdated: string
   selectedPermissions?: string[]
+  permissionMatrix?: UserRoleMatrixGrants
   dataScopeIds?: DataScopeId[]
   highRisk?: boolean
 }

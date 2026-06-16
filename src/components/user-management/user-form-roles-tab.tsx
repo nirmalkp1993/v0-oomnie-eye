@@ -84,14 +84,7 @@ export function UserFormRolesTab({
       </EarthDialogSectionCard>
 
       {selectedRole && matrixGrants ? (
-        <EarthDialogSectionCard
-          title="Permission matrix"
-          icon={Shield}
-          tooltip="Module permissions granted by the selected role"
-          accentColor={EARTH_DIALOG_SECTION_ACCENTS.info}
-        >
-          <RolePermissionMatrixReadonly grants={matrixGrants} />
-        </EarthDialogSectionCard>
+        <RolePermissionMatrixReadonly grants={matrixGrants} />
       ) : (
         <Typography variant="body2" color="text.secondary" sx={{ px: 0.5 }}>
           Select a role to preview its permission matrix.
