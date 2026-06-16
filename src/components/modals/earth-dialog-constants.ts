@@ -6,10 +6,13 @@
 export const EARTH_DIALOG_WIDTH_PX = 900
 export const EARTH_DIALOG_WIDTH_WIDE_PX = 1200
 export const EARTH_DIALOG_WIDTH_EXTRA_WIDE_PX = 1400
+export const EARTH_DIALOG_WIDTH_CONFIRM_PX = 520
 
 export const earthDialogMaxWidthPx = {
   sm: 444,
   md: 600,
+  /** Compact confirmation dialogs (retire, delete, etc.) */
+  confirm: EARTH_DIALOG_WIDTH_CONFIRM_PX,
   lg: EARTH_DIALOG_WIDTH_PX,
   xl: EARTH_DIALOG_WIDTH_PX,
   '2xl': EARTH_DIALOG_WIDTH_PX,

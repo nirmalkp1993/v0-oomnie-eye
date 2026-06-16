@@ -32,7 +32,6 @@ export interface EarthDialogShellProps {
   maxWidth?: EarthDialogMaxWidth
   footer?: ReactNode
   children: ReactNode
-  /** Hide the default top-right close control (earth panel uses header close) */
   showCloseButton?: boolean
   /** Show placemark-style background opacity control in the header */
   showOpacityControl?: boolean
@@ -66,8 +65,8 @@ function EarthDialogShellInner({
       }}
       PaperProps={{
         sx: {
-          width: { xs: 'calc(100% - 32px)', sm: widthPx },
-          maxWidth: 'calc(100vw - 32px)',
+          width: `min(${widthPx}px, calc(100vw - 32px))`,
+          maxWidth: `min(${widthPx}px, calc(100vw - 32px))`,
           maxHeight: '90vh',
           m: 2,
           display: 'flex',
@@ -156,9 +155,11 @@ function EarthDialogShellInner({
         </Box>
       </Box>
 
-      <PlacemarkCardSurfaceProvider opacity={cardBackgroundOpacity}>
-        <Box sx={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'auto' }}>{children}</Box>
-      </PlacemarkCardSurfaceProvider>
+      {children != null && children !== false ? (
+        <PlacemarkCardSurfaceProvider opacity={cardBackgroundOpacity}>
+          <Box sx={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'auto' }}>{children}</Box>
+        </PlacemarkCardSurfaceProvider>
+      ) : null}
 
       {footer ? (
         <Box
