@@ -67,8 +67,9 @@ export type UserAuditCategory =
 
 export interface UserAuditEntry {
   id: string
-  action: string
-  context: string
+  actionType: string
+  description: string
+  details: string
   date: string
   category: UserAuditCategory
 }
