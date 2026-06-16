@@ -5,10 +5,8 @@ import AddIcon from '@mui/icons-material/Add'
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import { Box, IconButton, Menu, MenuItem, Tooltip, Typography } from '@mui/material'
-import {
-  BITRIX_ACCESS_UI,
-  BITRIX_ROLE_DISPLAY_NAMES,
-} from '@/src/constants/bitrix-access-ui'
+import { BITRIX_ACCESS_UI } from '@/src/constants/bitrix-access-ui'
+import { isDeletableGridRole } from '@/src/lib/user-management/bitrix-permissions.utils'
 import type { RoleListItem } from '@/src/types/user-management'
 
 const ADMIN_ROLE_ID = 'role-tenant-admin'
@@ -16,13 +14,20 @@ const ADMIN_ROLE_ID = 'role-tenant-admin'
 export function RoleColumnHeader({
   role,
   onAssignUsers,
+  onEditRole,
+  onDeleteRole,
 }: {
   role: RoleListItem
   onAssignUsers?: (role: RoleListItem) => void
+  onEditRole?: (role: RoleListItem) => void
+  onDeleteRole?: (role: RoleListItem) => void
 }) {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
-  const displayName = BITRIX_ROLE_DISPLAY_NAMES[role.id] ?? role.name
+  const displayName = role.name
   const isAdmin = role.id === ADMIN_ROLE_ID
+  const canDelete = isDeletableGridRole(role.id)
+
+  const closeMenu = () => setMenuAnchor(null)
 
   return (
     <Box
@@ -49,24 +54,34 @@ export function RoleColumnHeader({
       >
         <MoreVertIcon sx={{ fontSize: 16 }} />
       </IconButton>
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={() => setMenuAnchor(null)}
-      >
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu}>
         <MenuItem
           dense
           onClick={() => {
             onAssignUsers?.(role)
-            setMenuAnchor(null)
+            closeMenu()
           }}
         >
           Assign users
         </MenuItem>
-        <MenuItem dense onClick={() => setMenuAnchor(null)}>
-          Rename role
+        <MenuItem
+          dense
+          onClick={() => {
+            onEditRole?.(role)
+            closeMenu()
+          }}
+        >
+          Edit role
         </MenuItem>
-        <MenuItem dense onClick={() => setMenuAnchor(null)} disabled={isAdmin}>
+        <MenuItem
+          dense
+          onClick={() => {
+            onDeleteRole?.(role)
+            closeMenu()
+          }}
+          disabled={!canDelete}
+          sx={{ color: canDelete ? 'error.main' : undefined }}
+        >
           Delete role
         </MenuItem>
       </Menu>

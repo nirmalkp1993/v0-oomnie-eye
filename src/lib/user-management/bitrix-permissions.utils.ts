@@ -5,6 +5,7 @@ import {
   createEmptyMatrixGrants,
 } from '@/src/constants/permissions-page-matrix'
 import { BITRIX_SCOPE_DROPDOWN_OPTIONS } from '@/src/constants/role-catalog'
+import { BITRIX_GRID_ROLE_IDS } from '@/src/constants/bitrix-access-ui'
 import { MOCK_ROLES } from '@/src/mock-data/roles'
 import type {
   BitrixAccessGrants,
@@ -16,7 +17,7 @@ import type {
   PermissionMatrixModule,
   ScopeGrantValue,
 } from '@/src/types/permissions-page'
-import type { DataScopeId } from '@/src/types/user-management'
+import type { DataScopeId, RoleListItem } from '@/src/types/user-management'
 
 const ACTION_TO_MATRIX: Partial<Record<BitrixStandardAction, MatrixAction>> = {
   read: 'read',
@@ -41,6 +42,90 @@ const SYSTEM_ROLE_IDS = new Set(['role-super-admin', 'role-tenant-admin'])
 const SCOPE_LABEL_BY_ID = new Map(
   BITRIX_SCOPE_DROPDOWN_OPTIONS.map((o) => [o.id, o.title] as const),
 )
+
+export function getInitialGridRoles(): RoleListItem[] {
+  return BITRIX_GRID_ROLE_IDS.map((id) => MOCK_ROLES.find((r) => r.id === id)).filter(
+    (r): r is RoleListItem => r != null,
+  )
+}
+
+/** Seed scope/boolean grant columns for a newly added grid role (defaults to deny / off). */
+export function appendRoleToScopeGrants(
+  grants: BitrixAccessGrants,
+  roleId: string,
+  defaultScope: ScopeGrantValue = 'deny',
+): BitrixAccessGrants {
+  const next = cloneBitrixGrants(grants)
+  for (const mod of BITRIX_ACCESS_MODULES) {
+    if (!next[mod.id]) next[mod.id] = {}
+    for (const action of BITRIX_STANDARD_ACTIONS) {
+      if (!next[mod.id][action]) next[mod.id][action] = {}
+      next[mod.id][action][roleId] = defaultScope
+    }
+  }
+  return next
+}
+
+export function appendRoleToBooleanGrants(
+  grants: BitrixBooleanGrants,
+  roleId: string,
+  defaultValue = false,
+): BitrixBooleanGrants {
+  const next = cloneBooleanGrants(grants)
+  for (const mod of BITRIX_ACCESS_MODULES) {
+    if (!mod.booleanPermissions?.length) continue
+    if (!next[mod.id]) next[mod.id] = {}
+    for (const perm of mod.booleanPermissions) {
+      if (!next[mod.id][perm.id]) next[mod.id][perm.id] = {}
+      next[mod.id][perm.id][roleId] = defaultValue
+    }
+  }
+  return next
+}
+
+/** Remove a role column from scope grants. */
+export function removeRoleFromScopeGrants(
+  grants: BitrixAccessGrants,
+  roleId: string,
+): BitrixAccessGrants {
+  const next = cloneBitrixGrants(grants)
+  for (const mod of BITRIX_ACCESS_MODULES) {
+    const moduleGrants = next[mod.id]
+    if (!moduleGrants) continue
+    for (const action of BITRIX_STANDARD_ACTIONS) {
+      const actionGrants = moduleGrants[action]
+      if (!actionGrants || !(roleId in actionGrants)) continue
+      const { [roleId]: _removed, ...rest } = actionGrants
+      moduleGrants[action] = rest
+    }
+  }
+  return next
+}
+
+/** Remove a role column from boolean grants. */
+export function removeRoleFromBooleanGrants(
+  grants: BitrixBooleanGrants,
+  roleId: string,
+): BitrixBooleanGrants {
+  const next = cloneBooleanGrants(grants)
+  for (const mod of BITRIX_ACCESS_MODULES) {
+    const moduleGrants = next[mod.id]
+    if (!moduleGrants) continue
+    for (const perm of mod.booleanPermissions ?? []) {
+      const permGrants = moduleGrants[perm.id]
+      if (!permGrants || !(roleId in permGrants)) continue
+      const { [roleId]: _removed, ...rest } = permGrants
+      moduleGrants[perm.id] = rest
+    }
+  }
+  return next
+}
+
+/** Built-in grid roles and system roles cannot be removed from the access grid. */
+export function isDeletableGridRole(roleId: string): boolean {
+  if (isSystemRole(roleId)) return false
+  return !(BITRIX_GRID_ROLE_IDS as readonly string[]).includes(roleId)
+}
 
 export function isSystemRole(roleId: string): boolean {
   return SYSTEM_ROLE_IDS.has(roleId)

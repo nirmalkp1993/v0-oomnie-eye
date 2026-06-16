@@ -31,7 +31,7 @@ interface RoleFormModalProps {
   mode: 'create' | 'edit'
   initial?: RoleListItem | null
   onClose: () => void
-  onSubmit: (role: RoleListItem) => void
+  onSubmit: (role: RoleListItem) => void | boolean
   onDeleteRequest?: () => void
 }
 
@@ -75,7 +75,8 @@ export function RoleFormModal({
     }
     setSubmitting(true)
     try {
-      onSubmit(buildRoleListItemFromForm(form, initial ?? undefined))
+      const saved = onSubmit(buildRoleListItemFromForm(form, initial ?? undefined))
+      if (saved === false) return
       reset()
       onClose()
     } finally {

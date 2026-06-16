@@ -14,23 +14,17 @@ import {
   MenuItem,
   Typography,
 } from '@mui/material'
-import {
-  BITRIX_ACCESS_UI,
-  BITRIX_GRID_ROLE_IDS,
-  BITRIX_ROLE_DISPLAY_NAMES,
-} from '@/src/constants/bitrix-access-ui'
-import { MOCK_ROLES } from '@/src/mock-data/roles'
-
-const ALL_GRID_ROLES = BITRIX_GRID_ROLE_IDS.map((id) => MOCK_ROLES.find((r) => r.id === id)).filter(
-  (r): r is NonNullable<typeof r> => r != null,
-)
+import { BITRIX_ACCESS_UI, BITRIX_ROLE_DISPLAY_NAMES } from '@/src/constants/bitrix-access-ui'
+import type { RoleListItem } from '@/src/types/user-management'
 
 export function RolesHeaderCell({
+  gridRoles,
   visibleRoleIds,
   onVisibleRoleIdsChange,
   onExpandAll,
   onCollapseAll,
 }: {
+  gridRoles: RoleListItem[]
   visibleRoleIds: ReadonlySet<string>
   onVisibleRoleIdsChange: (ids: Set<string>) => void
   onExpandAll: () => void
@@ -38,7 +32,7 @@ export function RolesHeaderCell({
 }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
-  const total = ALL_GRID_ROLES.length
+  const total = gridRoles.length
   const visibleCount = visibleRoleIds.size
 
   const toggleRole = (roleId: string) => {
@@ -52,7 +46,7 @@ export function RolesHeaderCell({
   }
 
   const showAllRoles = () => {
-    onVisibleRoleIdsChange(new Set(BITRIX_GRID_ROLE_IDS))
+    onVisibleRoleIdsChange(new Set(gridRoles.map((r) => r.id)))
     setAnchorEl(null)
   }
 
@@ -119,7 +113,7 @@ export function RolesHeaderCell({
         onClose={() => setAnchorEl(null)}
         slotProps={{ paper: { sx: { minWidth: 220, mt: 0.5 } } }}
       >
-        {ALL_GRID_ROLES.map((role) => {
+        {gridRoles.map((role) => {
           const label = BITRIX_ROLE_DISPLAY_NAMES[role.id] ?? role.name
           const checked = visibleRoleIds.has(role.id)
           return (
@@ -142,11 +136,12 @@ export function RolesHeaderCell({
   )
 }
 
-export function useVisibleGridRoles(visibleRoleIds: ReadonlySet<string>) {
+export function useVisibleGridRoles(
+  gridRoles: RoleListItem[],
+  visibleRoleIds: ReadonlySet<string>,
+) {
   return useMemo(
-    () => ALL_GRID_ROLES.filter((r) => visibleRoleIds.has(r.id)),
-    [visibleRoleIds],
+    () => gridRoles.filter((r) => visibleRoleIds.has(r.id)),
+    [gridRoles, visibleRoleIds],
   )
 }
-
-export { ALL_GRID_ROLES }

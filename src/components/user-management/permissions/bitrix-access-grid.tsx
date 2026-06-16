@@ -50,12 +50,16 @@ function colSpanForRoles(roleCount: number) {
 
 export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   modules,
+  gridRoles,
   expandedModuleIds,
   visibleRoleIds,
   onVisibleRoleIdsChange,
   onToggleModule,
   onExpandAll,
   onCollapseAll,
+  onAddRole,
+  onEditRole,
+  onDeleteRole,
   scopeGrants,
   booleanGrants,
   onPatchScopeGrant,
@@ -63,12 +67,16 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   onAssignUsers,
 }: {
   modules: PermissionMatrixModule[]
+  gridRoles: RoleListItem[]
   expandedModuleIds: ReadonlySet<string>
   visibleRoleIds: ReadonlySet<string>
   onVisibleRoleIdsChange: (ids: Set<string>) => void
   onToggleModule: (moduleId: string) => void
   onExpandAll: () => void
   onCollapseAll: () => void
+  onAddRole: () => void
+  onEditRole: (role: RoleListItem) => void
+  onDeleteRole: (role: RoleListItem) => void
   scopeGrants: BitrixAccessGrants
   booleanGrants: BitrixBooleanGrants
   onPatchScopeGrant: (
@@ -80,7 +88,7 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   onPatchBooleanGrant: (moduleId: string, permId: string, roleId: string, value: boolean) => void
   onAssignUsers?: (roleId: string) => void
 }) {
-  const visibleRoles = useVisibleGridRoles(visibleRoleIds)
+  const visibleRoles = useVisibleGridRoles(gridRoles, visibleRoleIds)
   const colSpan = colSpanForRoles(visibleRoles.length)
 
   return (
@@ -119,6 +127,7 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
                 }}
               >
                 <RolesHeaderCell
+                  gridRoles={gridRoles}
                   visibleRoleIds={visibleRoleIds}
                   onVisibleRoleIdsChange={onVisibleRoleIdsChange}
                   onExpandAll={onExpandAll}
@@ -142,6 +151,8 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
                     onAssignUsers={
                       onAssignUsers ? (r) => onAssignUsers(r.id) : undefined
                     }
+                    onEditRole={onEditRole}
+                    onDeleteRole={onDeleteRole}
                   />
                 </TableCell>
               ))}
@@ -158,6 +169,7 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
                 <IconButton
                   size="small"
                   aria-label="Add role"
+                  onClick={onAddRole}
                   sx={{
                     width: 32,
                     height: 32,
