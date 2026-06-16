@@ -117,7 +117,7 @@ export function RoleFormModal({
       title={isEdit ? 'Edit role' : 'Add role'}
       description={`${DEFAULT_TENANT_NAME} · RBAC catalog`}
       icon={Shield}
-      maxWidth="4xl"
+      maxWidth="6xl"
       footer={
         <DialogFormFooter
           isCreate={!isEdit}

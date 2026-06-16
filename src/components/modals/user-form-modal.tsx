@@ -291,7 +291,7 @@ export function UserFormModal({
       title={dialogTitle}
       description={dialogDescription}
       icon={UserRound}
-      maxWidth="5xl"
+      maxWidth="6xl"
       footer={
         <DialogFormFooter
           isCreate={mode === 'create'}

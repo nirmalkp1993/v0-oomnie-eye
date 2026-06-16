@@ -133,7 +133,7 @@ export function AddGroupModal({
             : `Create a static or dynamic group in ${tenantName}.`
       }
       icon={UsersRound}
-      maxWidth="4xl"
+      maxWidth="6xl"
       footer={
         <DialogFormFooter
           isCreate={!isEdit}

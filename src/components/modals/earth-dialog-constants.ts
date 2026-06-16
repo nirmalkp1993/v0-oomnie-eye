@@ -5,6 +5,7 @@
  */
 export const EARTH_DIALOG_WIDTH_PX = 900
 export const EARTH_DIALOG_WIDTH_WIDE_PX = 1200
+export const EARTH_DIALOG_WIDTH_EXTRA_WIDE_PX = 1400
 
 export const earthDialogMaxWidthPx = {
   sm: 444,
@@ -16,6 +17,8 @@ export const earthDialogMaxWidthPx = {
   '4xl': EARTH_DIALOG_WIDTH_PX,
   /** Wide layout for weekly recording schedule grid */
   '5xl': EARTH_DIALOG_WIDTH_WIDE_PX,
+  /** Extra-wide layout for user management add/edit/view modals */
+  '6xl': EARTH_DIALOG_WIDTH_EXTRA_WIDE_PX,
 } as const
 
 export type EarthDialogMaxWidth = keyof typeof earthDialogMaxWidthPx
