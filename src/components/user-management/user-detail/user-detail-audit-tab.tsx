@@ -4,5 +4,5 @@ import { UserAuditTrailPanel } from '@/src/components/user-management/user-audit
 import type { UserListItem } from '@/src/types/user-management'
 
 export function UserDetailAuditTab({ user }: { user: UserListItem }) {
-  return <UserAuditTrailPanel userId={user.id} />
+  return <UserAuditTrailPanel user={user} />
 }

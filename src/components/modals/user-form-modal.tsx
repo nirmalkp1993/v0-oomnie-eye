@@ -642,7 +642,7 @@ export function UserFormModal({
         {mode !== 'create' ? (
           <CameraEarthTabPanel value={activeTabIndex} index={3}>
             <Box sx={{ py: 1 }}>
-              <UserAuditTrailPanel userId={initial?.id ?? null} />
+              <UserAuditTrailPanel user={initial ?? null} />
             </Box>
           </CameraEarthTabPanel>
         ) : null}

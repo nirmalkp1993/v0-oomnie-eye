@@ -57,6 +57,7 @@ export interface UserGroupOption {
 }
 
 export type UserAuditCategory =
+  | 'user_lifecycle'
   | 'user_delete'
   | 'admin_data_add'
   | 'general_data_add'
