@@ -132,6 +132,7 @@ export type DataScopeId =
   | 'own_records'
   | 'assigned_records'
   | 'department'
+  | 'department_subdepartments'
   | 'office'
   | 'country'
   | 'region'

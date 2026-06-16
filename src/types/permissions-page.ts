@@ -50,6 +50,9 @@ export interface MatrixSummary {
 
 export type ScopeGrantValue = DataScopeId | 'deny'
 
+/** Single scope, multiple scopes, or deny. */
+export type ScopeGrantSelection = ScopeGrantValue | ScopeGrantValue[]
+
 export type BitrixBooleanGrants = Record<
   string,
   Record<string, Record<string, boolean>>

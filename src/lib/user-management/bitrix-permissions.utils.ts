@@ -2,7 +2,7 @@ import {
   APP_PERMISSION_LEAF_MODULES,
   BITRIX_STANDARD_ACTIONS,
 } from '@/src/constants/permissions-page-matrix'
-import { BITRIX_SCOPE_DROPDOWN_OPTIONS } from '@/src/constants/role-catalog'
+import { SCOPE_GRANT_LABELS } from '@/src/constants/role-catalog'
 import { BITRIX_GRID_ROLE_IDS } from '@/src/constants/bitrix-access-ui'
 import { MOCK_ROLES } from '@/src/mock-data/roles'
 import type {
@@ -12,6 +12,7 @@ import type {
   BitrixStandardAction,
   PermissionMatrixModule,
   ScopeGrantValue,
+  ScopeGrantSelection,
 } from '@/src/types/permissions-page'
 import type { DataScopeId, RoleListItem } from '@/src/types/user-management'
 
@@ -27,7 +28,7 @@ const ROLE_DEFAULT_SCOPES: Record<string, ScopeGrantValue> = {
 const SYSTEM_ROLE_IDS = new Set(['role-super-admin', 'role-tenant-admin'])
 
 const SCOPE_LABEL_BY_ID = new Map(
-  BITRIX_SCOPE_DROPDOWN_OPTIONS.map((o) => [o.id, o.title] as const),
+  Object.entries(SCOPE_GRANT_LABELS).map(([id, title]) => [id, title] as const),
 )
 
 const VIEWER_READ_MODULES = ['earth', 'dashboard', 'reports', 'alerts'] as const
@@ -114,21 +115,82 @@ export function isSystemRole(roleId: string): boolean {
   return SYSTEM_ROLE_IDS.has(roleId)
 }
 
-export function formatScopeGrantLabel(value: ScopeGrantValue | ScopeGrantValue[]): string {
-  const values = Array.isArray(value) ? value : [value]
-  if (values.length === 0) return 'Deny access'
+export function formatScopeGrantLabel(value: ScopeGrantSelection | undefined): string {
+  if (isScopeGrantDenied(value)) return 'No'
+  const values = coerceScopeGrantValues(value)
   if (values.length === 1) {
     return SCOPE_LABEL_BY_ID.get(values[0]) ?? String(values[0])
   }
-  const first = SCOPE_LABEL_BY_ID.get(values[0]) ?? String(values[0])
-  return `${first}… and ${values.length - 1} more`
+  const labels = values.map((v) => SCOPE_LABEL_BY_ID.get(v) ?? String(v))
+  const joined = labels.join(', ')
+  if (joined.length <= 34) return joined
+  return `${labels[0]} +${values.length - 1}`
+}
+
+export function coerceScopeGrantValues(value: ScopeGrantSelection | undefined): DataScopeId[] {
+  if (value == null || value === 'deny') return []
+  if (Array.isArray(value)) {
+    return value.filter((v): v is DataScopeId => v !== 'deny')
+  }
+  return [value]
+}
+
+export function isScopeGrantDenied(value: ScopeGrantSelection | undefined): boolean {
+  if (value == null || value === 'deny') return true
+  if (Array.isArray(value)) return value.length === 0
+  return false
+}
+
+export function isScopeOptionSelected(
+  value: ScopeGrantSelection | undefined,
+  optionId: ScopeGrantValue,
+): boolean {
+  if (optionId === 'deny') return isScopeGrantDenied(value)
+  return coerceScopeGrantValues(value).includes(optionId)
+}
+
+export function toggleScopeGrantOption(
+  current: ScopeGrantSelection | undefined,
+  optionId: ScopeGrantValue,
+): ScopeGrantSelection {
+  if (optionId === 'deny') return 'deny'
+
+  const selected = coerceScopeGrantValues(current)
+  const next = selected.includes(optionId)
+    ? selected.filter((id) => id !== optionId)
+    : [...selected, optionId]
+
+  return normalizeScopeSelection(next)
+}
+
+function normalizeScopeSelection(values: DataScopeId[]): ScopeGrantSelection {
+  if (values.length === 0) return 'deny'
+  const sorted = [...values].sort((a, b) => scopeRank(a) - scopeRank(b))
+  if (sorted.length === 1) return sorted[0]
+  return sorted
+}
+
+function scopeGrantSelectionsEqual(
+  a: ScopeGrantSelection | undefined,
+  b: ScopeGrantSelection,
+): boolean {
+  const key = (value: ScopeGrantSelection | undefined) => {
+    if (value == null || value === 'deny') return 'deny'
+    const ids = Array.isArray(value) ? value : [value]
+    return ids.length === 0 ? 'deny' : [...ids].sort().join('|')
+  }
+  return key(a) === key(b)
 }
 
 export function normalizeScopeValue(
-  value: ScopeGrantValue | ScopeGrantValue[] | undefined,
+  value: ScopeGrantSelection | undefined,
 ): ScopeGrantValue {
   if (value == null) return 'deny'
-  if (Array.isArray(value)) return value[0] ?? 'deny'
+  if (value === 'deny') return 'deny'
+  if (Array.isArray(value)) {
+    if (value.length === 0) return 'deny'
+    return value.reduce((best, current) => mergeScopeValues(best, current), value[0])
+  }
   return value
 }
 
@@ -177,10 +239,10 @@ export function setBitrixGrant(
   moduleId: string,
   action: string,
   roleId: string,
-  value: ScopeGrantValue,
+  value: ScopeGrantSelection,
 ): BitrixAccessGrants {
   const current = grants[moduleId]?.[action]?.[roleId]
-  if (current === value) return grants
+  if (scopeGrantSelectionsEqual(current, value)) return grants
 
   const moduleGrants = grants[moduleId]
   const actionGrants = moduleGrants?.[action]
@@ -207,13 +269,24 @@ export function setBooleanGrant(
   return grants
 }
 
+export function getBitrixGrantSelection(
+  grants: BitrixAccessGrants,
+  moduleId: string,
+  action: string,
+  roleId: string,
+): ScopeGrantSelection {
+  const raw = grants[moduleId]?.[action]?.[roleId]
+  if (raw == null) return 'deny'
+  return raw
+}
+
 export function getBitrixGrant(
   grants: BitrixAccessGrants,
   moduleId: string,
   action: string,
   roleId: string,
 ): ScopeGrantValue {
-  return normalizeScopeValue(grants[moduleId]?.[action]?.[roleId])
+  return normalizeScopeValue(getBitrixGrantSelection(grants, moduleId, action, roleId))
 }
 
 export function getBooleanGrant(
@@ -331,6 +404,7 @@ export function scopeRank(value: ScopeGrantValue): number {
     'own_records',
     'assigned_records',
     'department',
+    'department_subdepartments',
     'office',
     'territory',
     'country',
@@ -344,4 +418,43 @@ export function scopeRank(value: ScopeGrantValue): number {
 
 export function mergeScopeValues(a: ScopeGrantValue, b: ScopeGrantValue): ScopeGrantValue {
   return scopeRank(a) >= scopeRank(b) ? a : b
+}
+
+/** Set every scope grant for a role across all leaf modules and standard actions. */
+export function setAllRoleScopeGrants(
+  grants: BitrixAccessGrants,
+  roleId: string,
+  scope: ScopeGrantValue,
+): BitrixAccessGrants {
+  const next = cloneBitrixGrants(grants)
+  forEachLeafModule((mod) => {
+    if (!next[mod.id]) next[mod.id] = {}
+    for (const action of BITRIX_STANDARD_ACTIONS) {
+      if (!next[mod.id][action]) next[mod.id][action] = {}
+      next[mod.id][action][roleId] = scope
+    }
+  })
+  return next
+}
+
+/** Copy all scope grants from one role column to another. */
+export function copyRoleScopeGrants(
+  grants: BitrixAccessGrants,
+  sourceRoleId: string,
+  targetRoleId: string,
+): BitrixAccessGrants {
+  const next = cloneBitrixGrants(grants)
+  forEachLeafModule((mod) => {
+    const moduleGrants = next[mod.id]
+    if (!moduleGrants) return
+    for (const action of BITRIX_STANDARD_ACTIONS) {
+      const actionGrants = moduleGrants[action]
+      if (!actionGrants) continue
+      const sourceValue = actionGrants[sourceRoleId]
+      if (sourceValue !== undefined) {
+        actionGrants[targetRoleId] = sourceValue
+      }
+    }
+  })
+  return next
 }

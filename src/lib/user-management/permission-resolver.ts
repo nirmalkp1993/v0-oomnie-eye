@@ -9,9 +9,9 @@ import { MOCK_USERS } from '@/src/mock-data/users'
 import {
   SEED_BITRIX_GRANTS,
   SEED_BOOLEAN_GRANTS,
-  getBitrixGrant,
+  coerceScopeGrantValues,
+  getBitrixGrantSelection,
   mergeScopeValues,
-  normalizeScopeValue,
 } from '@/src/lib/user-management/bitrix-permissions.utils'
 import type { BitrixAccessGrants, BitrixBooleanGrants, ScopeGrantValue } from '@/src/types/permissions-page'
 import type { EffectivePermissionRow } from '@/src/types/effective-preview'
@@ -82,8 +82,10 @@ export function resolveEffectiveGrants(
     for (const action of BITRIX_STANDARD_ACTIONS) {
       let merged: ScopeGrantValue = 'deny'
       for (const roleId of roleIds) {
-        const value = normalizeScopeValue(getBitrixGrant(scopeGrants, mod.id, action, roleId))
-        merged = mergeScopeValues(merged, value)
+        const selection = getBitrixGrantSelection(scopeGrants, mod.id, action, roleId)
+        for (const scope of coerceScopeGrantValues(selection)) {
+          merged = mergeScopeValues(merged, scope)
+        }
       }
       if (merged !== 'deny') {
         grants.push({

@@ -29,7 +29,7 @@ import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import { RoleFormModal } from '@/src/components/modals/role-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { PermissionCategorySidebar } from '@/src/components/user-management/permissions/permission-category-sidebar'
-import { isDeletableGridRole } from '@/src/lib/user-management/bitrix-permissions.utils'
+import { isDeletableGridRole, isSystemRole } from '@/src/lib/user-management/bitrix-permissions.utils'
 import { resolveUserRoleIds } from '@/src/lib/user-management/permission-resolver'
 import type { RoleListItem } from '@/src/types/user-management'
 
@@ -72,6 +72,8 @@ export function BitrixAccessPermissionsView() {
     removeGridRole,
     patchScopeGrant,
     patchBooleanGrant,
+    bulkSetRoleScopeGrants,
+    cloneGridRole,
   } = useBitrixPermissions()
   const [selectedModuleId, setSelectedModuleId] = useState('earth')
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(
@@ -200,6 +202,43 @@ export function BitrixAccessPermissionsView() {
       setConfirmDeleteRole(role)
     },
     [showMessage],
+  )
+
+  const handleSelectAllPermissions = useCallback(
+    (role: RoleListItem) => {
+      if (isSystemRole(role.id)) {
+        showMessage('System role permissions cannot be changed', 'warning')
+        return
+      }
+      bulkSetRoleScopeGrants(role.id, 'all_tenant_data')
+      showMessage(`All permissions enabled for "${role.name}"`, 'success')
+    },
+    [bulkSetRoleScopeGrants, showMessage],
+  )
+
+  const handleUnselectAllPermissions = useCallback(
+    (role: RoleListItem) => {
+      if (isSystemRole(role.id)) {
+        showMessage('System role permissions cannot be changed', 'warning')
+        return
+      }
+      bulkSetRoleScopeGrants(role.id, 'deny')
+      showMessage(`All permissions disabled for "${role.name}"`, 'success')
+    },
+    [bulkSetRoleScopeGrants, showMessage],
+  )
+
+  const handleCloneRole = useCallback(
+    (source: RoleListItem) => {
+      const clone = cloneGridRole(source)
+      setVisibleRoleIds((prev) => {
+        const next = new Set(prev)
+        next.add(clone.id)
+        return next
+      })
+      showMessage(`Role "${clone.name}" created as a copy of "${source.name}"`, 'success')
+    },
+    [cloneGridRole, showMessage],
   )
 
   const confirmDelete = useCallback(() => {
@@ -354,6 +393,10 @@ export function BitrixAccessPermissionsView() {
             onAddRole={openCreateRole}
             onEditRole={openEditRole}
             onDeleteRole={requestDeleteRole}
+            onSelectAllPermissions={handleSelectAllPermissions}
+            onUnselectAllPermissions={handleUnselectAllPermissions}
+            onRenameRole={openEditRole}
+            onCloneRole={handleCloneRole}
             scopeGrants={scopeGrants}
             booleanGrants={booleanGrants}
             onPatchScopeGrant={patchScopeGrant}

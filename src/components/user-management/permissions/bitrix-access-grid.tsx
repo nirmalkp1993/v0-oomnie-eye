@@ -26,7 +26,7 @@ import {
   bitrixTableCellSx,
 } from '@/src/constants/bitrix-access-ui'
 import {
-  getBitrixGrant,
+  getBitrixGrantSelection,
   getStandardActionsForModule,
   isSystemRole,
 } from '@/src/lib/user-management/bitrix-permissions.utils'
@@ -34,6 +34,7 @@ import type {
   BitrixAccessGrants,
   BitrixBooleanGrants,
   PermissionMatrixModule,
+  ScopeGrantSelection,
   ScopeGrantValue,
 } from '@/src/types/permissions-page'
 import { BitrixModuleIcon } from './bitrix-module-icon'
@@ -60,6 +61,10 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   onAddRole,
   onEditRole,
   onDeleteRole,
+  onSelectAllPermissions,
+  onUnselectAllPermissions,
+  onRenameRole,
+  onCloneRole,
   scopeGrants,
   booleanGrants,
   onPatchScopeGrant,
@@ -79,13 +84,17 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   onAddRole: () => void
   onEditRole: (role: RoleListItem) => void
   onDeleteRole: (role: RoleListItem) => void
+  onSelectAllPermissions?: (role: RoleListItem) => void
+  onUnselectAllPermissions?: (role: RoleListItem) => void
+  onRenameRole?: (role: RoleListItem) => void
+  onCloneRole?: (role: RoleListItem) => void
   scopeGrants: BitrixAccessGrants
   booleanGrants: BitrixBooleanGrants
   onPatchScopeGrant: (
     moduleId: string,
     action: string,
     roleId: string,
-    value: ScopeGrantValue,
+    value: ScopeGrantSelection,
   ) => void
   onPatchBooleanGrant: (moduleId: string, permId: string, roleId: string, value: boolean) => void
   onAssignUsers?: (roleId: string) => void
@@ -153,7 +162,10 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
                     onAssignUsers={
                       onAssignUsers ? (r) => onAssignUsers(r.id) : undefined
                     }
-                    onEditRole={onEditRole}
+                    onSelectAllPermissions={onSelectAllPermissions}
+                    onUnselectAllPermissions={onUnselectAllPermissions}
+                    onRenameRole={onRenameRole ?? onEditRole}
+                    onCloneRole={onCloneRole}
                     onDeleteRole={onDeleteRole}
                   />
                 </TableCell>
@@ -313,7 +325,7 @@ const ModuleSection = memo(function ModuleSection({
     moduleId: string,
     action: string,
     roleId: string,
-    value: ScopeGrantValue,
+    value: ScopeGrantSelection,
   ) => void
   colSpan: number
 }) {
@@ -397,11 +409,11 @@ const ActionRow = memo(function ActionRow({
     moduleId: string,
     action: string,
     roleId: string,
-    value: ScopeGrantValue,
+    value: ScopeGrantSelection,
   ) => void
 }) {
   const handleChange = useCallback(
-    (roleId: string, value: ScopeGrantValue) => {
+    (roleId: string, value: ScopeGrantSelection) => {
       onPatchScopeGrant(moduleId, action, roleId, value)
     },
     [moduleId, action, onPatchScopeGrant],
@@ -435,8 +447,8 @@ const ActionRow = memo(function ActionRow({
       </TableCell>
       {visibleRoles.map((role) => {
         const locked = isSystemRole(role.id)
-        const value = getBitrixGrant(scopeGrants, moduleId, action, role.id)
-        const lockedScope: ScopeGrantValue =
+        const value = getBitrixGrantSelection(scopeGrants, moduleId, action, role.id)
+        const lockedScope: ScopeGrantSelection =
           role.id === 'role-super-admin' ? 'global_all_tenants' : 'all_tenant_data'
 
         return (
