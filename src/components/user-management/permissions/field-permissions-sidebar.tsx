@@ -9,18 +9,12 @@ import {
   MenuItem,
   Paper,
   Select,
-  Tab,
-  Tabs,
   TextField,
   Typography,
 } from '@mui/material'
-import {
-  FIELD_PREVIEW_PERSPECTIVES,
-  FIELD_PREVIEW_USERS,
-} from '@/src/constants/field-permissions'
+import { MOCK_USERS } from '@/src/mock-data/users'
 import type {
   FieldPermissionFlags,
-  FieldPreviewPerspective,
   FieldPreviewStatus,
   FormFieldDefinition,
 } from '@/src/types/field-permissions'
@@ -34,12 +28,6 @@ import {
   settingsPaperSx,
   settingsSectionTitleSx,
 } from './permissions-shared-styles'
-
-const PERSPECTIVE_LABELS: Record<FieldPreviewPerspective, string> = {
-  admin: 'Admin',
-  team_lead: 'Team Lead',
-  operations_manager: 'Operations Manager',
-}
 
 const STATUS_LABELS: Record<FieldPreviewStatus, string> = {
   editable: 'Editable',
@@ -73,18 +61,16 @@ export interface FieldPermissionsSidebarProps {
   fields: FormFieldDefinition[]
   grants: Record<string, FieldPermissionFlags>
   previewUserId: string
-  perspective: FieldPreviewPerspective
+  previewUserRoles: string[]
   onPreviewUserChange: (userId: string) => void
-  onPerspectiveChange: (perspective: FieldPreviewPerspective) => void
 }
 
 export function FieldPermissionsSidebar({
   fields,
   grants,
   previewUserId,
-  perspective,
+  previewUserRoles,
   onPreviewUserChange,
-  onPerspectiveChange,
 }: FieldPermissionsSidebarProps) {
   const previewRows = useMemo(
     () =>
@@ -122,43 +108,25 @@ export function FieldPermissionsSidebar({
           Preview the field behavior for the selected user.
         </Typography>
 
-        <FormControl fullWidth size="small" sx={{ mb: 1.5 }}>
+        <FormControl fullWidth size="small" sx={{ mb: 1 }}>
           <Select
             value={previewUserId}
             onChange={(e) => onPreviewUserChange(e.target.value)}
             sx={{ borderRadius: 2 }}
           >
-            {FIELD_PREVIEW_USERS.map((u) => (
+            {MOCK_USERS.map((u) => (
               <MenuItem key={u.id} value={u.id}>
-                {u.label}
+                {u.name}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
 
-        <Tabs
-          value={perspective}
-          onChange={(_, v: FieldPreviewPerspective) => onPerspectiveChange(v)}
-          variant="fullWidth"
-          sx={{
-            minHeight: 32,
-            mb: 2,
-            '& .MuiTab-root': {
-              textTransform: 'none',
-              fontSize: '0.75rem',
-              minHeight: 32,
-              py: 0.5,
-            },
-          }}
-        >
-          {FIELD_PREVIEW_PERSPECTIVES.map((p) => (
-            <Tab
-              key={p.id}
-              value={p.id}
-              label={PERSPECTIVE_LABELS[p.id]}
-            />
-          ))}
-        </Tabs>
+        {previewUserRoles.length > 0 ? (
+          <Typography variant="caption" sx={{ ...settingsBodySecondarySx, display: 'block', mb: 1.5 }}>
+            Roles: {previewUserRoles.join(', ')}
+          </Typography>
+        ) : null}
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {previewRows.map(({ field, status }) => (

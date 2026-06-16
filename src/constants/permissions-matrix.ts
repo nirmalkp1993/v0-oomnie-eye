@@ -1,12 +1,9 @@
-export const PERMISSION_MODULES = [
-  'Earth',
-  'Theme Management',
-  'User Management',
-  'Camera Management',
-  'Asset Management',
-  'Patrol Management',
-  'IoT Management',
-] as const
+import { getAppModuleLeafTitles } from '@/src/mock-data/app-modules'
+
+export const PERMISSION_MODULES = getAppModuleLeafTitles() as readonly [
+  string,
+  ...string[],
+]
 
 export const PERMISSION_COLUMNS = [
   'Create',
@@ -32,7 +29,7 @@ export function createEmptyPermissionMatrix(): PermissionMatrix {
         inner[col] = false
         return inner
       },
-      {} as Record<PermissionColumn, boolean>
+      {} as Record<PermissionColumn, boolean>,
     )
     return acc
   }, {} as PermissionMatrix)

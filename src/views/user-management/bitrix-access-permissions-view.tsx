@@ -13,8 +13,16 @@ import {
   Select,
   TextField,
 } from '@mui/material'
-import { getModulesByCategory } from '@/src/constants/permissions-page-matrix'
+import {
+  APP_PERMISSION_LEAF_MODULES,
+  BITRIX_ACCESS_MODULES,
+} from '@/src/constants/permissions-page-matrix'
 import { BITRIX_ACCESS_UI, BITRIX_GRID_ROLE_IDS } from '@/src/constants/bitrix-access-ui'
+import {
+  DEFAULT_EXPANDED_GROUP_IDS_SET,
+  filterAppModules,
+  getVisibleGridModules,
+} from '@/src/mock-data/app-modules'
 import { MOCK_USERS } from '@/src/mock-data/users'
 import { useBitrixPermissions } from '@/src/contexts/bitrix-permissions-context'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
@@ -22,7 +30,7 @@ import { RoleFormModal } from '@/src/components/modals/role-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { PermissionCategorySidebar } from '@/src/components/user-management/permissions/permission-category-sidebar'
 import { isDeletableGridRole } from '@/src/lib/user-management/bitrix-permissions.utils'
-import type { BitrixModuleCategory } from '@/src/types/permissions-page'
+import { resolveUserRoleIds } from '@/src/lib/user-management/permission-resolver'
 import type { RoleListItem } from '@/src/types/user-management'
 
 const BitrixAccessGrid = dynamic(
@@ -46,14 +54,6 @@ type RoleModalState = {
   role: RoleListItem | null
 }
 
-function defaultExpandedForCategory(category: BitrixModuleCategory): Set<string> {
-  const modules = getModulesByCategory(category)
-  const ids = new Set<string>()
-  if (modules[0]) ids.add(modules[0].id)
-  if (modules[1]) ids.add(modules[1].id)
-  return ids
-}
-
 function isNameTaken(roles: RoleListItem[], name: string, excludeId?: string): boolean {
   const normalized = name.trim().toLowerCase()
   return roles.some(
@@ -73,11 +73,11 @@ export function BitrixAccessPermissionsView() {
     patchScopeGrant,
     patchBooleanGrant,
   } = useBitrixPermissions()
-  const [selectedCategory, setSelectedCategory] = useState<BitrixModuleCategory>('crm')
-  const [selectedModuleId, setSelectedModuleId] = useState('customer_master')
-  const [expandedModuleIds, setExpandedModuleIds] = useState<Set<string>>(() =>
-    defaultExpandedForCategory('crm'),
+  const [selectedModuleId, setSelectedModuleId] = useState('earth')
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(
+    () => new Set(DEFAULT_EXPANDED_GROUP_IDS_SET),
   )
+  const [expandedModuleIds, setExpandedModuleIds] = useState<Set<string>>(() => new Set(['earth']))
   const [search, setSearch] = useState('')
   const [employeeFilter, setEmployeeFilter] = useState('all')
   const [visibleRoleIds, setVisibleRoleIds] = useState<Set<string>>(
@@ -90,17 +90,22 @@ export function BitrixAccessPermissionsView() {
   })
   const [confirmDeleteRole, setConfirmDeleteRole] = useState<RoleListItem | null>(null)
 
-  const categoryModules = useMemo(() => {
-    const list = getModulesByCategory(selectedCategory)
-    const q = search.trim().toLowerCase()
-    if (!q) return list
-    return list.filter(
-      (m) =>
-        m.name.toLowerCase().includes(q) ||
-        (m.displayName?.toLowerCase().includes(q) ?? false) ||
-        m.id.includes(q),
+  useEffect(() => {
+    if (employeeFilter === 'all') {
+      setVisibleRoleIds(new Set(BITRIX_GRID_ROLE_IDS))
+      return
+    }
+    const roleIds = resolveUserRoleIds(employeeFilter)
+    const visible = roleIds.filter((id) =>
+      (BITRIX_GRID_ROLE_IDS as readonly string[]).includes(id),
     )
-  }, [selectedCategory, search])
+    setVisibleRoleIds(new Set(visible.length > 0 ? visible : BITRIX_GRID_ROLE_IDS))
+  }, [employeeFilter])
+
+  const gridModules = useMemo(() => {
+    const filtered = filterAppModules(BITRIX_ACCESS_MODULES, search)
+    return getVisibleGridModules(filtered, expandedGroupIds)
+  }, [search, expandedGroupIds])
 
   const handleAssignUsers = useCallback(
     (roleId: string) => {
@@ -109,16 +114,17 @@ export function BitrixAccessPermissionsView() {
     [showMessage],
   )
 
-  const handleSelectCategory = useCallback((cat: BitrixModuleCategory) => {
-    setSelectedCategory(cat)
-    const first = getModulesByCategory(cat)[0]
-    setSelectedModuleId(first?.id ?? '')
-    setExpandedModuleIds(defaultExpandedForCategory(cat))
+  const handleToggleGroup = useCallback((groupId: string) => {
+    setExpandedGroupIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(groupId)) next.delete(groupId)
+      else next.add(groupId)
+      return next
+    })
   }, [])
 
   const handleSelectModule = useCallback((id: string) => {
     setSelectedModuleId(id)
-    setSelectedCategory('crm')
     setExpandedModuleIds((prev) => {
       const next = new Set(prev)
       next.add(id)
@@ -136,10 +142,12 @@ export function BitrixAccessPermissionsView() {
   }, [])
 
   const expandAll = useCallback(() => {
-    setExpandedModuleIds(new Set(categoryModules.map((m) => m.id)))
-  }, [categoryModules])
+    setExpandedGroupIds(new Set(['camera', 'user_management']))
+    setExpandedModuleIds(new Set(APP_PERMISSION_LEAF_MODULES.map((m) => m.id)))
+  }, [])
 
   const collapseAll = useCallback(() => {
+    setExpandedGroupIds(new Set())
     setExpandedModuleIds(new Set())
   }, [])
 
@@ -277,7 +285,7 @@ export function BitrixAccessPermissionsView() {
           </FormControl>
           <TextField
             size="small"
-            placeholder=""
+            placeholder="Search modules…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             sx={{
@@ -325,20 +333,22 @@ export function BitrixAccessPermissionsView() {
 
         <Box sx={{ display: 'flex', flex: 1, minHeight: 520 }}>
           <PermissionCategorySidebar
-            selectedCategory={selectedCategory}
-            onSelectCategory={handleSelectCategory}
+            expandedGroupIds={expandedGroupIds}
+            onToggleGroup={handleToggleGroup}
             selectedModuleId={selectedModuleId}
             onSelectModule={handleSelectModule}
             searchQuery={search}
           />
 
           <BitrixAccessGrid
-            modules={categoryModules}
+            modules={gridModules}
             gridRoles={gridRoles}
             expandedModuleIds={expandedModuleIds}
+            expandedGroupIds={expandedGroupIds}
             visibleRoleIds={visibleRoleIds}
             onVisibleRoleIdsChange={setVisibleRoleIds}
             onToggleModule={handleToggleModule}
+            onToggleGroup={handleToggleGroup}
             onExpandAll={expandAll}
             onCollapseAll={collapseAll}
             onAddRole={openCreateRole}

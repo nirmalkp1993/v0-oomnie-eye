@@ -1,7 +1,5 @@
 import type { DataScopeId } from '@/src/types/user-management'
 
-import type { DataScopeId } from '@/src/types/user-management'
-
 export type PermissionsTabId = 'access' | 'fields' | 'effective'
 
 export type MatrixAction =
@@ -21,11 +19,11 @@ export type MatrixAction =
 
 export type MatrixColumnKey = 'all' | MatrixAction
 
-export type BitrixModuleCategory = 'crm' | 'forms' | 'widgets' | 'automations' | 'platform'
+export type BitrixModuleCategory = 'platform'
 
 export type BitrixStandardAction = 'read' | 'add' | 'edit' | 'delete' | 'export' | 'import'
 
-export type BitrixResourceType = 'module' | 'form' | 'widget' | 'automation' | 'platform'
+export type BitrixResourceType = 'platform'
 
 export interface PermissionMatrixModule {
   id: string
@@ -34,6 +32,10 @@ export interface PermissionMatrixModule {
   resourceType: BitrixResourceType
   category: BitrixModuleCategory
   displayName?: string
+  parentId?: string
+  isGroupHeader?: boolean
+  depth?: number
+  appTab?: string
   booleanPermissions?: { id: string; label: string }[]
 }
 

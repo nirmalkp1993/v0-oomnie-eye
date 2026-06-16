@@ -14,7 +14,7 @@ import {
   MenuItem,
   Typography,
 } from '@mui/material'
-import { BITRIX_ACCESS_UI, BITRIX_ROLE_DISPLAY_NAMES } from '@/src/constants/bitrix-access-ui'
+import { BITRIX_ACCESS_UI } from '@/src/constants/bitrix-access-ui'
 import type { RoleListItem } from '@/src/types/user-management'
 
 export function RolesHeaderCell({
@@ -114,7 +114,7 @@ export function RolesHeaderCell({
         slotProps={{ paper: { sx: { minWidth: 220, mt: 0.5 } } }}
       >
         {gridRoles.map((role) => {
-          const label = BITRIX_ROLE_DISPLAY_NAMES[role.id] ?? role.name
+          const label = role.name
           const checked = visibleRoleIds.has(role.id)
           return (
             <MenuItem

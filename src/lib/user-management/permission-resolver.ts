@@ -1,4 +1,8 @@
-import { BITRIX_ACCESS_MODULES, BITRIX_ACTION_LABELS } from '@/src/constants/permissions-page-matrix'
+import {
+  APP_PERMISSION_LEAF_MODULES,
+  BITRIX_ACTION_LABELS,
+  BITRIX_STANDARD_ACTIONS,
+} from '@/src/constants/permissions-page-matrix'
 import { MOCK_GROUPS } from '@/src/mock-data/groups'
 import { MOCK_ROLES } from '@/src/mock-data/roles'
 import { MOCK_USERS } from '@/src/mock-data/users'
@@ -6,7 +10,6 @@ import {
   SEED_BITRIX_GRANTS,
   SEED_BOOLEAN_GRANTS,
   getBitrixGrant,
-  getBooleanGrant,
   mergeScopeValues,
   normalizeScopeValue,
 } from '@/src/lib/user-management/bitrix-permissions.utils'
@@ -35,14 +38,15 @@ function roleNameToId(name: string): string | null {
   return role?.id ?? null
 }
 
-function resolveUserRoleIds(userId: string, directRoles: string[]): string[] {
+export function resolveUserRoleIds(userId: string, directRoles?: string[]): string[] {
+  const user = MOCK_USERS.find((u) => u.id === userId)
+  const roles = directRoles ?? user?.roles ?? []
   const ids = new Set<string>()
-  for (const name of directRoles) {
+  for (const name of roles) {
     const id = roleNameToId(name)
     if (id) ids.add(id)
   }
 
-  const user = MOCK_USERS.find((u) => u.id === userId)
   if (user) {
     for (const groupName of user.groups) {
       const group = MOCK_GROUPS.find((g) => g.name === groupName)
@@ -64,7 +68,7 @@ function capitalizeAction(action: string): string {
 export function resolveEffectiveGrants(
   userId: string,
   scopeGrants: BitrixAccessGrants = SEED_BITRIX_GRANTS,
-  booleanGrants: BitrixBooleanGrants = SEED_BOOLEAN_GRANTS,
+  _booleanGrants: BitrixBooleanGrants = SEED_BOOLEAN_GRANTS,
 ): UserEffectivePermissions {
   const user = MOCK_USERS.find((u) => u.id === userId) ?? MOCK_USERS[0]
   const roleIds = resolveUserRoleIds(userId, user?.roles ?? [])
@@ -74,13 +78,8 @@ export function resolveEffectiveGrants(
 
   const grants: ResolvedEffectiveGrant[] = []
 
-  for (const mod of BITRIX_ACCESS_MODULES) {
-    const actions =
-      mod.resourceType === 'widget' || mod.resourceType === 'form'
-        ? (['read', 'edit'] as const)
-        : (['read', 'add', 'edit', 'delete', 'export', 'import'] as const)
-
-    for (const action of actions) {
+  for (const mod of APP_PERMISSION_LEAF_MODULES) {
+    for (const action of BITRIX_STANDARD_ACTIONS) {
       let merged: ScopeGrantValue = 'deny'
       for (const roleId of roleIds) {
         const value = normalizeScopeValue(getBitrixGrant(scopeGrants, mod.id, action, roleId))
@@ -95,24 +94,6 @@ export function resolveEffectiveGrants(
           scope: merged,
           resourceType: mod.resourceType,
         })
-      }
-    }
-
-    if (mod.booleanPermissions) {
-      for (const perm of mod.booleanPermissions) {
-        const allowed = roleIds.some((roleId) =>
-          getBooleanGrant(booleanGrants, mod.id, perm.id, roleId),
-        )
-        if (allowed) {
-          grants.push({
-            moduleId: mod.id,
-            moduleName: mod.displayName ?? mod.name,
-            action: perm.id,
-            actionLabel: perm.label,
-            scope: 'all_tenant_data',
-            resourceType: mod.resourceType,
-          })
-        }
       }
     }
   }
@@ -138,7 +119,6 @@ export function toEffectivePreviewRows(
   }))
 }
 
-/** Check whether a user may perform an action on a module (client-side preview). */
 export function canAccessModuleAction(
   userId: string,
   moduleId: string,

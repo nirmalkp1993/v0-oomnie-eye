@@ -1,5 +1,10 @@
 import type { RoleListItem } from '@/src/types/user-management'
-import { createEmptyPermissionMatrix, type PermissionMatrix } from '@/src/constants/permissions-matrix'
+import {
+  clonePermissionMatrix,
+  createEmptyPermissionMatrix,
+  type PermissionMatrix,
+  type PermissionModule,
+} from '@/src/constants/permissions-matrix'
 
 export const MOCK_ROLES: RoleListItem[] = [
   {
@@ -82,7 +87,71 @@ export const MOCK_ROLES: RoleListItem[] = [
   },
 ]
 
-/** Per-role permission matrices for the role form modal */
+import type { PermissionColumn, PermissionMatrix, PermissionModule } from '@/src/constants/permissions-matrix'
+
+function setModule(
+  matrix: PermissionMatrix,
+  mod: PermissionModule,
+  cols: Partial<Record<PermissionColumn, boolean>>,
+): void {
+  for (const col of Object.keys(cols) as PermissionColumn[]) {
+    const value = cols[col]
+    if (value) matrix[mod][col] = true
+  }
+}
+
+function buildRolePermissions(roleId: string): PermissionMatrix {
+  const matrix = createEmptyPermissionMatrix()
+
+  if (roleId === 'role-super-admin' || roleId === 'role-tenant-admin') {
+    for (const mod of Object.keys(matrix) as PermissionModule[]) {
+      setModule(matrix, mod, {
+        Create: true,
+        View: true,
+        Update: true,
+        Delete: true,
+        Export: true,
+        Assign: true,
+      })
+    }
+    return matrix
+  }
+
+  if (roleId === 'role-viewer') {
+    setModule(matrix, 'Earth', { View: true })
+    setModule(matrix, 'Dashboard', { View: true })
+    setModule(matrix, 'Reports', { View: true })
+    setModule(matrix, 'Alerts', { View: true })
+    return matrix
+  }
+
+  if (roleId === 'role-operations-manager') {
+    setModule(matrix, 'Dashboard', { View: true, Update: true })
+    setModule(matrix, 'Reports', { View: true, Export: true })
+    setModule(matrix, 'Camera', { View: true, Update: true })
+    setModule(matrix, 'Camera Group', { View: true, Update: true })
+    setModule(matrix, 'Camera Recording', { View: true, Update: true })
+    setModule(matrix, 'Alerts', { View: true })
+    return matrix
+  }
+
+  if (roleId === 'role-finance-country') {
+    setModule(matrix, 'Reports', { View: true, Export: true })
+    return matrix
+  }
+
+  if (roleId === 'role-auditor') {
+    setModule(matrix, 'Users', { View: true })
+    setModule(matrix, 'Groups', { View: true })
+    setModule(matrix, 'Roles', { View: true })
+    setModule(matrix, 'Permissions', { View: true })
+    return matrix
+  }
+
+  return matrix
+}
+
+/** Per-role permission matrices aligned with app modules. */
 export const MOCK_ROLE_PERMISSIONS: Record<string, PermissionMatrix> = Object.fromEntries(
-  MOCK_ROLES.map((r) => [r.id, createEmptyPermissionMatrix()])
+  MOCK_ROLES.map((r) => [r.id, clonePermissionMatrix(buildRolePermissions(r.id))]),
 )

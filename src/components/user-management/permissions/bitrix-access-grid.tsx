@@ -27,7 +27,6 @@ import {
 } from '@/src/constants/bitrix-access-ui'
 import {
   getBitrixGrant,
-  getBooleanGrant,
   getStandardActionsForModule,
   isSystemRole,
 } from '@/src/lib/user-management/bitrix-permissions.utils'
@@ -38,7 +37,6 @@ import type {
   ScopeGrantValue,
 } from '@/src/types/permissions-page'
 import { BitrixModuleIcon } from './bitrix-module-icon'
-import { PermissionBooleanCell } from './permission-boolean-cell'
 import { PermissionScopeCell } from './permission-scope-cell'
 import { RoleColumnHeader } from './role-column-header'
 import { RolesHeaderCell, useVisibleGridRoles } from './roles-grid-toolbar'
@@ -52,9 +50,11 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   modules,
   gridRoles,
   expandedModuleIds,
+  expandedGroupIds,
   visibleRoleIds,
   onVisibleRoleIdsChange,
   onToggleModule,
+  onToggleGroup,
   onExpandAll,
   onCollapseAll,
   onAddRole,
@@ -69,9 +69,11 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   modules: PermissionMatrixModule[]
   gridRoles: RoleListItem[]
   expandedModuleIds: ReadonlySet<string>
+  expandedGroupIds: ReadonlySet<string>
   visibleRoleIds: ReadonlySet<string>
   onVisibleRoleIdsChange: (ids: Set<string>) => void
   onToggleModule: (moduleId: string) => void
+  onToggleGroup: (groupId: string) => void
   onExpandAll: () => void
   onCollapseAll: () => void
   onAddRole: () => void
@@ -206,25 +208,90 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
                 </TableCell>
               </TableRow>
             ) : (
-              modules.map((module) => (
-                <ModuleSection
-                  key={module.id}
-                  module={module}
-                  expanded={expandedModuleIds.has(module.id)}
-                  onToggle={() => onToggleModule(module.id)}
-                  visibleRoles={visibleRoles}
-                  scopeGrants={scopeGrants}
-                  booleanGrants={booleanGrants}
-                  onPatchScopeGrant={onPatchScopeGrant}
-                  onPatchBooleanGrant={onPatchBooleanGrant}
-                  colSpan={colSpan}
-                />
-              ))
+              modules.map((module) =>
+                module.isGroupHeader ? (
+                  <GroupHeaderRow
+                    key={module.id}
+                    module={module}
+                    expanded={expandedGroupIds.has(module.id)}
+                    onToggle={() => onToggleGroup(module.id)}
+                    colSpan={colSpan}
+                  />
+                ) : (
+                  <ModuleSection
+                    key={module.id}
+                    module={module}
+                    expanded={expandedModuleIds.has(module.id)}
+                    onToggle={() => onToggleModule(module.id)}
+                    visibleRoles={visibleRoles}
+                    scopeGrants={scopeGrants}
+                    onPatchScopeGrant={onPatchScopeGrant}
+                    colSpan={colSpan}
+                  />
+                ),
+              )
             )}
           </TableBody>
         </Table>
       </TableContainer>
     </Box>
+  )
+})
+
+const GroupHeaderRow = memo(function GroupHeaderRow({
+  module,
+  expanded,
+  onToggle,
+  colSpan,
+}: {
+  module: PermissionMatrixModule
+  expanded: boolean
+  onToggle: () => void
+  colSpan: number
+}) {
+  const displayName = getModuleDisplayName(module)
+  const depth = module.depth ?? 0
+
+  return (
+    <TableRow
+      id={`bitrix-module-${module.id}`}
+      hover
+      sx={{
+        bgcolor: BITRIX_ACCESS_UI.sectionBg,
+        cursor: 'pointer',
+        '& td': { borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}` },
+        '&:hover': { bgcolor: BITRIX_ACCESS_UI.rowHoverBg },
+      }}
+      onClick={onToggle}
+    >
+      <TableCell
+        colSpan={colSpan}
+        sx={{
+          py: 0.875,
+          px: 1.5,
+          height: 40,
+          position: 'sticky',
+          left: 0,
+          borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
+          pl: 1.5 + depth * 2,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {expanded ? (
+            <ExpandLessIcon sx={{ fontSize: 18, color: BITRIX_ACCESS_UI.textSecondary }} />
+          ) : (
+            <ExpandMoreIcon sx={{ fontSize: 18, color: BITRIX_ACCESS_UI.textSecondary }} />
+          )}
+          <BitrixModuleIcon moduleId={module.id} />
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 700, fontSize: '0.875rem', color: BITRIX_ACCESS_UI.textPrimary }}
+          >
+            {displayName}
+          </Typography>
+        </Box>
+      </TableCell>
+    </TableRow>
   )
 })
 
@@ -234,9 +301,7 @@ const ModuleSection = memo(function ModuleSection({
   onToggle,
   visibleRoles,
   scopeGrants,
-  booleanGrants,
   onPatchScopeGrant,
-  onPatchBooleanGrant,
   colSpan,
 }: {
   module: PermissionMatrixModule
@@ -244,18 +309,17 @@ const ModuleSection = memo(function ModuleSection({
   onToggle: () => void
   visibleRoles: RoleListItem[]
   scopeGrants: BitrixAccessGrants
-  booleanGrants: BitrixBooleanGrants
   onPatchScopeGrant: (
     moduleId: string,
     action: string,
     roleId: string,
     value: ScopeGrantValue,
   ) => void
-  onPatchBooleanGrant: (moduleId: string, permId: string, roleId: string, value: boolean) => void
   colSpan: number
 }) {
   const displayName = getModuleDisplayName(module)
   const actions = useMemo(() => getStandardActionsForModule(module), [module])
+  const depth = module.depth ?? 0
 
   return (
     <>
@@ -279,6 +343,7 @@ const ModuleSection = memo(function ModuleSection({
             position: 'sticky',
             left: 0,
             borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
+            pl: 1.5 + depth * 2,
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -304,23 +369,10 @@ const ModuleSection = memo(function ModuleSection({
               key={`${module.id}-${action}`}
               moduleId={module.id}
               action={action}
+              indent={depth}
               visibleRoles={visibleRoles}
               scopeGrants={scopeGrants}
               onPatchScopeGrant={onPatchScopeGrant}
-            />
-          ))
-        : null}
-
-      {expanded
-        ? module.booleanPermissions?.map((perm) => (
-            <BooleanRow
-              key={`${module.id}-${perm.id}`}
-              moduleId={module.id}
-              permId={perm.id}
-              permLabel={perm.label}
-              visibleRoles={visibleRoles}
-              booleanGrants={booleanGrants}
-              onPatchBooleanGrant={onPatchBooleanGrant}
             />
           ))
         : null}
@@ -331,12 +383,14 @@ const ModuleSection = memo(function ModuleSection({
 const ActionRow = memo(function ActionRow({
   moduleId,
   action,
+  indent = 0,
   visibleRoles,
   scopeGrants,
   onPatchScopeGrant,
 }: {
   moduleId: string
   action: string
+  indent?: number
   visibleRoles: RoleListItem[]
   scopeGrants: BitrixAccessGrants
   onPatchScopeGrant: (
@@ -364,7 +418,7 @@ const ActionRow = memo(function ActionRow({
     >
       <TableCell
         sx={{
-          pl: 5,
+          pl: 5 + indent * 2,
           position: 'sticky',
           left: 0,
           zIndex: 1,
@@ -396,65 +450,6 @@ const ActionRow = memo(function ActionRow({
               disabled={locked}
               label={`${BITRIX_ACTION_LABELS[action]} for ${role.name}`}
               onChange={(next) => handleChange(role.id, next)}
-            />
-          </TableCell>
-        )
-      })}
-      <TableCell />
-      <TableCell sx={{ borderRight: 'none' }} />
-    </TableRow>
-  )
-})
-
-const BooleanRow = memo(function BooleanRow({
-  moduleId,
-  permId,
-  permLabel,
-  visibleRoles,
-  booleanGrants,
-  onPatchBooleanGrant,
-}: {
-  moduleId: string
-  permId: string
-  permLabel: string
-  visibleRoles: RoleListItem[]
-  booleanGrants: BitrixBooleanGrants
-  onPatchBooleanGrant: (moduleId: string, permId: string, roleId: string, value: boolean) => void
-}) {
-  return (
-    <TableRow
-      hover={false}
-      sx={{
-        bgcolor: '#fff',
-        '&:hover': { bgcolor: BITRIX_ACCESS_UI.rowHoverBg },
-        '& td': bitrixTableCellSx,
-      }}
-    >
-      <TableCell
-        sx={{
-          pl: 5,
-          position: 'sticky',
-          left: 0,
-          zIndex: 1,
-          bgcolor: 'inherit',
-        }}
-      >
-        <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: BITRIX_ACCESS_UI.textPrimary }}>
-          {permLabel}
-        </Typography>
-      </TableCell>
-      {visibleRoles.map((role) => {
-        const locked = isSystemRole(role.id)
-        const checked = locked
-          ? true
-          : getBooleanGrant(booleanGrants, moduleId, permId, role.id)
-        return (
-          <TableCell key={role.id} align="center">
-            <PermissionBooleanCell
-              checked={checked}
-              disabled={locked}
-              label={`${permLabel} for ${role.name}`}
-              onChange={(next) => onPatchBooleanGrant(moduleId, permId, role.id, next)}
             />
           </TableCell>
         )
