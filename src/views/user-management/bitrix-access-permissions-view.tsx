@@ -17,7 +17,7 @@ import {
   APP_PERMISSION_LEAF_MODULES,
   BITRIX_ACCESS_MODULES,
 } from '@/src/constants/permissions-page-matrix'
-import { BITRIX_ACCESS_UI, BITRIX_GRID_ROLE_IDS } from '@/src/constants/bitrix-access-ui'
+import { BITRIX_ACCESS_UI } from '@/src/constants/bitrix-access-ui'
 import {
   DEFAULT_EXPANDED_GROUP_IDS_SET,
   filterAppModules,
@@ -26,11 +26,16 @@ import {
 import { MOCK_USERS } from '@/src/mock-data/users'
 import { useBitrixPermissions } from '@/src/contexts/bitrix-permissions-context'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
-import { RoleFormModal } from '@/src/components/modals/role-form-modal'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { PermissionCategorySidebar } from '@/src/components/user-management/permissions/permission-category-sidebar'
-import { isDeletableGridRole, isSystemRole } from '@/src/lib/user-management/bitrix-permissions.utils'
+import { RoleMembersPickerModal } from '@/src/components/user-management/permissions/role-members-picker-modal'
+import {
+  createBlankGridRole,
+  isDeletableGridRole,
+  isSystemRole,
+} from '@/src/lib/user-management/bitrix-permissions.utils'
 import { resolveUserRoleIds } from '@/src/lib/user-management/permission-resolver'
+import type { RoleMemberSelection } from '@/src/types/permissions-page'
 import type { RoleListItem } from '@/src/types/user-management'
 
 const BitrixAccessGrid = dynamic(
@@ -47,12 +52,6 @@ const BitrixAccessGrid = dynamic(
     ssr: false,
   },
 )
-
-type RoleModalState = {
-  open: boolean
-  mode: 'create' | 'edit'
-  role: RoleListItem | null
-}
 
 function isNameTaken(roles: RoleListItem[], name: string, excludeId?: string): boolean {
   const normalized = name.trim().toLowerCase()
@@ -74,6 +73,8 @@ export function BitrixAccessPermissionsView() {
     patchBooleanGrant,
     bulkSetRoleScopeGrants,
     cloneGridRole,
+    getRoleMemberSelection,
+    setRoleMemberSelection,
   } = useBitrixPermissions()
   const [selectedModuleId, setSelectedModuleId] = useState('earth')
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(
@@ -83,26 +84,23 @@ export function BitrixAccessPermissionsView() {
   const [search, setSearch] = useState('')
   const [employeeFilter, setEmployeeFilter] = useState('all')
   const [visibleRoleIds, setVisibleRoleIds] = useState<Set<string>>(
-    () => new Set(BITRIX_GRID_ROLE_IDS),
+    () => new Set(gridRoles.map((r) => r.id)),
   )
-  const [roleModal, setRoleModal] = useState<RoleModalState>({
-    open: false,
-    mode: 'create',
-    role: null,
-  })
+  const [renamingRoleId, setRenamingRoleId] = useState<string | null>(null)
+  const [assignModalRole, setAssignModalRole] = useState<RoleListItem | null>(null)
   const [confirmDeleteRole, setConfirmDeleteRole] = useState<RoleListItem | null>(null)
 
   useEffect(() => {
+    const allIds = gridRoles.map((r) => r.id)
     if (employeeFilter === 'all') {
-      setVisibleRoleIds(new Set(BITRIX_GRID_ROLE_IDS))
+      setVisibleRoleIds(new Set(allIds))
       return
     }
     const roleIds = resolveUserRoleIds(employeeFilter)
-    const visible = roleIds.filter((id) =>
-      (BITRIX_GRID_ROLE_IDS as readonly string[]).includes(id),
-    )
-    setVisibleRoleIds(new Set(visible.length > 0 ? visible : BITRIX_GRID_ROLE_IDS))
-  }, [employeeFilter])
+    const gridRoleIdSet = new Set(allIds)
+    const visible = roleIds.filter((id) => gridRoleIdSet.has(id))
+    setVisibleRoleIds(new Set(visible.length > 0 ? visible : allIds))
+  }, [employeeFilter, gridRoles])
 
   const gridModules = useMemo(() => {
     const filtered = filterAppModules(BITRIX_ACCESS_MODULES, search)
@@ -111,9 +109,26 @@ export function BitrixAccessPermissionsView() {
 
   const handleAssignUsers = useCallback(
     (roleId: string) => {
-      showMessage(`Open Users tab to assign members to role ${roleId}`, 'info')
+      const role = gridRoles.find((item) => item.id === roleId)
+      if (!role) return
+      setAssignModalRole(role)
     },
-    [showMessage],
+    [gridRoles],
+  )
+
+  const handleSaveRoleMembers = useCallback(
+    (selection: RoleMemberSelection) => {
+      if (!assignModalRole) return
+      setRoleMemberSelection(assignModalRole.id, selection)
+      const users = selection.userIds.length
+      const groups = selection.groupIds.length
+      showMessage(
+        `${users} user(s) and ${groups} group(s) assigned to "${assignModalRole.name}"`,
+        'success',
+      )
+      setAssignModalRole(null)
+    },
+    [assignModalRole, setRoleMemberSelection, showMessage],
   )
 
   const handleToggleGroup = useCallback((groupId: string) => {
@@ -154,43 +169,55 @@ export function BitrixAccessPermissionsView() {
   }, [])
 
   const openCreateRole = useCallback(() => {
-    setRoleModal({ open: true, mode: 'create', role: null })
+    const role = createBlankGridRole(gridRoles)
+    addGridRole(role)
+    setVisibleRoleIds((prev) => {
+      const next = new Set(prev)
+      next.add(role.id)
+      return next
+    })
+    setRenamingRoleId(role.id)
+    window.setTimeout(() => {
+      showMessage('New role added — set permissions in the grid', 'success')
+    }, 200)
+  }, [addGridRole, gridRoles, showMessage])
+
+  const handleStartRename = useCallback((role: RoleListItem) => {
+    setRenamingRoleId(role.id)
   }, [])
 
-  const openEditRole = useCallback((role: RoleListItem) => {
-    setRoleModal({ open: true, mode: 'edit', role })
+  const handleRenameCancel = useCallback(() => {
+    setRenamingRoleId(null)
   }, [])
 
-  const closeRoleModal = useCallback(() => {
-    setRoleModal({ open: false, mode: 'create', role: null })
-  }, [])
-
-  const handleSaveRole = useCallback(
-    (role: RoleListItem): boolean => {
-      if (roleModal.mode === 'create') {
-        if (isNameTaken(gridRoles, role.name)) {
-          showMessage('A role with this name already exists', 'warning')
-          return false
-        }
-        addGridRole(role)
-        setVisibleRoleIds((prev) => {
-          const next = new Set(prev)
-          next.add(role.id)
-          return next
-        })
-        showMessage(`Role "${role.name}" created — set permissions in the grid`, 'success')
-      } else if (roleModal.role) {
-        if (isNameTaken(gridRoles, role.name, roleModal.role.id)) {
-          showMessage('A role with this name already exists', 'warning')
-          return false
-        }
-        updateGridRole({ ...role, id: roleModal.role.id })
-        showMessage(`Role "${role.name}" updated`, 'success')
+  const handleRenameCommit = useCallback(
+    (roleId: string, name: string) => {
+      const trimmed = name.trim()
+      const role = gridRoles.find((r) => r.id === roleId)
+      if (!role) {
+        setRenamingRoleId(null)
+        return
       }
-      closeRoleModal()
-      return true
+
+      if (!trimmed) {
+        showMessage('Role name cannot be empty', 'warning')
+        setRenamingRoleId(roleId)
+        return
+      }
+
+      if (isNameTaken(gridRoles, trimmed, roleId)) {
+        showMessage('A role with this name already exists', 'warning')
+        setRenamingRoleId(roleId)
+        return
+      }
+
+      if (trimmed !== role.name) {
+        updateGridRole({ ...role, name: trimmed })
+        showMessage(`Role renamed to "${trimmed}"`, 'success')
+      }
+      setRenamingRoleId(null)
     },
-    [addGridRole, closeRoleModal, gridRoles, roleModal.mode, roleModal.role, showMessage, updateGridRole],
+    [gridRoles, showMessage, updateGridRole],
   )
 
   const requestDeleteRole = useCallback(
@@ -255,10 +282,12 @@ export function BitrixAccessPermissionsView() {
       }
       return next
     })
+    if (renamingRoleId === deletedId) {
+      setRenamingRoleId(null)
+    }
     setConfirmDeleteRole(null)
-    closeRoleModal()
     showMessage(`Role "${deletedName}" deleted`, 'success')
-  }, [closeRoleModal, confirmDeleteRole, gridRoles, removeGridRole, showMessage])
+  }, [confirmDeleteRole, gridRoles, removeGridRole, renamingRoleId, showMessage])
 
   useEffect(() => {
     if (!selectedModuleId) return
@@ -391,37 +420,23 @@ export function BitrixAccessPermissionsView() {
             onExpandAll={expandAll}
             onCollapseAll={collapseAll}
             onAddRole={openCreateRole}
-            onEditRole={openEditRole}
             onDeleteRole={requestDeleteRole}
             onSelectAllPermissions={handleSelectAllPermissions}
             onUnselectAllPermissions={handleUnselectAllPermissions}
-            onRenameRole={openEditRole}
+            onRenameRole={handleStartRename}
             onCloneRole={handleCloneRole}
+            renamingRoleId={renamingRoleId}
+            onRenameCommit={handleRenameCommit}
+            onRenameCancel={handleRenameCancel}
             scopeGrants={scopeGrants}
             booleanGrants={booleanGrants}
             onPatchScopeGrant={patchScopeGrant}
             onPatchBooleanGrant={patchBooleanGrant}
             onAssignUsers={handleAssignUsers}
+            getRoleMemberSelection={getRoleMemberSelection}
           />
         </Box>
       </Box>
-
-      <RoleFormModal
-        open={roleModal.open}
-        mode={roleModal.mode}
-        initial={roleModal.role}
-        onClose={closeRoleModal}
-        onSubmit={handleSaveRole}
-        onDeleteRequest={
-          roleModal.role && isDeletableGridRole(roleModal.role.id)
-            ? () => {
-                const role = roleModal.role as RoleListItem
-                closeRoleModal()
-                setConfirmDeleteRole(role)
-              }
-            : undefined
-        }
-      />
 
       <ConfirmDialog
         open={confirmDeleteRole != null}
@@ -435,6 +450,15 @@ export function BitrixAccessPermissionsView() {
         destructive
         onClose={() => setConfirmDeleteRole(null)}
         onConfirm={confirmDelete}
+      />
+      <RoleMembersPickerModal
+        open={assignModalRole != null}
+        role={assignModalRole}
+        selection={
+          assignModalRole ? getRoleMemberSelection(assignModalRole.id) : { userIds: [], groupIds: [], departmentIds: [] }
+        }
+        onSave={handleSaveRoleMembers}
+        onClose={() => setAssignModalRole(null)}
       />
     </>
   )

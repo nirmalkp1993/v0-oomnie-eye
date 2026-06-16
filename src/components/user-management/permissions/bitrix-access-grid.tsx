@@ -34,6 +34,7 @@ import type {
   BitrixAccessGrants,
   BitrixBooleanGrants,
   PermissionMatrixModule,
+  RoleMemberSelection,
   ScopeGrantSelection,
   ScopeGrantValue,
 } from '@/src/types/permissions-page'
@@ -59,17 +60,20 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   onExpandAll,
   onCollapseAll,
   onAddRole,
-  onEditRole,
   onDeleteRole,
   onSelectAllPermissions,
   onUnselectAllPermissions,
   onRenameRole,
   onCloneRole,
+  renamingRoleId,
+  onRenameCommit,
+  onRenameCancel,
   scopeGrants,
   booleanGrants,
   onPatchScopeGrant,
   onPatchBooleanGrant,
   onAssignUsers,
+  getRoleMemberSelection,
 }: {
   modules: PermissionMatrixModule[]
   gridRoles: RoleListItem[]
@@ -82,12 +86,14 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   onExpandAll: () => void
   onCollapseAll: () => void
   onAddRole: () => void
-  onEditRole: (role: RoleListItem) => void
   onDeleteRole: (role: RoleListItem) => void
   onSelectAllPermissions?: (role: RoleListItem) => void
   onUnselectAllPermissions?: (role: RoleListItem) => void
   onRenameRole?: (role: RoleListItem) => void
   onCloneRole?: (role: RoleListItem) => void
+  renamingRoleId?: string | null
+  onRenameCommit?: (roleId: string, name: string) => void
+  onRenameCancel?: () => void
   scopeGrants: BitrixAccessGrants
   booleanGrants: BitrixBooleanGrants
   onPatchScopeGrant: (
@@ -98,6 +104,7 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
   ) => void
   onPatchBooleanGrant: (moduleId: string, permId: string, roleId: string, value: boolean) => void
   onAssignUsers?: (roleId: string) => void
+  getRoleMemberSelection?: (roleId: string) => RoleMemberSelection
 }) {
   const visibleRoles = useVisibleGridRoles(gridRoles, visibleRoleIds)
   const colSpan = colSpanForRoles(visibleRoles.length)
@@ -159,12 +166,16 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
                 >
                   <RoleColumnHeader
                     role={role}
+                    memberSelection={getRoleMemberSelection?.(role.id)}
+                    isRenaming={renamingRoleId === role.id}
+                    onRenameCommit={(name) => onRenameCommit?.(role.id, name)}
+                    onRenameCancel={onRenameCancel}
                     onAssignUsers={
                       onAssignUsers ? (r) => onAssignUsers(r.id) : undefined
                     }
                     onSelectAllPermissions={onSelectAllPermissions}
                     onUnselectAllPermissions={onUnselectAllPermissions}
-                    onRenameRole={onRenameRole ?? onEditRole}
+                    onRenameRole={onRenameRole}
                     onCloneRole={onCloneRole}
                     onDeleteRole={onDeleteRole}
                   />

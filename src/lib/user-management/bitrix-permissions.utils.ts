@@ -53,6 +53,36 @@ export function getInitialGridRoles(): RoleListItem[] {
   )
 }
 
+function isRoleNameTaken(roles: RoleListItem[], name: string, excludeId?: string): boolean {
+  const normalized = name.trim().toLowerCase()
+  return roles.some(
+    (r) => r.id !== excludeId && r.name.trim().toLowerCase() === normalized,
+  )
+}
+
+export function createBlankGridRole(existing: RoleListItem[]): RoleListItem {
+  const baseName = 'New role'
+  let name = baseName
+  let suffix = 2
+  while (isRoleNameTaken(existing, name)) {
+    name = `${baseName} (${suffix++})`
+  }
+
+  return {
+    id: `role-${Date.now()}`,
+    name,
+    description: '—',
+    badges: [],
+    iconVariant: 'hexagon',
+    userCount: 0,
+    groupCount: 0,
+    permissionCount: 0,
+    dataScope: '—',
+    status: 'active',
+    lastUpdated: new Date().toISOString().slice(0, 10),
+  }
+}
+
 function forEachLeafModule(fn: (mod: PermissionMatrixModule) => void): void {
   for (const mod of APP_PERMISSION_LEAF_MODULES) fn(mod)
 }

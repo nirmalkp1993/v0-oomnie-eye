@@ -23,13 +23,20 @@ import {
   setBitrixGrant,
   setBooleanGrant,
 } from '@/src/lib/user-management/bitrix-permissions.utils'
-import type { BitrixAccessGrants, BitrixBooleanGrants, ScopeGrantSelection, ScopeGrantValue } from '@/src/types/permissions-page'
+import type {
+  BitrixAccessGrants,
+  BitrixBooleanGrants,
+  RoleMemberSelection,
+  ScopeGrantSelection,
+  ScopeGrantValue,
+} from '@/src/types/permissions-page'
 import type { RoleListItem } from '@/src/types/user-management'
 
 interface BitrixPermissionsContextValue {
   gridRoles: RoleListItem[]
   scopeGrants: BitrixAccessGrants
   booleanGrants: BitrixBooleanGrants
+  roleMemberAssignments: Record<string, RoleMemberSelection>
   addGridRole: (role: RoleListItem) => void
   updateGridRole: (role: RoleListItem) => void
   removeGridRole: (roleId: string) => void
@@ -44,19 +51,51 @@ interface BitrixPermissionsContextValue {
   setBooleanGrants: (grants: BitrixBooleanGrants) => void
   bulkSetRoleScopeGrants: (roleId: string, scope: ScopeGrantValue) => void
   cloneGridRole: (source: RoleListItem) => RoleListItem
+  getRoleMemberSelection: (roleId: string) => RoleMemberSelection
+  setRoleMemberSelection: (roleId: string, selection: RoleMemberSelection) => void
 }
 
 const BitrixPermissionsContext = createContext<BitrixPermissionsContextValue | null>(null)
+
+const EMPTY_ROLE_MEMBER_SELECTION: RoleMemberSelection = {
+  userIds: [],
+  groupIds: [],
+  departmentIds: [],
+}
+
+function cloneRoleMemberSelection(selection?: RoleMemberSelection): RoleMemberSelection {
+  if (!selection) return { ...EMPTY_ROLE_MEMBER_SELECTION }
+  return {
+    userIds: [...selection.userIds],
+    groupIds: [...selection.groupIds],
+    departmentIds: [...selection.departmentIds],
+  }
+}
+
+function createInitialRoleMemberAssignments(roles: RoleListItem[]): Record<string, RoleMemberSelection> {
+  const next: Record<string, RoleMemberSelection> = {}
+  for (const role of roles) {
+    next[role.id] = cloneRoleMemberSelection()
+  }
+  return next
+}
 
 export function BitrixPermissionsProvider({ children }: { children: ReactNode }) {
   const [gridRoles, setGridRoles] = useState<RoleListItem[]>(getInitialGridRoles)
   const [scopeGrants, setScopeGrantsState] = useState(createSeedBitrixGrants)
   const [booleanGrants, setBooleanGrantsState] = useState(createSeedBooleanGrants)
+  const [roleMemberAssignments, setRoleMemberAssignments] = useState<Record<string, RoleMemberSelection>>(
+    () => createInitialRoleMemberAssignments(getInitialGridRoles()),
+  )
 
   const addGridRole = useCallback((role: RoleListItem) => {
     setGridRoles((prev) => {
       if (prev.some((r) => r.id === role.id)) return prev
       return [...prev, role]
+    })
+    setRoleMemberAssignments((prev) => {
+      if (prev[role.id]) return prev
+      return { ...prev, [role.id]: cloneRoleMemberSelection() }
     })
     setScopeGrantsState((prev) => appendRoleToScopeGrants(prev, role.id, 'deny'))
     setBooleanGrantsState((prev) => appendRoleToBooleanGrants(prev, role.id, false))
@@ -68,6 +107,10 @@ export function BitrixPermissionsProvider({ children }: { children: ReactNode })
 
   const removeGridRole = useCallback((roleId: string) => {
     setGridRoles((prev) => prev.filter((r) => r.id !== roleId))
+    setRoleMemberAssignments((prev) => {
+      const { [roleId]: _removed, ...rest } = prev
+      return rest
+    })
     setScopeGrantsState((prev) => removeRoleFromScopeGrants(prev, roleId))
     setBooleanGrantsState((prev) => removeRoleFromBooleanGrants(prev, roleId))
   }, [])
@@ -113,7 +156,35 @@ export function BitrixPermissionsProvider({ children }: { children: ReactNode })
       copyRoleScopeGrants(appendRoleToScopeGrants(prev, clone.id, 'deny'), source.id, clone.id),
     )
     setBooleanGrantsState((prev) => appendRoleToBooleanGrants(prev, clone.id, false))
+    setRoleMemberAssignments((prev) => ({
+      ...prev,
+      [clone.id]: cloneRoleMemberSelection(),
+    }))
     return clone
+  }, [])
+
+  const getRoleMemberSelection = useCallback(
+    (roleId: string): RoleMemberSelection => cloneRoleMemberSelection(roleMemberAssignments[roleId]),
+    [roleMemberAssignments],
+  )
+
+  const setRoleMemberSelection = useCallback((roleId: string, selection: RoleMemberSelection) => {
+    const nextSelection = cloneRoleMemberSelection(selection)
+    setRoleMemberAssignments((prev) => ({
+      ...prev,
+      [roleId]: nextSelection,
+    }))
+    setGridRoles((prev) =>
+      prev.map((role) =>
+        role.id === roleId
+          ? {
+              ...role,
+              userCount: nextSelection.userIds.length,
+              groupCount: nextSelection.groupIds.length,
+            }
+          : role,
+      ),
+    )
   }, [])
 
   const value = useMemo(
@@ -121,6 +192,7 @@ export function BitrixPermissionsProvider({ children }: { children: ReactNode })
       gridRoles,
       scopeGrants,
       booleanGrants,
+      roleMemberAssignments,
       addGridRole,
       updateGridRole,
       removeGridRole,
@@ -130,11 +202,14 @@ export function BitrixPermissionsProvider({ children }: { children: ReactNode })
       setBooleanGrants,
       bulkSetRoleScopeGrants,
       cloneGridRole,
+      getRoleMemberSelection,
+      setRoleMemberSelection,
     }),
     [
       gridRoles,
       scopeGrants,
       booleanGrants,
+      roleMemberAssignments,
       addGridRole,
       updateGridRole,
       removeGridRole,
@@ -144,6 +219,8 @@ export function BitrixPermissionsProvider({ children }: { children: ReactNode })
       setBooleanGrants,
       bulkSetRoleScopeGrants,
       cloneGridRole,
+      getRoleMemberSelection,
+      setRoleMemberSelection,
     ],
   )
 

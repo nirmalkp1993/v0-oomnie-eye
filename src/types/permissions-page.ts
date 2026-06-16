@@ -53,6 +53,22 @@ export type ScopeGrantValue = DataScopeId | 'deny'
 /** Single scope, multiple scopes, or deny. */
 export type ScopeGrantSelection = ScopeGrantValue | ScopeGrantValue[]
 
+export type RoleMemberEntityType = 'user' | 'group' | 'department'
+
+export interface RoleMemberSelection {
+  userIds: string[]
+  groupIds: string[]
+  departmentIds: string[]
+}
+
+export interface RoleMemberPickerItem {
+  id: string
+  type: RoleMemberEntityType
+  label: string
+  subtitle?: string
+  depth?: number
+}
+
 export type BitrixBooleanGrants = Record<
   string,
   Record<string, Record<string, boolean>>
