@@ -10,7 +10,6 @@ import {
   Button,
   CircularProgress,
   FormControl,
-  IconButton,
   InputAdornment,
   MenuItem,
   Paper,
@@ -20,7 +19,6 @@ import {
 import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
 import {
   myDrawingsSearchFieldSx,
-  myDrawingsToolbarIconButtonSx,
   myDrawingsToolbarOutlineButtonSx,
   myDrawingsToolbarRowSx,
   myDrawingsToolbarShellSx,
@@ -388,22 +386,26 @@ export function BitrixAccessPermissionsView() {
                 ml: { xs: 0, md: 'auto' },
               }}
             >
-              <IconButton
+              <Button
                 size="small"
+                variant="outlined"
                 aria-label="Collapse all modules"
                 onClick={collapseAll}
-                sx={myDrawingsToolbarIconButtonSx}
+                startIcon={<UnfoldLessIcon sx={{ fontSize: 18 }} />}
+                sx={myDrawingsToolbarOutlineButtonSx}
               >
-                <UnfoldLessIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-              <IconButton
+                Collapse
+              </Button>
+              <Button
                 size="small"
+                variant="outlined"
                 aria-label="Expand all modules"
                 onClick={expandAll}
-                sx={myDrawingsToolbarIconButtonSx}
+                startIcon={<UnfoldMoreIcon sx={{ fontSize: 18 }} />}
+                sx={myDrawingsToolbarOutlineButtonSx}
               >
-                <UnfoldMoreIcon sx={{ fontSize: 18 }} />
-              </IconButton>
+                Expand
+              </Button>
               <RoleColumnVisibilityPicker
                 gridRoles={gridRoles}
                 visibleRoleIds={visibleRoleIds}
