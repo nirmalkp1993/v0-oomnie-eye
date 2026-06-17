@@ -6,12 +6,13 @@ import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined'
 import CorporateFareOutlinedIcon from '@mui/icons-material/CorporateFareOutlined'
 import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined'
-import { Box, Menu, Typography } from '@mui/material'
+import { Box, Menu, Tooltip, Typography } from '@mui/material'
 import { BITRIX_SCOPE_DROPDOWN_OPTIONS } from '@/src/constants/role-catalog'
 import { BITRIX_ACCESS_UI } from '@/src/constants/bitrix-access-ui'
 import {
   coerceScopeGrantValues,
   formatScopeGrantLabel,
+  getScopeGrantLabels,
   isScopeGrantDenied,
   isScopeOptionSelected,
   toggleScopeGrantOption,
@@ -70,6 +71,7 @@ export const PermissionScopeCell = memo(function PermissionScopeCell({
   const [draft, setDraft] = useState<ScopeGrantSelection>(value)
   const open = Boolean(anchor)
   const display = formatScopeGrantLabel(value)
+  const tooltipLabels = useMemo(() => getScopeGrantLabels(value), [value])
   const isDeny = isScopeGrantDenied(value)
   const draftIsDeny = isScopeGrantDenied(draft)
   const draftSelectedCount = coerceScopeGrantValues(draft).length
@@ -103,60 +105,94 @@ export const PermissionScopeCell = memo(function PermissionScopeCell({
     closeMenu()
   }, [closeMenu, draft, onChange])
 
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-      <Box
-        component="button"
-        type="button"
-        disabled={disabled}
-        aria-label={label}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={(e) => {
-          if (!disabled) openMenu(e.currentTarget)
-        }}
+  const scopeTrigger = (
+    <Box
+      component="button"
+      type="button"
+      disabled={disabled}
+      aria-label={label}
+      aria-haspopup="listbox"
+      aria-expanded={open}
+      onClick={(e) => {
+        if (!disabled) openMenu(e.currentTarget)
+      }}
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        border: 'none',
+        bgcolor: open ? '#e8f7fc' : 'transparent',
+        borderRadius: 1,
+        px: 0.5,
+        py: 0.25,
+        m: 0,
+        cursor: disabled ? 'default' : 'pointer',
+        maxWidth: '100%',
+        transition: 'background-color 0.15s ease',
+        '&:hover': disabled
+          ? {}
+          : {
+              bgcolor: '#f3f9fc',
+            },
+      }}
+    >
+      <Typography
+        variant="body2"
+        noWrap
         sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: 'none',
-          bgcolor: open ? '#e8f7fc' : 'transparent',
-          borderRadius: 1,
-          px: 0.5,
-          py: 0.25,
-          m: 0,
-          cursor: disabled ? 'default' : 'pointer',
-          maxWidth: '100%',
-          transition: 'background-color 0.15s ease',
+          fontSize: '0.8125rem',
+          color: isDeny ? BITRIX_ACCESS_UI.denyColor : BITRIX_ACCESS_UI.linkBlue,
+          fontWeight: isDeny ? 400 : 500,
+          maxWidth: 132,
+          borderBottom: isDeny || disabled ? 'none' : `1px dotted ${BITRIX_ACCESS_UI.linkBlue}`,
+          lineHeight: 1.5,
+          textDecoration: 'none',
           '&:hover': disabled
             ? {}
             : {
-                bgcolor: '#f3f9fc',
+                color: '#1055a0',
+                borderBottomColor: '#1055a0',
               },
         }}
       >
-        <Typography
-          variant="body2"
-          noWrap
-          sx={{
-            fontSize: '0.8125rem',
-            color: isDeny ? BITRIX_ACCESS_UI.denyColor : BITRIX_ACCESS_UI.linkBlue,
-            fontWeight: isDeny ? 400 : 500,
-            maxWidth: 132,
-            borderBottom: isDeny || disabled ? 'none' : `1px dotted ${BITRIX_ACCESS_UI.linkBlue}`,
-            lineHeight: 1.5,
-            textDecoration: 'none',
-            '&:hover': disabled
-              ? {}
-              : {
-                  color: '#1055a0',
-                  borderBottomColor: '#1055a0',
-                },
-          }}
-        >
-          {display}
-        </Typography>
-      </Box>
+        {display}
+      </Typography>
+    </Box>
+  )
+
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+      <Tooltip
+        title={
+          <Box
+            component="ul"
+            sx={{
+              m: 0,
+              pl: 2,
+              py: 0.25,
+              listStyleType: 'disc',
+              '& li': { fontSize: '0.75rem', lineHeight: 1.45 },
+            }}
+          >
+            {tooltipLabels.map((item) => (
+              <Box component="li" key={item}>
+                {item}
+              </Box>
+            ))}
+          </Box>
+        }
+        placement="top"
+        arrow
+        enterDelay={400}
+      >
+        {disabled ? (
+          <Box component="span" sx={{ display: 'inline-flex', maxWidth: '100%' }}>
+            {scopeTrigger}
+          </Box>
+        ) : (
+          scopeTrigger
+        )}
+      </Tooltip>
       <Menu
         anchorEl={anchor}
         open={open}

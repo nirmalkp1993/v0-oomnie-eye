@@ -145,16 +145,20 @@ export function isSystemRole(roleId: string): boolean {
   return SYSTEM_ROLE_IDS.has(roleId)
 }
 
-export function formatScopeGrantLabel(value: ScopeGrantSelection | undefined): string {
-  if (isScopeGrantDenied(value)) return SCOPE_GRANT_LABELS.deny
-  const values = coerceScopeGrantValues(value)
-  if (values.length === 1) {
-    return SCOPE_LABEL_BY_ID.get(values[0]) ?? String(values[0])
-  }
-  const labels = values.map((v) => SCOPE_LABEL_BY_ID.get(v) ?? String(v))
+export function getScopeGrantLabels(value: ScopeGrantSelection | undefined): string[] {
+  if (isScopeGrantDenied(value)) return [SCOPE_GRANT_LABELS.deny]
+  return coerceScopeGrantValues(value).map((v) => SCOPE_LABEL_BY_ID.get(v) ?? String(v))
+}
+
+export function formatScopeGrantLabel(
+  value: ScopeGrantSelection | undefined,
+  options?: { compact?: boolean },
+): string {
+  const labels = getScopeGrantLabels(value)
+  if (labels.length === 1) return labels[0]
   const joined = labels.join(', ')
-  if (joined.length <= 34) return joined
-  return `${labels[0]} +${values.length - 1}`
+  if (options?.compact === false || joined.length <= 34) return joined
+  return `${labels[0]} +${labels.length - 1}`
 }
 
 export function coerceScopeGrantValues(value: ScopeGrantSelection | undefined): DataScopeId[] {
