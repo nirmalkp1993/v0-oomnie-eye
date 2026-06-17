@@ -9,6 +9,7 @@ import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import SubdirectoryArrowRightIcon from "@mui/icons-material/SubdirectoryArrowRight";
 import {
+  Autocomplete,
   Box,
   Button,
   Dialog,
@@ -42,6 +43,11 @@ import {
   type HierarchyTreeNode,
 } from "@/src/lib/nested-tree-path-options";
 import { useAdminSnackbar } from "@/src/hooks/use-admin-snackbar";
+import {
+  getOfficeCityOptionsForState,
+  getOfficeCountryOptions,
+  getOfficeStateOptionsForCountry,
+} from "@/src/mock-data/office-location-options";
 import {
   EMPTY_OFFICE_ADDRESS,
   EMPTY_OFFICE_NAME,
@@ -170,6 +176,58 @@ const outlineFieldSx = {
   "& .MuiOutlinedInput-root": { borderRadius: 2 },
 } as const;
 
+function SearchableLocationField({
+  label,
+  htmlFor,
+  options,
+  value,
+  onChange,
+  placeholder,
+  disabled = false,
+}: {
+  label: string;
+  htmlFor: string;
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  const theme = useTheme();
+
+  return (
+    <DialogFormField label={label} htmlFor={htmlFor} required>
+      <Autocomplete
+        id={htmlFor}
+        fullWidth
+        options={options}
+        value={value || null}
+        disabled={disabled}
+        openOnFocus
+        onChange={(_, nextValue) => onChange(nextValue ?? "")}
+        isOptionEqualToValue={(option, selected) => option === selected}
+        noOptionsText="No matches"
+        slotProps={{
+          popper: {
+            sx: { zIndex: theme.zIndex.modal + 10 },
+          },
+          listbox: {
+            sx: { maxHeight: 240 },
+          },
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            fullWidth
+            placeholder={placeholder}
+            sx={outlineFieldSx}
+          />
+        )}
+      />
+    </DialogFormField>
+  );
+}
+
 function OfficeFormDialog({
   open,
   mode,
@@ -210,8 +268,32 @@ function OfficeFormDialog({
     field: K,
     value: string,
   ) => {
-    setAddressInput((current) => ({ ...current, [field]: value }));
+    setAddressInput((current) => {
+      const next = { ...current, [field]: value };
+      if (field === "country") {
+        next.state = "";
+        next.city = "";
+      }
+      if (field === "state") {
+        next.city = "";
+      }
+      return next;
+    });
   };
+
+  const countryOptions = useMemo(
+    () => getOfficeCountryOptions(addressInput.country),
+    [addressInput.country],
+  );
+  const stateOptions = useMemo(
+    () =>
+      getOfficeStateOptionsForCountry(addressInput.country, addressInput.state),
+    [addressInput.country, addressInput.state],
+  );
+  const cityOptions = useMemo(
+    () => getOfficeCityOptionsForState(addressInput.state, addressInput.city),
+    [addressInput.state, addressInput.city],
+  );
 
   useEffect(() => {
     if (!open || !mode) {
@@ -396,35 +478,14 @@ function OfficeFormDialog({
             />
           </DialogFormField>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-              gap: 2,
-            }}
-          >
-            <DialogFormField label="City" htmlFor="officeFormCity" required>
-              <TextField
-                id="officeFormCity"
-                fullWidth
-                value={addressInput.city}
-                onChange={(e) => setAddressField("city", e.target.value)}
-                placeholder="City"
-                sx={outlineFieldSx}
-              />
-            </DialogFormField>
-
-            <DialogFormField label="State" htmlFor="officeFormState" required>
-              <TextField
-                id="officeFormState"
-                fullWidth
-                value={addressInput.state}
-                onChange={(e) => setAddressField("state", e.target.value)}
-                placeholder="State"
-                sx={outlineFieldSx}
-              />
-            </DialogFormField>
-          </Box>
+          <SearchableLocationField
+            label="Country"
+            htmlFor="officeFormCountry"
+            options={countryOptions}
+            value={addressInput.country}
+            onChange={(value) => setAddressField("country", value)}
+            placeholder="Search country…"
+          />
 
           <Box
             sx={{
@@ -433,40 +494,49 @@ function OfficeFormDialog({
               gap: 2,
             }}
           >
-            <DialogFormField
-              label="Pincode"
-              htmlFor="officeFormPincode"
-              required
-            >
-              <TextField
-                id="officeFormPincode"
-                fullWidth
-                value={addressInput.pincode}
-                onChange={(e) => setAddressField("pincode", e.target.value)}
-                placeholder="Pincode"
-                inputProps={{ inputMode: "numeric" }}
-                sx={outlineFieldSx}
-              />
-            </DialogFormField>
+            <SearchableLocationField
+              label="State"
+              htmlFor="officeFormState"
+              options={stateOptions}
+              value={addressInput.state}
+              onChange={(value) => setAddressField("state", value)}
+              placeholder={
+                addressInput.country ? "Search state…" : "Select country first"
+              }
+              disabled={!addressInput.country}
+            />
 
-            <DialogFormField
-              label="Country"
-              htmlFor="officeFormCountry"
-              required
-            >
-              <TextField
-                id="officeFormCountry"
-                fullWidth
-                value={addressInput.country}
-                onChange={(e) => setAddressField("country", e.target.value)}
-                placeholder="Country"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && canSave) handleSave();
-                }}
-                sx={outlineFieldSx}
-              />
-            </DialogFormField>
+            <SearchableLocationField
+              label="City"
+              htmlFor="officeFormCity"
+              options={cityOptions}
+              value={addressInput.city}
+              onChange={(value) => setAddressField("city", value)}
+              placeholder={
+                addressInput.state ? "Search city…" : "Select state first"
+              }
+              disabled={!addressInput.state}
+            />
           </Box>
+
+          <DialogFormField
+            label="Pincode"
+            htmlFor="officeFormPincode"
+            required
+          >
+            <TextField
+              id="officeFormPincode"
+              fullWidth
+              value={addressInput.pincode}
+              onChange={(e) => setAddressField("pincode", e.target.value)}
+              placeholder="Pincode"
+              inputProps={{ inputMode: "numeric" }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && canSave) handleSave();
+              }}
+              sx={outlineFieldSx}
+            />
+          </DialogFormField>
         </Stack>
       </Box>
 
