@@ -5,8 +5,6 @@ import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import PostAddOutlinedIcon from '@mui/icons-material/PostAddOutlined'
-import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
-import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import {
   Box,
@@ -18,20 +16,25 @@ import {
   Typography,
 } from '@mui/material'
 import { BITRIX_ACCESS_UI } from '@/src/constants/bitrix-access-ui'
+import {
+  myDrawingsHeaderTypographySx,
+  myDrawingsToolbarOutlineButtonSx,
+} from '@/src/components/user-management/permissions/permissions-shared-styles'
 import type { RoleListItem } from '@/src/types/user-management'
 import { BitrixAccessMenuItem } from './bitrix-access-menu'
 
-function getRoleVisibilityMenuItems({
+export function RoleColumnVisibilityPicker({
   gridRoles,
   visibleRoleIds,
   onVisibleRoleIdsChange,
-  onClose,
 }: {
   gridRoles: RoleListItem[]
   visibleRoleIds: ReadonlySet<string>
   onVisibleRoleIdsChange: (ids: Set<string>) => void
-  onClose?: () => void
 }) {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+
+  const total = gridRoles.length
   const visibleCount = visibleRoleIds.size
 
   const toggleRole = (roleId: string) => {
@@ -46,63 +49,78 @@ function getRoleVisibilityMenuItems({
 
   const showAllRoles = () => {
     onVisibleRoleIdsChange(new Set(gridRoles.map((r) => r.id)))
-    onClose?.()
+    setAnchorEl(null)
   }
 
-  return [
-    ...gridRoles.map((role) => {
-      const checked = visibleRoleIds.has(role.id)
-      return (
-        <MenuItem
-          key={role.id}
-          dense
-          onClick={() => toggleRole(role.id)}
-          disabled={checked && visibleCount <= 1}
-        >
-          <Checkbox size="small" checked={checked} sx={{ p: 0.5, mr: 1 }} />
-          <ListItemText primary={role.name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
+  return (
+    <>
+      <Box
+        component="button"
+        type="button"
+        onClick={(e) => setAnchorEl(e.currentTarget)}
+        aria-haspopup="listbox"
+        aria-expanded={Boolean(anchorEl)}
+        aria-label="Show or hide role columns"
+        sx={{
+          ...myDrawingsToolbarOutlineButtonSx,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 0.5,
+          px: 1.25,
+          cursor: 'pointer',
+          flexShrink: 0,
+        }}
+      >
+        <VisibilityOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+        <Typography variant="body2" sx={{ fontSize: '0.875rem', color: 'text.primary', whiteSpace: 'nowrap' }}>
+          {visibleCount} out of {total}
+        </Typography>
+        <KeyboardArrowDownIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+      </Box>
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+        slotProps={{ paper: { sx: { minWidth: 220, mt: 0.5 } } }}
+      >
+        {gridRoles.map((role) => {
+          const checked = visibleRoleIds.has(role.id)
+          return (
+            <MenuItem
+              key={role.id}
+              dense
+              onClick={() => toggleRole(role.id)}
+              disabled={checked && visibleCount <= 1}
+            >
+              <Checkbox size="small" checked={checked} sx={{ p: 0.5, mr: 1 }} />
+              <ListItemText primary={role.name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
+            </MenuItem>
+          )
+        })}
+        <MenuItem dense onClick={showAllRoles} sx={{ color: BITRIX_ACCESS_UI.linkBlue }}>
+          Show all roles
         </MenuItem>
-      )
-    }),
-    <MenuItem key="show-all-roles" dense onClick={showAllRoles} sx={{ color: BITRIX_ACCESS_UI.linkBlue }}>
-      Show all roles
-    </MenuItem>,
-  ]
+      </Menu>
+    </>
+  )
 }
 
 export function RolesHeaderCell({
   gridRoles,
-  visibleRoleIds,
-  onVisibleRoleIdsChange,
-  onExpandAll,
-  onCollapseAll,
   onAddRole,
   onCloneRole,
 }: {
   gridRoles: RoleListItem[]
-  visibleRoleIds: ReadonlySet<string>
-  onVisibleRoleIdsChange: (ids: Set<string>) => void
-  onExpandAll: () => void
-  onCollapseAll: () => void
   onAddRole?: () => void
   onCloneRole?: (role: RoleListItem) => void
 }) {
-  const [visibilityAnchor, setVisibilityAnchor] = useState<null | HTMLElement>(null)
   const [actionsAnchor, setActionsAnchor] = useState<null | HTMLElement>(null)
-  const [menuView, setMenuView] = useState<'main' | 'visibility' | 'clone'>('main')
-
-  const total = gridRoles.length
-  const visibleCount = visibleRoleIds.size
+  const [menuView, setMenuView] = useState<'main' | 'clone'>('main')
   const isActionsMenuOpen = Boolean(actionsAnchor)
 
   const closeActionsMenu = () => {
     setActionsAnchor(null)
     setMenuView('main')
-  }
-
-  const openActionsMenu = (anchor: HTMLElement) => {
-    setMenuView('main')
-    setActionsAnchor(anchor)
   }
 
   const actionsMenuItems =
@@ -125,57 +143,36 @@ export function RolesHeaderCell({
             description="Creates a new role that is an exact copy of an existing role."
             onClick={() => setMenuView('clone')}
           />,
-          <BitrixAccessMenuItem
-            key="show-hide-roles"
-            icon={<VisibilityOutlinedIcon sx={{ fontSize: 17, color: BITRIX_ACCESS_UI.textSecondary }} />}
-            title="Show/hide roles"
-            description="Shows or hides roles in this table."
-            onClick={() => setMenuView('visibility')}
-          />,
         ]
-      : menuView === 'visibility'
-        ? getRoleVisibilityMenuItems({
-            gridRoles,
-            visibleRoleIds,
-            onVisibleRoleIdsChange,
-          })
-        : gridRoles.map((role) => (
-            <MenuItem
-              key={role.id}
-              dense
-              onClick={() => {
-                onCloneRole?.(role)
-                closeActionsMenu()
-              }}
-            >
-              <ListItemText primary={role.name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
-            </MenuItem>
-          ))
+      : gridRoles.map((role) => (
+          <MenuItem
+            key={role.id}
+            dense
+            onClick={() => {
+              onCloneRole?.(role)
+              closeActionsMenu()
+            }}
+          >
+            <ListItemText primary={role.name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
+          </MenuItem>
+        ))
 
   return (
     <Box
-      className={isActionsMenuOpen ? 'roles-header-box is-menu-open' : 'roles-header-box'}
       sx={{
         position: 'relative',
         minWidth: BITRIX_ACCESS_UI.actionColumnWidth - 16,
-        '& .roles-header-menu-btn': {
-          opacity: 0,
-          transition: 'opacity 0.15s ease',
-        },
-        '&:hover .roles-header-menu-btn, &.is-menu-open .roles-header-menu-btn': {
-          opacity: 1,
-        },
       }}
     >
       <IconButton
-        className="roles-header-menu-btn"
         size="small"
         aria-label="Roles options"
         aria-haspopup="menu"
         aria-expanded={isActionsMenuOpen}
         onClick={(e) => {
           e.stopPropagation()
-          openActionsMenu(e.currentTarget)
+          setMenuView('main')
+          setActionsAnchor(e.currentTarget)
         }}
         sx={{
           position: 'absolute',
@@ -184,9 +181,12 @@ export function RolesHeaderCell({
           p: 0.25,
           zIndex: 1,
           color: BITRIX_ACCESS_UI.textSecondary,
-          bgcolor: isActionsMenuOpen ? '#eef2f4' : 'transparent',
+          bgcolor: isActionsMenuOpen ? BITRIX_ACCESS_UI.accentHoverBg : 'transparent',
           borderRadius: 1,
-          '&:hover': { bgcolor: '#eef2f4', color: BITRIX_ACCESS_UI.textPrimary },
+          '&:hover': {
+            bgcolor: BITRIX_ACCESS_UI.accentHoverBg,
+            color: BITRIX_ACCESS_UI.textPrimary,
+          },
         }}
       >
         <MoreVertIcon sx={{ fontSize: 16 }} />
@@ -221,72 +221,12 @@ export function RolesHeaderCell({
       <Typography
         variant="body2"
         sx={{
-          fontWeight: 600,
-          fontSize: '0.8125rem',
-          color: BITRIX_ACCESS_UI.textPrimary,
-          mb: 1,
+          ...myDrawingsHeaderTypographySx,
           pr: 2.5,
         }}
       >
         Roles
       </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-        <Box
-          component="button"
-          type="button"
-          onClick={(e) => setVisibilityAnchor(e.currentTarget)}
-          aria-haspopup="listbox"
-          aria-expanded={Boolean(visibilityAnchor)}
-          sx={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 0.5,
-            px: 1,
-            py: 0.375,
-            border: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
-            borderRadius: 10,
-            bgcolor: '#fff',
-            cursor: 'pointer',
-            flexShrink: 0,
-            '&:hover': { bgcolor: BITRIX_ACCESS_UI.sectionBg },
-          }}
-        >
-          <VisibilityOutlinedIcon sx={{ fontSize: 15, color: BITRIX_ACCESS_UI.textSecondary }} />
-          <Typography variant="body2" sx={{ fontSize: '0.8125rem', color: 'text.primary', whiteSpace: 'nowrap' }}>
-            {visibleCount} out of {total}
-          </Typography>
-          <KeyboardArrowDownIcon sx={{ fontSize: 16, color: BITRIX_ACCESS_UI.textSecondary }} />
-        </Box>
-        <IconButton
-          size="small"
-          aria-label="Collapse all modules"
-          onClick={onCollapseAll}
-          sx={{ p: 0.375, color: BITRIX_ACCESS_UI.textSecondary }}
-        >
-          <UnfoldLessIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-        <IconButton
-          size="small"
-          aria-label="Expand all modules"
-          onClick={onExpandAll}
-          sx={{ p: 0.375, color: BITRIX_ACCESS_UI.textSecondary }}
-        >
-          <UnfoldMoreIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Box>
-      <Menu
-        anchorEl={visibilityAnchor}
-        open={Boolean(visibilityAnchor)}
-        onClose={() => setVisibilityAnchor(null)}
-        slotProps={{ paper: { sx: { minWidth: 220, mt: 0.5 } } }}
-      >
-        {getRoleVisibilityMenuItems({
-          gridRoles,
-          visibleRoleIds,
-          onVisibleRoleIdsChange,
-          onClose: () => setVisibilityAnchor(null),
-        })}
-      </Menu>
     </Box>
   )
 }

@@ -121,7 +121,7 @@ export const PermissionScopeCell = memo(function PermissionScopeCell({
         alignItems: 'center',
         justifyContent: 'center',
         border: 'none',
-        bgcolor: open ? '#e8f7fc' : 'transparent',
+        bgcolor: open ? BITRIX_ACCESS_UI.accentHoverBg : 'transparent',
         borderRadius: 1,
         px: 0.5,
         py: 0.25,
@@ -132,7 +132,7 @@ export const PermissionScopeCell = memo(function PermissionScopeCell({
         '&:hover': disabled
           ? {}
           : {
-              bgcolor: '#f3f9fc',
+              bgcolor: BITRIX_ACCESS_UI.accentHoverBg,
             },
       }}
     >
@@ -150,8 +150,8 @@ export const PermissionScopeCell = memo(function PermissionScopeCell({
           '&:hover': disabled
             ? {}
             : {
-                color: '#1055a0',
-                borderBottomColor: '#1055a0',
+                color: BITRIX_ACCESS_UI.linkBlue,
+                borderBottomColor: BITRIX_ACCESS_UI.linkBlue,
               },
         }}
       >
