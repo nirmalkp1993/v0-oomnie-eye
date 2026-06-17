@@ -32,16 +32,38 @@ import {
 } from '@/src/lib/office-assignment.utils'
 import { findOfficeNode } from '@/src/lib/office-tree.utils'
 import {
+  isOfficeAddressComplete,
+  isOfficeNameComplete,
+  officeAddressesEqual,
+} from '@/src/lib/office-address.utils'
+import {
   collectNestedPathOptions,
   filterNestedPathOptions,
   type HierarchyTreeNode,
 } from '@/src/lib/nested-tree-path-options'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
+import {
+  EMPTY_OFFICE_ADDRESS,
+  EMPTY_OFFICE_NAME,
+  type OfficeAddress,
+  type OfficeTreeNode,
+} from '@/src/types/office'
 
 const ROW_HEIGHT = 40
 const INDENT_PX = 20
 const MANAGE_MODAL_WIDTH_PX = 860
-const FORM_DIALOG_WIDTH_PX = 520
+const FORM_DIALOG_WIDTH_PX = 560
+
+function getOfficeAddressFromNode(node: OfficeTreeNode | null): OfficeAddress {
+  if (node?.address) {
+    return { ...node.address }
+  }
+  return { ...EMPTY_OFFICE_ADDRESS }
+}
+
+function getOfficeNameFromNode(node: OfficeTreeNode | null): string {
+  return node?.officeName ?? EMPTY_OFFICE_NAME
+}
 
 const responsiveModalWidthSx = (widthPx: number) =>
   ({
@@ -159,9 +181,10 @@ function OfficeFormDialog({
   const { showMessage } = useAdminSnackbar()
   const createRoot = useOfficeStore((state) => state.createRoot)
   const createChild = useOfficeStore((state) => state.createChild)
-  const rename = useOfficeStore((state) => state.rename)
+  const updateOffice = useOfficeStore((state) => state.updateOffice)
 
-  const [nameInput, setNameInput] = useState('')
+  const [officeNameInput, setOfficeNameInput] = useState(EMPTY_OFFICE_NAME)
+  const [addressInput, setAddressInput] = useState<OfficeAddress>({ ...EMPTY_OFFICE_ADDRESS })
 
   const isEdit = mode?.type === 'edit'
   const parentId = mode?.type === 'add-child' ? mode.parentId : null
@@ -169,19 +192,28 @@ function OfficeFormDialog({
 
   const parentPathLabel = parentId ? getOfficePathLabel(tree, parentId) : ''
   const editPathLabel = editNodeId ? getOfficePathLabel(tree, editNodeId) : ''
-  const editNode = editNodeId ? findOfficeNode(tree, editNodeId) : null
+  const editNode = editNodeId ? (findOfficeNode(tree, editNodeId) as OfficeTreeNode | null) : null
+  const initialOfficeName = getOfficeNameFromNode(editNode)
+  const initialAddress = getOfficeAddressFromNode(editNode)
+
+  const setAddressField = <K extends keyof OfficeAddress>(field: K, value: string) => {
+    setAddressInput((current) => ({ ...current, [field]: value }))
+  }
 
   useEffect(() => {
     if (!open || !mode) {
-      setNameInput('')
+      setOfficeNameInput(EMPTY_OFFICE_NAME)
+      setAddressInput({ ...EMPTY_OFFICE_ADDRESS })
       return
     }
     if (mode.type === 'edit') {
-      const node = findOfficeNode(tree, mode.nodeId)
-      setNameInput(node?.name ?? '')
+      const node = findOfficeNode(tree, mode.nodeId) as OfficeTreeNode | null
+      setOfficeNameInput(getOfficeNameFromNode(node))
+      setAddressInput(getOfficeAddressFromNode(node))
       return
     }
-    setNameInput('')
+    setOfficeNameInput(EMPTY_OFFICE_NAME)
+    setAddressInput({ ...EMPTY_OFFICE_ADDRESS })
   }, [open, mode, tree])
 
   useEffect(() => {
@@ -205,20 +237,27 @@ function OfficeFormDialog({
         : 'Edit office'
 
   const canSave = Boolean(
-    nameInput.trim() && (!isEdit || nameInput.trim() !== editNode?.name),
+    isOfficeNameComplete(officeNameInput) &&
+      isOfficeAddressComplete(addressInput) &&
+      (!isEdit ||
+        officeNameInput.trim() !== initialOfficeName.trim() ||
+        !officeAddressesEqual(addressInput, initialAddress)),
   )
 
   const handleSave = () => {
-    const trimmed = nameInput.trim()
-    if (!trimmed) {
+    if (!isOfficeNameComplete(officeNameInput)) {
       showMessage('Enter a office name', 'warning')
+      return
+    }
+    if (!isOfficeAddressComplete(addressInput)) {
+      showMessage('Fill in all address fields', 'warning')
       return
     }
 
     if (mode.type === 'add-root') {
-      const id = createRoot(trimmed)
+      const id = createRoot(officeNameInput, addressInput)
       if (!id) {
-        showMessage('Could not add office — name may already exist', 'warning')
+        showMessage('Could not add office — this address may already exist', 'warning')
         return
       }
       showMessage('Office added', 'success')
@@ -227,7 +266,7 @@ function OfficeFormDialog({
     }
 
     if (mode.type === 'add-child') {
-      const id = createChild(mode.parentId, trimmed)
+      const id = createChild(mode.parentId, officeNameInput, addressInput)
       if (!id) {
         showMessage('Could not add child office', 'warning')
         return
@@ -237,9 +276,9 @@ function OfficeFormDialog({
       return
     }
 
-    const ok = rename(mode.nodeId, trimmed)
+    const ok = updateOffice(mode.nodeId, officeNameInput, addressInput)
     if (!ok) {
-      showMessage('Could not save — name may already exist', 'warning')
+      showMessage('Could not save — this address may already exist', 'warning')
       return
     }
     showMessage('Office updated', 'success')
@@ -293,20 +332,82 @@ function OfficeFormDialog({
       </Box>
 
       <Box sx={{ px: 2.5, py: 2 }}>
-        <DialogFormField label="Office name" htmlFor="officeFormName" required>
-          <TextField
-            id="officeFormName"
-            fullWidth
-            autoFocus
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            placeholder="Enter office name"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && canSave) handleSave()
-            }}
-            sx={outlineFieldSx}
-          />
-        </DialogFormField>
+        <Stack spacing={2}>
+          <DialogFormField label="Office name" htmlFor="officeFormOfficeName" required>
+            <TextField
+              id="officeFormOfficeName"
+              fullWidth
+              autoFocus
+              value={officeNameInput}
+              onChange={(e) => setOfficeNameInput(e.target.value)}
+              placeholder="Enter office name"
+              sx={outlineFieldSx}
+            />
+          </DialogFormField>
+
+          <DialogFormField label="Address line" htmlFor="officeFormAddressLine" required>
+            <TextField
+              id="officeFormAddressLine"
+              fullWidth
+              value={addressInput.addressLine}
+              onChange={(e) => setAddressField('addressLine', e.target.value)}
+              placeholder="Building, street, area"
+              sx={outlineFieldSx}
+            />
+          </DialogFormField>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            <DialogFormField label="City" htmlFor="officeFormCity" required>
+              <TextField
+                id="officeFormCity"
+                fullWidth
+                value={addressInput.city}
+                onChange={(e) => setAddressField('city', e.target.value)}
+                placeholder="City"
+                sx={outlineFieldSx}
+              />
+            </DialogFormField>
+
+            <DialogFormField label="State" htmlFor="officeFormState" required>
+              <TextField
+                id="officeFormState"
+                fullWidth
+                value={addressInput.state}
+                onChange={(e) => setAddressField('state', e.target.value)}
+                placeholder="State"
+                sx={outlineFieldSx}
+              />
+            </DialogFormField>
+          </Box>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+            <DialogFormField label="Pincode" htmlFor="officeFormPincode" required>
+              <TextField
+                id="officeFormPincode"
+                fullWidth
+                value={addressInput.pincode}
+                onChange={(e) => setAddressField('pincode', e.target.value)}
+                placeholder="Pincode"
+                inputProps={{ inputMode: 'numeric' }}
+                sx={outlineFieldSx}
+              />
+            </DialogFormField>
+
+            <DialogFormField label="Country" htmlFor="officeFormCountry" required>
+              <TextField
+                id="officeFormCountry"
+                fullWidth
+                value={addressInput.country}
+                onChange={(e) => setAddressField('country', e.target.value)}
+                placeholder="Country"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && canSave) handleSave()
+                }}
+                sx={outlineFieldSx}
+              />
+            </DialogFormField>
+          </Box>
+        </Stack>
       </Box>
 
       <Box

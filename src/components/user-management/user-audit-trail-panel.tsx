@@ -1,16 +1,57 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Box, Stack, Typography } from '@mui/material'
+import {
+  Box,
+  Chip,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
 import { History } from 'lucide-react'
 import { useUserAuditStore } from '@/lib/user-audit-store'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
+import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
 import { USER_AUDIT_CATEGORIES } from '@/src/constants/user-audit-categories'
 import { formatAuditDate } from '@/src/lib/user-management/user-audit-log.utils'
-import { countAuditByCategory, filterAuditEntries } from '@/src/lib/user-management/user-audit.utils'
-import type { UserAuditCategory } from '@/src/types/user-management'
-import { auditCardSx } from '@/src/components/user-management/user-detail/user-detail-styles'
+import { countAuditByCategory, filterAuditEntries, getAuditCategoryMeta } from '@/src/lib/user-management/user-audit.utils'
+import type { UserAuditCategory, UserAuditEntry, UserListItem } from '@/src/types/user-management'
+
+const AUDIT_COLUMNS = [
+  { id: 'date', label: 'Date & Time', width: '16%' },
+  { id: 'actionType', label: 'Action Type', width: '18%' },
+  { id: 'description', label: 'Description', width: '28%' },
+  { id: 'details', label: 'Details / Target', width: '38%' },
+] as const
+
+const headerCellSx = {
+  py: 1.25,
+  px: 2,
+  fontWeight: 600,
+  fontSize: '0.75rem',
+  letterSpacing: '0.03em',
+  textTransform: 'uppercase',
+  color: 'text.secondary',
+  borderBottom: '1px solid',
+  borderColor: 'divider',
+  bgcolor: 'background.paper',
+  whiteSpace: 'nowrap',
+} as const
+
+const bodyCellSx = {
+  py: 1.5,
+  px: 2,
+  fontSize: '0.8125rem',
+  verticalAlign: 'top',
+  borderBottom: '1px solid',
+  borderColor: 'divider',
+} as const
 
 function AuditSummaryCard({
   heading,
@@ -75,6 +116,86 @@ function AuditSummaryCard({
   )
 }
 
+function ActionTypeChip({ entry }: { entry: UserAuditEntry }) {
+  const meta = getAuditCategoryMeta(entry.category)
+
+  return (
+    <Chip
+      label={entry.actionType}
+      size="small"
+      sx={{
+        height: 'auto',
+        maxWidth: '100%',
+        borderRadius: 1,
+        fontWeight: 600,
+        fontSize: '0.6875rem',
+        letterSpacing: '0.02em',
+        bgcolor: meta?.bg ?? 'action.hover',
+        border: '1px solid',
+        borderColor: meta?.border ?? 'divider',
+        color: meta?.countColor ?? 'text.primary',
+        '& .MuiChip-label': {
+          whiteSpace: 'normal',
+          py: 0.5,
+          px: 1,
+        },
+      }}
+    />
+  )
+}
+
+function AuditTrailTable({ entries }: { entries: UserAuditEntry[] }) {
+  if (entries.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+        No history events yet.
+      </Typography>
+    )
+  }
+
+  return (
+    <TableContainer
+      component={Paper}
+      elevation={0}
+      sx={(theme) => ({
+        ...getEnterpriseSettingsCardSx(theme),
+        maxHeight: 420,
+        overflow: 'auto',
+      })}
+    >
+      <Table stickyHeader size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
+        <TableHead>
+          <TableRow>
+            {AUDIT_COLUMNS.map((column) => (
+              <TableCell key={column.id} sx={{ ...headerCellSx, width: column.width }}>
+                {column.label}
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {entries.map((entry) => (
+            <TableRow key={entry.id} hover>
+              <TableCell sx={{ ...bodyCellSx, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                {formatAuditDate(entry.date)}
+              </TableCell>
+              <TableCell sx={bodyCellSx}>
+                <ActionTypeChip entry={entry} />
+              </TableCell>
+              <TableCell sx={{ ...bodyCellSx, fontWeight: 500 }}>
+                {entry.description}
+              </TableCell>
+              <TableCell sx={{ ...bodyCellSx, color: 'text.secondary', wordBreak: 'break-word' }}>
+                {entry.details}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  )
+}
+
 export function UserAuditTrailPanel({ user }: { user: UserListItem | null }) {
   const [activeCategory, setActiveCategory] = useState<UserAuditCategory | null>(null)
   const hydrateFromUsers = useUserAuditStore((state) => state.hydrateFromUsers)
@@ -106,7 +227,7 @@ export function UserAuditTrailPanel({ user }: { user: UserListItem | null }) {
     <EarthDialogSectionCard
       title="History log"
       icon={History}
-      tooltip="Actions such as user added, updated, retired, and removed"
+      tooltip="Audit trail of user, pin, camera, and admin actions"
       accentColor={EARTH_DIALOG_SECTION_ACCENTS.primary}
     >
       {!user ? (
@@ -140,39 +261,13 @@ export function UserAuditTrailPanel({ user }: { user: UserListItem | null }) {
           </Box>
 
           {activeCategory ? (
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
               Showing {visibleEntries.length} event{visibleEntries.length === 1 ? '' : 's'} · click a
               category again to show all
             </Typography>
           ) : null}
 
-          <Stack spacing={1.25}>
-            {visibleEntries.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                No history events yet.
-              </Typography>
-            ) : (
-              visibleEntries.map((entry) => (
-                <Box key={entry.id} sx={auditCardSx}>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {entry.action}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {entry.context}
-                    </Typography>
-                  </Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-                  >
-                    {formatAuditDate(entry.date)}
-                  </Typography>
-                </Box>
-              ))
-            )}
-          </Stack>
+          <AuditTrailTable entries={visibleEntries} />
         </>
       )}
     </EarthDialogSectionCard>

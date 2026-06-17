@@ -67,8 +67,9 @@ export const useUserAuditStore = create<UserAuditStore>((set, get) => ({
     const nextEntry: UserAuditEntry = {
       id: `audit-${crypto.randomUUID()}`,
       date: entry.date ?? new Date().toISOString(),
-      action: entry.action,
-      context: entry.context,
+      actionType: entry.actionType,
+      description: entry.description,
+      details: entry.details,
       category: entry.category,
     }
 
