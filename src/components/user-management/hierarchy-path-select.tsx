@@ -165,6 +165,7 @@ export function HierarchyPathSelect({
   emptySearchMessage,
   fieldSx,
   disabled = false,
+  dropdownZIndex,
 }: {
   id?: string
   value: string
@@ -174,6 +175,7 @@ export function HierarchyPathSelect({
   emptySearchMessage: string
   fieldSx?: SxProps<Theme>
   disabled?: boolean
+  dropdownZIndex?: number
 }) {
   const anchorRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
@@ -247,7 +249,7 @@ export function HierarchyPathSelect({
         open={open}
         anchorEl={anchorRef.current}
         placement="bottom-start"
-        sx={{ zIndex: (theme) => theme.zIndex.modal + 2, width: anchorRef.current?.clientWidth }}
+        sx={{ zIndex: (theme) => dropdownZIndex ?? theme.zIndex.modal + 2, width: anchorRef.current?.clientWidth }}
       >
         <ClickAwayListener onClickAway={closeDropdown}>
           <Paper
