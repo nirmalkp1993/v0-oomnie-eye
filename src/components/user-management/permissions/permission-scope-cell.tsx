@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
 import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined'
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined'
@@ -25,6 +25,11 @@ import {
   BitrixAccessMenuItem,
   bitrixAccessMenuPaperSx,
 } from './bitrix-access-menu'
+
+function cloneScopeGrantSelection(value: ScopeGrantSelection): ScopeGrantSelection {
+  if (Array.isArray(value)) return [...value]
+  return value
+}
 
 const SCOPE_ICONS: Record<DataScopeId | 'deny', { icon: typeof BlockOutlinedIcon; color: string }> = {
   deny: { icon: BlockOutlinedIcon, color: '#e74c3c' },
@@ -62,26 +67,41 @@ export const PermissionScopeCell = memo(function PermissionScopeCell({
   label: string
 }) {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null)
+  const [draft, setDraft] = useState<ScopeGrantSelection>(value)
   const open = Boolean(anchor)
   const display = formatScopeGrantLabel(value)
   const isDeny = isScopeGrantDenied(value)
-  const selectedCount = coerceScopeGrantValues(value).length
+  const draftIsDeny = isScopeGrantDenied(draft)
+  const draftSelectedCount = coerceScopeGrantValues(draft).length
+
+  useEffect(() => {
+    if (!open) setDraft(cloneScopeGrantSelection(value))
+  }, [open, value])
 
   const subtitle = useMemo(() => {
-    if (isDeny) return 'No access selected. Choose one or more scopes below.'
-    if (selectedCount === 1) return '1 scope selected. Add more or click Done.'
-    return `${selectedCount} scopes selected. Click Done when finished.`
-  }, [isDeny, selectedCount])
+    if (draftIsDeny) return 'No access selected. Choose one or more scopes below.'
+    if (draftSelectedCount === 1) return '1 scope selected. Add more or click Done.'
+    return `${draftSelectedCount} scopes selected. Click Done when finished.`
+  }, [draftIsDeny, draftSelectedCount])
 
-  const handleToggle = useCallback(
-    (optionId: ScopeGrantValue) => {
-      const next = toggleScopeGrantOption(value, optionId)
-      onChange(next)
+  const handleToggle = useCallback((optionId: ScopeGrantValue) => {
+    setDraft((prev) => toggleScopeGrantOption(prev, optionId))
+  }, [])
+
+  const openMenu = useCallback(
+    (element: HTMLElement) => {
+      setDraft(cloneScopeGrantSelection(value))
+      setAnchor(element)
     },
-    [onChange, value],
+    [value],
   )
 
   const closeMenu = useCallback(() => setAnchor(null), [])
+
+  const handleDone = useCallback(() => {
+    onChange(draft)
+    closeMenu()
+  }, [closeMenu, draft, onChange])
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -93,7 +113,7 @@ export const PermissionScopeCell = memo(function PermissionScopeCell({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={(e) => {
-          if (!disabled) setAnchor(e.currentTarget)
+          if (!disabled) openMenu(e.currentTarget)
         }}
         sx={{
           display: 'inline-flex',
@@ -154,9 +174,9 @@ export const PermissionScopeCell = memo(function PermissionScopeCell({
             {index === 1 ? <BitrixAccessMenuDivider /> : null}
             <BitrixAccessMenuItem
               icon={<ScopeOptionIcon scopeId={opt.id} />}
-              title={opt.id === 'deny' ? 'No' : opt.title}
+              title={opt.title}
               description={opt.description}
-              selected={isScopeOptionSelected(value, opt.id)}
+              selected={isScopeOptionSelected(draft, opt.id)}
               destructive={opt.id === 'deny'}
               multiSelect={opt.id !== 'deny'}
               onClick={() => handleToggle(opt.id)}
@@ -164,7 +184,7 @@ export const PermissionScopeCell = memo(function PermissionScopeCell({
           </Box>
         ))}
         <BitrixAccessMenuDivider />
-        <BitrixAccessMenuFooter onDone={closeMenu} />
+        <BitrixAccessMenuFooter onDone={handleDone} />
       </Menu>
     </Box>
   )

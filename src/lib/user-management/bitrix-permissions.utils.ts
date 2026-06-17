@@ -146,7 +146,7 @@ export function isSystemRole(roleId: string): boolean {
 }
 
 export function formatScopeGrantLabel(value: ScopeGrantSelection | undefined): string {
-  if (isScopeGrantDenied(value)) return 'No'
+  if (isScopeGrantDenied(value)) return SCOPE_GRANT_LABELS.deny
   const values = coerceScopeGrantValues(value)
   if (values.length === 1) {
     return SCOPE_LABEL_BY_ID.get(values[0]) ?? String(values[0])

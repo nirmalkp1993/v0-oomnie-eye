@@ -57,7 +57,7 @@ export const DATA_SCOPE_OPTIONS: {
 
 /** Labels for all scope values (display in grid cells and legacy data). */
 export const SCOPE_GRANT_LABELS: Record<DataScopeId | 'deny', string> = {
-  deny: 'No',
+  deny: 'Deny access',
   office: "User's office",
   department: "User department's items",
   department_subdepartments: "User dept. subdepartment's items",
@@ -81,7 +81,7 @@ export const BITRIX_SCOPE_DROPDOWN_OPTIONS: {
 }[] = [
   {
     id: 'deny',
-    title: 'No access',
+    title: 'Deny access',
     description: 'User cannot perform this action.',
   },
   {
