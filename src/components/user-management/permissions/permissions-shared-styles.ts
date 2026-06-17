@@ -36,8 +36,12 @@ export {
 } from './permissions-drawings-table-styles'
 
 export {
+  MY_DRAWINGS_TOOLBAR,
   myDrawingsPrimaryButtonSx,
   myDrawingsSearchFieldSx,
+  myDrawingsToolbarIconButtonSx,
   myDrawingsToolbarOutlineButtonSx,
+  myDrawingsToolbarRowSx,
+  myDrawingsToolbarShellSx,
 } from '@/src/components/tables/my-drawings-table-styles'
 export { umFilterSelectSx } from '@/src/components/user-management/user-management-table-primitives'

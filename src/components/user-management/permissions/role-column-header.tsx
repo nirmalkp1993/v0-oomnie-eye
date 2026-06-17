@@ -92,7 +92,7 @@ function RoleMembersStrip({
         borderRadius: 2,
         cursor: 'pointer',
         transition: 'background-color 0.15s ease',
-        '&:hover': { bgcolor: 'rgba(47, 198, 246, 0.06)' },
+        '&:hover': { bgcolor: BITRIX_ACCESS_UI.accentHoverBg },
         '&:hover .role-assign-plus': {
           opacity: 1,
           transform: 'scale(1)',
@@ -151,7 +151,7 @@ function RoleMembersStrip({
             transform: hasMembers ? 'scale(0.92)' : 'scale(1)',
             transition: 'opacity 0.18s ease, transform 0.18s ease, background-color 0.15s ease',
             '&:hover': {
-              bgcolor: '#e8f7fc',
+              bgcolor: BITRIX_ACCESS_UI.accentHoverBg,
               borderColor: BITRIX_ACCESS_UI.primaryBlue,
             },
           }}

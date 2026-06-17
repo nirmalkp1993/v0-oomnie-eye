@@ -1,22 +1,28 @@
-/** Bitrix24 Access permissions visual tokens */
+import {
+  MY_DRAWINGS_TABLE,
+  MY_DRAWINGS_TOOLBAR,
+} from '@/src/components/tables/my-drawings-table-styles'
+
+/** Access permissions visual tokens — aligned with My Drawings / enterprise theme */
 export const BITRIX_ACCESS_UI = {
   sidebarWidth: 220,
   roleColumnMinWidth: 136,
   actionColumnWidth: 220,
-  headerBg: '#f5f7f8',
-  sectionBg: '#fafbfc',
-  rowHoverBg: '#f8fafb',
-  borderColor: '#e8ecee',
-  primaryBlue: '#2fc6f6',
-  linkBlue: '#2067b0',
-  textSecondary: '#828b95',
-  textPrimary: '#333333',
+  headerBg: MY_DRAWINGS_TABLE.headerBg,
+  sectionBg: MY_DRAWINGS_TOOLBAR.shellBg,
+  rowHoverBg: MY_DRAWINGS_TABLE.hoverBg,
+  borderColor: MY_DRAWINGS_TABLE.border,
+  primaryBlue: MY_DRAWINGS_TABLE.accent,
+  linkBlue: MY_DRAWINGS_TABLE.accent,
+  textSecondary: MY_DRAWINGS_TOOLBAR.textMuted,
+  textPrimary: MY_DRAWINGS_TOOLBAR.textDark,
   denyColor: '#a8adb4',
-  toolbarHeight: 52,
+  accentHoverBg: MY_DRAWINGS_TABLE.selectedBg,
+  toolbarHeight: 36,
   moduleIconSize: 24,
   tableHeaderHeight: 88,
-  rowHeight: 36,
-  fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+  rowHeight: MY_DRAWINGS_TABLE.rowHeight,
+  fontFamily: 'Roboto, sans-serif',
 } as const
 
 /** Roles shown in the access grid. */
@@ -49,7 +55,7 @@ export function getModuleAccentColor(moduleId: string): string {
   return MODULE_ACCENT[moduleId] ?? '#95a5a6'
 }
 
-/** Shared MUI sx for Bitrix permission table cells */
+/** Shared MUI sx for permission table cells */
 export const bitrixTableCellSx = {
   borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
   borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,

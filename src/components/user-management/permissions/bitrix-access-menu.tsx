@@ -108,8 +108,8 @@ export function BitrixAccessMenuItem({
         gap: 1.25,
         transition: 'background-color 0.15s ease',
         '&.Mui-selected': {
-          bgcolor: '#e8f7fc',
-          '&:hover': { bgcolor: '#dff3fb' },
+          bgcolor: BITRIX_ACCESS_UI.accentHoverBg,
+          '&:hover': { bgcolor: BITRIX_ACCESS_UI.accentHoverBg },
         },
         '&:hover': {
           bgcolor: destructive && !disabled ? 'error.50' : BITRIX_ACCESS_UI.rowHoverBg,
@@ -205,7 +205,7 @@ export function BitrixAccessMenuFooter({ onDone }: { onDone: () => void }) {
           px: 2,
           boxShadow: 'none',
           bgcolor: BITRIX_ACCESS_UI.primaryBlue,
-          '&:hover': { bgcolor: '#25b8e6', boxShadow: 'none' },
+          '&:hover': { bgcolor: BITRIX_ACCESS_UI.primaryBlue, filter: 'brightness(0.92)', boxShadow: 'none' },
         }}
       >
         Done

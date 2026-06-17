@@ -14,6 +14,7 @@ import {
 } from '@/src/mock-data/app-modules'
 import { getModuleDisplayName } from '@/src/constants/permissions-page-matrix'
 import { BITRIX_ACCESS_UI } from '@/src/constants/bitrix-access-ui'
+import { MY_DRAWINGS_TABLE } from '@/src/components/tables/my-drawings-table-styles'
 import type { PermissionMatrixModule } from '@/src/types/permissions-page'
 
 function nodeMatchesSearch(node: AppModuleNode, q: string): boolean {
@@ -64,14 +65,14 @@ function TreeNode({
           pr: 1.75,
           minHeight: isGroup ? 36 : 32,
           borderBottom: isGroup ? `1px solid ${BITRIX_ACCESS_UI.borderColor}` : 'none',
-          bgcolor: selected ? '#f0f9fc' : isGroup && isExpanded ? '#eef9fc' : 'transparent',
+          bgcolor: selected ? MY_DRAWINGS_TABLE.selectedBg : isGroup && isExpanded ? MY_DRAWINGS_TABLE.selectedBg : 'transparent',
           borderLeft: selected ? '3px solid' : '3px solid transparent',
           borderColor: selected ? BITRIX_ACCESS_UI.primaryBlue : 'transparent',
           '&:hover': {
-            bgcolor: selected ? '#f0f9fc' : BITRIX_ACCESS_UI.sectionBg,
+            bgcolor: selected ? MY_DRAWINGS_TABLE.selectedBg : BITRIX_ACCESS_UI.sectionBg,
           },
-          '&.Mui-selected': { bgcolor: '#f0f9fc' },
-          '&.Mui-selected:hover': { bgcolor: '#f0f9fc' },
+          '&.Mui-selected': { bgcolor: MY_DRAWINGS_TABLE.selectedBg },
+          '&.Mui-selected:hover': { bgcolor: MY_DRAWINGS_TABLE.selectedHoverBg },
         }}
       >
         <ListItemText
@@ -131,9 +132,8 @@ export function PermissionCategorySidebar({
         width: BITRIX_ACCESS_UI.sidebarWidth,
         flexShrink: 0,
         borderRight: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
-        bgcolor: '#fff',
+        bgcolor: 'background.paper',
         overflow: 'auto',
-        fontFamily: BITRIX_ACCESS_UI.fontFamily,
       }}
     >
       <Box

@@ -144,15 +144,7 @@ export const BitrixAccessGrid = memo(function BitrixAccessGrid({
                   height: 'auto',
                 }}
               >
-                <RolesHeaderCell
-                  gridRoles={gridRoles}
-                  visibleRoleIds={visibleRoleIds}
-                  onVisibleRoleIdsChange={onVisibleRoleIdsChange}
-                  onExpandAll={onExpandAll}
-                  onCollapseAll={onCollapseAll}
-                  onAddRole={onAddRole}
-                  onCloneRole={onCloneRole}
-                />
+                <RolesHeaderCell />
               </TableCell>
               {visibleRoles.map((role) => (
                 <TableCell

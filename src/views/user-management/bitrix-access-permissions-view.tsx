@@ -3,21 +3,33 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import SearchIcon from '@mui/icons-material/Search'
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore'
 import {
   Box,
   Button,
   CircularProgress,
   FormControl,
+  IconButton,
   InputAdornment,
   MenuItem,
+  Paper,
   Select,
   TextField,
 } from '@mui/material'
+import { getEnterpriseSettingsCardSx } from '@/src/components/enterprise'
+import {
+  myDrawingsSearchFieldSx,
+  myDrawingsToolbarIconButtonSx,
+  myDrawingsToolbarOutlineButtonSx,
+  myDrawingsToolbarRowSx,
+  myDrawingsToolbarShellSx,
+  umFilterSelectSx,
+} from '@/src/components/user-management/permissions/permissions-shared-styles'
 import {
   APP_PERMISSION_LEAF_MODULES,
   BITRIX_ACCESS_MODULES,
 } from '@/src/constants/permissions-page-matrix'
-import { BITRIX_ACCESS_UI } from '@/src/constants/bitrix-access-ui'
 import {
   DEFAULT_EXPANDED_GROUP_IDS_SET,
   filterAppModules,
@@ -28,6 +40,7 @@ import { useBitrixPermissions } from '@/src/contexts/bitrix-permissions-context'
 import { useAdminSnackbar } from '@/src/hooks/use-admin-snackbar'
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog'
 import { PermissionCategorySidebar } from '@/src/components/user-management/permissions/permission-category-sidebar'
+import { RoleColumnVisibilityPicker } from '@/src/components/user-management/permissions/roles-grid-toolbar'
 import { RoleMembersPickerModal } from '@/src/components/user-management/permissions/role-members-picker-modal'
 import {
   createBlankGridRole,
@@ -297,106 +310,110 @@ export function BitrixAccessPermissionsView() {
 
   return (
     <>
-      <Box
-        sx={{
+      <Paper
+        elevation={0}
+        sx={(theme) => ({
           display: 'flex',
           flexDirection: 'column',
           flex: 1,
           minHeight: 0,
-          bgcolor: '#fff',
-          border: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
-          borderRadius: 0.5,
           overflow: 'hidden',
-          fontFamily: BITRIX_ACCESS_UI.fontFamily,
-        }}
+          ...getEnterpriseSettingsCardSx(theme),
+        })}
       >
-        <Box
-          sx={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: 1.25,
-            px: 2,
-            minHeight: BITRIX_ACCESS_UI.toolbarHeight,
-            borderBottom: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
-            bgcolor: BITRIX_ACCESS_UI.headerBg,
-          }}
-        >
-          <FormControl size="small" sx={{ minWidth: 148, flexShrink: 0 }}>
-            <Select
-              value={employeeFilter}
-              onChange={(e) => setEmployeeFilter(e.target.value)}
-              displayEmpty
-              variant="outlined"
-              sx={{
-                fontSize: '0.8125rem',
-                bgcolor: '#fff',
-                borderRadius: 1.5,
-                height: 34,
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: BITRIX_ACCESS_UI.borderColor,
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#cfd5da',
-                },
-              }}
-            >
-              <MenuItem value="all" sx={{ fontSize: '0.8125rem' }}>
-                All employees
-              </MenuItem>
-              {MOCK_USERS.map((u) => (
-                <MenuItem key={u.id} value={u.id} sx={{ fontSize: '0.8125rem' }}>
-                  {u.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <TextField
-            size="small"
-            placeholder="Search modules…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+        <Box sx={myDrawingsToolbarShellSx}>
+          <Box
             sx={{
-              flex: 1,
-              minWidth: 180,
-              maxWidth: 720,
-              '& .MuiOutlinedInput-root': {
-                fontSize: '0.8125rem',
-                bgcolor: '#fff',
-                borderRadius: 1.5,
-                height: 34,
-                '& fieldset': { borderColor: BITRIX_ACCESS_UI.borderColor },
-                '&:hover fieldset': { borderColor: '#cfd5da' },
-              },
-            }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <SearchIcon sx={{ fontSize: 18, color: BITRIX_ACCESS_UI.textSecondary }} />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Button
-            size="small"
-            sx={{
-              ml: { xs: 0, md: 'auto' },
-              textTransform: 'none',
-              color: BITRIX_ACCESS_UI.textPrimary,
-              fontWeight: 400,
-              fontSize: '0.8125rem',
-              minWidth: 'auto',
-              px: 1.75,
-              height: 34,
-              borderRadius: 1.5,
-              border: `1px solid ${BITRIX_ACCESS_UI.borderColor}`,
-              bgcolor: '#fff',
-              boxShadow: 'none',
-              '&:hover': { bgcolor: BITRIX_ACCESS_UI.sectionBg, boxShadow: 'none' },
+              ...myDrawingsToolbarRowSx,
+              flexWrap: 'wrap',
+              gap: 1.25,
+              minHeight: 44,
             }}
           >
-            Help
-          </Button>
+            <FormControl size="small" sx={{ ...umFilterSelectSx, minWidth: 148, flexShrink: 0 }}>
+              <Select
+                value={employeeFilter}
+                onChange={(e) => setEmployeeFilter(e.target.value)}
+                displayEmpty
+                variant="outlined"
+              >
+                <MenuItem value="all">All employees</MenuItem>
+                {MOCK_USERS.map((u) => (
+                  <MenuItem key={u.id} value={u.id}>
+                    {u.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              size="small"
+              placeholder="Search modules…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{
+                ...myDrawingsSearchFieldSx,
+                flex: { xs: '1 1 100%', sm: '1 1 240px' },
+                minWidth: { xs: '100%', sm: 220 },
+                maxWidth: 520,
+                width: { xs: '100%', sm: 'auto' },
+                '& .MuiOutlinedInput-root': {
+                  height: 36,
+                  fontFamily: 'Roboto, sans-serif',
+                  fontSize: '14px',
+                  bgcolor: '#FFFFFF',
+                  borderRadius: '10px',
+                  pl: 0.5,
+                  pr: 1,
+                },
+                '& .MuiOutlinedInput-input': {
+                  py: 0.75,
+                  px: 0.5,
+                },
+              }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                ml: { xs: 0, md: 'auto' },
+              }}
+            >
+              <IconButton
+                size="small"
+                aria-label="Collapse all modules"
+                onClick={collapseAll}
+                sx={myDrawingsToolbarIconButtonSx}
+              >
+                <UnfoldLessIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                aria-label="Expand all modules"
+                onClick={expandAll}
+                sx={myDrawingsToolbarIconButtonSx}
+              >
+                <UnfoldMoreIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+              <RoleColumnVisibilityPicker
+                gridRoles={gridRoles}
+                visibleRoleIds={visibleRoleIds}
+                onVisibleRoleIdsChange={setVisibleRoleIds}
+              />
+              <Button size="small" sx={myDrawingsToolbarOutlineButtonSx}>
+                Help
+              </Button>
+            </Box>
+          </Box>
         </Box>
 
         <Box sx={{ display: 'flex', flex: 1, minHeight: 520 }}>
@@ -417,8 +434,6 @@ export function BitrixAccessPermissionsView() {
             onVisibleRoleIdsChange={setVisibleRoleIds}
             onToggleModule={handleToggleModule}
             onToggleGroup={handleToggleGroup}
-            onExpandAll={expandAll}
-            onCollapseAll={collapseAll}
             onAddRole={openCreateRole}
             onDeleteRole={requestDeleteRole}
             onSelectAllPermissions={handleSelectAllPermissions}
@@ -436,7 +451,7 @@ export function BitrixAccessPermissionsView() {
             getRoleMemberSelection={getRoleMemberSelection}
           />
         </Box>
-      </Box>
+      </Paper>
 
       <ConfirmDialog
         open={confirmDeleteRole != null}
