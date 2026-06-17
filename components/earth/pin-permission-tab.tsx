@@ -4,8 +4,9 @@ import { useState } from 'react'
 import {
   Business as BusinessIcon,
   Groups as GroupsIcon,
+  Public as PublicIcon,
 } from '@mui/icons-material'
-import { Box, Stack } from '@mui/material'
+import { Box, Stack, Switch } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { PlacemarkSettingsCard } from '@/src/components/earth/placemark-card'
 import { NestedDepartmentPicker } from './nested-department-picker'
@@ -13,6 +14,7 @@ import { UserGroupMultiSelect } from './user-group-multi-select'
 
 export function PinPermissionTab({ onFieldChange }: { onFieldChange?: () => void }) {
   const theme = useTheme()
+  const [availableToEveryone, setAvailableToEveryone] = useState(false)
   const [departmentIds, setDepartmentIds] = useState<string[]>([])
   const [groupIds, setGroupIds] = useState<string[]>([])
 
@@ -57,6 +59,27 @@ export function PinPermissionTab({ onFieldChange }: { onFieldChange?: () => void
             }}
           />
         </PlacemarkSettingsCard>
+      </Box>
+
+      <Box sx={{ width: { xs: '100%', md: 'calc(50% - 12px)' } }}>
+        <PlacemarkSettingsCard
+          title="Available to Everyone"
+          tooltip='When enabled, this placemark is visible to all users regardless of department or group restrictions'
+          headerIcon={<PublicIcon />}
+          accentColor={theme.palette.primary.main}
+          fullHeight
+          action={
+            <Switch
+              size="small"
+              checked={availableToEveryone}
+              onChange={(_, checked) => {
+                setAvailableToEveryone(checked)
+                onFieldChange?.()
+              }}
+              inputProps={{ 'aria-label': 'Available to Everyone' }}
+            />
+          }
+        />
       </Box>
     </Stack>
   )

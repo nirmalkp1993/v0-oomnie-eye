@@ -14,11 +14,14 @@ import {
 export interface PlacemarkSettingsCardProps {
   title: string
   tooltip?: string | ReactNode
-  children: ReactNode
+  children?: ReactNode
   headerIcon?: ReactNode
   accentColor?: string
   fullHeight?: boolean
   action?: React.ReactNode
+  /** Header-only row with smaller icon — for toggle-style settings */
+  compact?: boolean
+  titleColor?: string
   sx?: SxProps<Theme>
 }
 
@@ -31,6 +34,8 @@ export function PlacemarkSettingsCard({
   accentColor,
   fullHeight = false,
   action,
+  compact = false,
+  titleColor,
   sx,
 }: PlacemarkSettingsCardProps) {
   const theme = useTheme()
@@ -54,7 +59,7 @@ export function PlacemarkSettingsCard({
         overflow: 'hidden',
         bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
         height: fullHeight ? '100%' : 'auto',
-        minHeight: fullHeight ? CARD_DIMENSIONS.minHeight : 'auto',
+        minHeight: compact ? 0 : fullHeight ? CARD_DIMENSIONS.minHeight : 'auto',
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -94,34 +99,34 @@ export function PlacemarkSettingsCard({
     >
       <CardContent
         sx={{
-          p: CARD_DIMENSIONS.padding,
-          flex: fullHeight ? 1 : '0 0 auto',
+          p: compact ? 1.5 : CARD_DIMENSIONS.padding,
+          flex: compact ? 'none' : fullHeight ? 1 : '0 0 auto',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
           zIndex: 1,
           overflow: 'visible',
-          '&:last-child': { pb: 2 },
+          '&:last-child': { pb: compact ? 1.5 : 2 },
         }}
       >
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 2,
-            mb: 3,
+            gap: compact ? 1.5 : 2,
+            mb: compact ? 1 : 3,
           }}
         >
           {headerIcon ? (
             <Box
               sx={{
-                width: 72,
-                height: 72,
-                minWidth: 72,
+                width: compact ? 40 : 72,
+                height: compact ? 40 : 72,
+                minWidth: compact ? 40 : 72,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: CARD_ICON_BORDER_RADIUS_UNIT,
+                borderRadius: compact ? 1.5 : CARD_ICON_BORDER_RADIUS_UNIT,
                 background: accentColor
                   ? `linear-gradient(135deg, ${accent}30 0%, ${accent}20 100%)`
                   : theme.palette.mode === 'dark'
@@ -132,7 +137,7 @@ export function PlacemarkSettingsCard({
                     ? '0 2px 8px rgba(0,0,0,0.4)'
                     : '0 2px 8px rgba(0,0,0,0.1)',
                 '& > svg': {
-                  fontSize: 40,
+                  fontSize: compact ? 24 : 40,
                   color: accentColor || theme.palette.primary.main,
                 },
               }}
@@ -146,16 +151,17 @@ export function PlacemarkSettingsCard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              minWidth: 0,
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
               <Typography
                 variant="h6"
                 component="h3"
                 sx={{
                   fontWeight: 400,
-                  fontSize: headerIcon ? '1.25rem' : '1rem',
-                  color: theme.typography.h6.color,
+                  fontSize: compact ? '0.95rem' : headerIcon ? '1.25rem' : '1rem',
+                  color: titleColor ?? theme.typography.h6.color,
                   lineHeight: theme.typography.h6.lineHeight,
                 }}
               >
@@ -166,9 +172,13 @@ export function PlacemarkSettingsCard({
             {action ? <Box>{action}</Box> : null}
           </Box>
         </Box>
-        <Box sx={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', width: '100%' }}>
-          {children}
-        </Box>
+        {!compact ? (
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
+            {children}
+          </Box>
+        ) : children ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>{children}</Box>
+        ) : null}
       </CardContent>
     </Card>
   )
