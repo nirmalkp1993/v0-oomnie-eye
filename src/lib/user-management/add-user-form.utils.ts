@@ -3,12 +3,14 @@ import {
   SELECT_EMPTY_VALUE,
 } from '@/src/constants/add-user'
 import {
-  catalogIdToRoleName,
-  roleNameToCatalogId,
+  AVAILABLE_USER_ROLES,
+  resolveEffectiveUserRoleIds,
+  userRolesToFormRoleIds,
 } from '@/src/constants/user-detail'
 import {
   groupMockIdsToNames,
-  userGroupNamesToMockIds,
+  resolveEffectiveUserGroupIds,
+  userGroupsToFormGroupIds,
 } from '@/src/lib/user-management/group-members.utils'
 import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
 
@@ -66,11 +68,8 @@ export function userToFormValues(user: UserListItem): CreateUserFormValues {
     region: fieldFromUser(user.region),
     businessUnit: fieldFromUser(user.businessUnit),
     status: user.status,
-    roleId:
-      user.roles
-        .map((name) => roleNameToCatalogId(name))
-        .find((id): id is string => Boolean(id)) ?? SELECT_EMPTY_VALUE,
-    groupIds: userGroupNamesToMockIds(user.groups),
+    roleIds: userRolesToFormRoleIds(user.roles),
+    groupIds: userGroupsToFormGroupIds(user.groups),
     customAttributes: customAttributesToFormString(user.customAttributes),
   }
 }
@@ -94,11 +93,10 @@ export function buildUserListItemFromForm(
     region: orEmpty(form.region),
     businessUnit: orEmpty(form.businessUnit),
     status: form.status,
-    roles: (() => {
-      const name = catalogIdToRoleName(form.roleId)
-      return name ? [name] : []
-    })(),
-    groups: groupMockIdsToNames(form.groupIds),
+    roles: resolveEffectiveUserRoleIds(form.roleIds)
+      .map((id) => AVAILABLE_USER_ROLES.find((role) => role.id === id)?.name)
+      .filter((name): name is string => Boolean(name)),
+    groups: groupMockIdsToNames(resolveEffectiveUserGroupIds(form.groupIds)),
     lastLogin: existing?.lastLogin ?? null,
     customAttributes:
       Object.keys(customAttributes).length > 0 ? customAttributes : undefined,

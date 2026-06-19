@@ -22,7 +22,7 @@ export interface CreateUserFormValues {
   region: string
   businessUnit: string
   status: UserStatus
-  roleId: string
+  roleIds: string[]
   groupIds: string[]
   customAttributes: string
 }

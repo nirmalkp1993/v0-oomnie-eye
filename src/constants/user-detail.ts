@@ -1,5 +1,8 @@
 import type { UserAuditEntry, UserGroupOption, UserRoleOption } from '@/src/types/user-management'
 
+/** Applied automatically when no roles are explicitly assigned. */
+export const DEFAULT_USER_ROLE_ID = 'viewer'
+
 export const AVAILABLE_USER_ROLES: UserRoleOption[] = [
   {
     id: 'super_admin',
@@ -77,6 +80,44 @@ export function roleNameToCatalogId(name: string): string | null {
 
 export function catalogIdToRoleName(id: string): string | null {
   return AVAILABLE_USER_ROLES.find((r) => r.id === id)?.name ?? null
+}
+
+export function catalogIdsToRoleNames(ids: string[]): string[] {
+  const names: string[] = []
+  for (const id of ids) {
+    const name = AVAILABLE_USER_ROLES.find((role) => role.id === id)?.name
+    if (name) names.push(name)
+  }
+  return names
+}
+
+export function getDefaultUserRole(): UserRoleOption {
+  return (
+    AVAILABLE_USER_ROLES.find((role) => role.id === DEFAULT_USER_ROLE_ID) ?? AVAILABLE_USER_ROLES[3]!
+  )
+}
+
+/** Roles shown in the picker — default role is never selectable. */
+export function getAssignableUserRoles(): UserRoleOption[] {
+  return AVAILABLE_USER_ROLES.filter((role) => role.id !== DEFAULT_USER_ROLE_ID)
+}
+
+export function resolveEffectiveUserRoleIds(roleIds: string[]): string[] {
+  return roleIds.length > 0 ? roleIds : [DEFAULT_USER_ROLE_ID]
+}
+
+export function userRolesToFormRoleIds(roleNames: string[]): string[] {
+  const catalogIds = roleNames
+    .map((name) => roleNameToCatalogId(name))
+    .filter((id): id is string => Boolean(id))
+
+  if (catalogIds.length === 0) return []
+
+  if (catalogIds.length === 1 && catalogIds[0] === DEFAULT_USER_ROLE_ID) {
+    return []
+  }
+
+  return catalogIds.filter((id) => id !== DEFAULT_USER_ROLE_ID)
 }
 
 export function groupNameToCatalogId(name: string): string | null {

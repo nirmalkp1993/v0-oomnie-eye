@@ -5,6 +5,7 @@ import {
   Autocomplete,
   Avatar,
   Box,
+  Chip,
   Divider,
   IconButton,
   List,
@@ -22,7 +23,12 @@ import { DialogFormField } from '@/src/components/modals/app-dialog'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
 import { selectionCardSx } from '@/src/components/user-management/user-detail/user-detail-styles'
-import { getGroupMembers } from '@/src/lib/user-management/group-members.utils'
+import {
+  DEFAULT_USER_GROUP_ID,
+  getAssignableUserGroups,
+  getDefaultUserGroup,
+  getGroupMembers,
+} from '@/src/lib/user-management/group-members.utils'
 import { useUserGroupStore } from '@/lib/user-group-store'
 import type { GroupListItem } from '@/src/types/user-management'
 
@@ -49,6 +55,8 @@ export function UserFormGroupsTab({
 }) {
   const directoryUsers = useUserDirectoryStore((state) => state.users)
   const allGroups = useUserGroupStore((state) => state.groups)
+  const defaultGroup = useMemo(() => getDefaultUserGroup(allGroups), [allGroups])
+  const usesDefaultGroup = groupIds.length === 0
   const [searchInput, setSearchInput] = useState('')
   const [focusedGroupId, setFocusedGroupId] = useState<string | null>(null)
 
@@ -61,14 +69,14 @@ export function UserFormGroupsTab({
   )
 
   const availableGroups = useMemo(
-    () => allGroups.filter((group) => !groupIds.includes(group.id)),
+    () => getAssignableUserGroups(allGroups).filter((group) => !groupIds.includes(group.id)),
     [allGroups, groupIds],
   )
 
-  const focusedGroup = useMemo(
-    () => selectedGroups.find((group) => group.id === focusedGroupId) ?? null,
-    [focusedGroupId, selectedGroups],
-  )
+  const focusedGroup = useMemo(() => {
+    if (focusedGroupId === DEFAULT_USER_GROUP_ID) return defaultGroup
+    return selectedGroups.find((group) => group.id === focusedGroupId) ?? null
+  }, [defaultGroup, focusedGroupId, selectedGroups])
 
   const focusedMembers = useMemo(
     () => (focusedGroup ? getGroupMembers(focusedGroup, directoryUsers) : []),
@@ -76,14 +84,14 @@ export function UserFormGroupsTab({
   )
 
   useEffect(() => {
-    if (selectedGroups.length === 0) {
-      setFocusedGroupId(null)
+    if (usesDefaultGroup) {
+      setFocusedGroupId(DEFAULT_USER_GROUP_ID)
       return
     }
     if (!focusedGroupId || !groupIds.includes(focusedGroupId)) {
       setFocusedGroupId(selectedGroups[0]?.id ?? null)
     }
-  }, [focusedGroupId, groupIds, selectedGroups])
+  }, [focusedGroupId, groupIds, selectedGroups, usesDefaultGroup])
 
   const addGroup = (group: GroupListItem) => {
     if (groupIds.includes(group.id)) return
@@ -118,7 +126,7 @@ export function UserFormGroupsTab({
             isOptionEqualToValue={(a, b) => a.id === b.id}
             noOptionsText={
               availableGroups.length === 0 && groupIds.length > 0
-                ? 'All groups are already assigned'
+                ? 'All assignable groups are already selected'
                 : 'No groups match your search'
             }
             renderInput={(params) => (
@@ -162,11 +170,40 @@ export function UserFormGroupsTab({
         >
           <Box sx={{ px: 1.5, py: 1, bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider' }}>
             <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              Selected groups ({selectedGroups.length})
+              {usesDefaultGroup
+                ? 'Default group assigned'
+                : `Selected groups (${selectedGroups.length})`}
             </Typography>
           </Box>
           <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
-            {selectedGroups.length === 0 ? (
+            {usesDefaultGroup && defaultGroup ? (
+              <Box
+                component="button"
+                type="button"
+                onClick={() => setFocusedGroupId(DEFAULT_USER_GROUP_ID)}
+                sx={{
+                  ...selectionCardSx(focusedGroupId === DEFAULT_USER_GROUP_ID),
+                  width: '100%',
+                  border: 0,
+                  textAlign: 'left',
+                  font: 'inherit',
+                  color: 'inherit',
+                  cursor: 'pointer',
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
+                      {defaultGroup.name}
+                    </Typography>
+                    <Chip label="Default" size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" noWrap display="block">
+                    {defaultGroup.type === 'dynamic' ? 'Dynamic' : 'Static'}
+                  </Typography>
+                </Box>
+              </Box>
+            ) : selectedGroups.length === 0 ? (
               <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
                 {readOnly ? 'No groups assigned.' : 'No groups selected. Search above to add groups.'}
               </Typography>
@@ -282,6 +319,12 @@ export function UserFormGroupsTab({
           </Box>
         </Box>
       </Box>
+
+      {usesDefaultGroup && !readOnly ? (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: -0.5 }}>
+          Add a group above to replace the default assignment.
+        </Typography>
+      ) : null}
     </EarthDialogSectionCard>
   )
 }
