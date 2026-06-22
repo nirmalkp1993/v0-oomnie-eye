@@ -9,6 +9,7 @@ import {
   territoryNameExists,
   updateTerritoryName,
 } from '@/src/lib/territory-tree.utils'
+import { reparentHierarchySubtree } from '@/src/lib/hierarchy-tree.utils'
 import type { HierarchyTreeNode } from '@/src/lib/nested-tree-path-options'
 import { TERRITORY_HIERARCHY_TREE } from '@/src/mock-data/territory-hierarchy'
 
@@ -18,6 +19,7 @@ interface TerritoryStore {
   createRoot: (name: string) => string | null
   createChild: (parentId: string, name: string) => string | null
   rename: (id: string, name: string) => boolean
+  reparent: (nodeId: string, newParentId: string) => boolean
   remove: (id: string) => string[]
   getSubtreePathLabels: (id: string) => string[]
   nameExists: (name: string, excludeId?: string) => boolean
@@ -58,6 +60,13 @@ export const useTerritoryStore = create<TerritoryStore>((set, get) => ({
     const error = validateName(name, get().tree, id)
     if (error) return false
     set({ tree: updateTerritoryName(get().tree, id, name) })
+    return true
+  },
+
+  reparent: (nodeId, newParentId) => {
+    const next = reparentHierarchySubtree(get().tree, nodeId, newParentId)
+    if (!next) return false
+    set({ tree: next })
     return true
   },
 

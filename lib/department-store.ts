@@ -9,6 +9,7 @@ import {
   departmentNameExists,
   updateDepartmentName,
 } from '@/src/lib/department-tree.utils'
+import { reparentHierarchySubtree } from '@/src/lib/hierarchy-tree.utils'
 import type { HierarchyTreeNode } from '@/src/lib/nested-tree-path-options'
 import { DEPARTMENT_HIERARCHY_TREE } from '@/src/mock-data/department-hierarchy'
 
@@ -18,6 +19,7 @@ interface DepartmentStore {
   createRoot: (name: string) => string | null
   createChild: (parentId: string, name: string) => string | null
   rename: (id: string, name: string) => boolean
+  reparent: (nodeId: string, newParentId: string) => boolean
   remove: (id: string) => string[]
   getSubtreePathLabels: (id: string) => string[]
   nameExists: (name: string, excludeId?: string) => boolean
@@ -58,6 +60,13 @@ export const useDepartmentStore = create<DepartmentStore>((set, get) => ({
     const error = validateName(name, get().tree, id)
     if (error) return false
     set({ tree: updateDepartmentName(get().tree, id, name) })
+    return true
+  },
+
+  reparent: (nodeId, newParentId) => {
+    const next = reparentHierarchySubtree(get().tree, nodeId, newParentId)
+    if (!next) return false
+    set({ tree: next })
     return true
   },
 

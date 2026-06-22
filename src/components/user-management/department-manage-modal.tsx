@@ -19,6 +19,7 @@ import {
 import { alpha, useTheme } from "@mui/material/styles";
 import { Building2 } from "lucide-react";
 import type { OrgChartTreeNode } from "@/src/components/org-chart/hierarchy-flow-types";
+import { HierarchyFormChildrenSection } from "@/src/components/user-management/hierarchy-form-children-section";
 import { HierarchyManageTreePanel } from "@/src/components/user-management/hierarchy-manage-tree-panel";
 import { useDepartmentStore } from "@/lib/department-store";
 import { useUserDirectoryStore } from "@/lib/user-directory-store";
@@ -64,20 +65,24 @@ function DepartmentFormDialog({
   tree,
   onClose,
   onSaved,
+  onTreeChanged,
 }: {
   open: boolean;
   mode: DepartmentFormMode | null;
   tree: HierarchyTreeNode[];
   onClose: () => void;
   onSaved: (nodeId: string) => void;
+  onTreeChanged?: () => void;
 }) {
   const theme = useTheme();
   const { showMessage } = useAdminSnackbar();
   const createRoot = useDepartmentStore((state) => state.createRoot);
   const createChild = useDepartmentStore((state) => state.createChild);
   const rename = useDepartmentStore((state) => state.rename);
+  const reparent = useDepartmentStore((state) => state.reparent);
 
   const [nameInput, setNameInput] = useState("");
+  const [selectedAttachId, setSelectedAttachId] = useState("");
 
   const isEdit = mode?.type === "edit";
   const parentId = mode?.type === "add-child" ? mode.parentId : null;
@@ -90,18 +95,32 @@ function DepartmentFormDialog({
     ? getDepartmentPathLabel(tree, editNodeId)
     : "";
   const editNode = editNodeId ? findDepartmentNode(tree, editNodeId) : null;
+  const childrenParentId =
+    mode?.type === "edit"
+      ? mode.nodeId
+      : mode?.type === "add-child"
+        ? mode.parentId
+        : null;
+  const showChildrenSection =
+    mode?.type === "edit" ||
+    mode?.type === "add-child" ||
+    mode?.type === "add-root";
+  const isNewRootChildren = mode?.type === "add-root";
 
   useEffect(() => {
     if (!open || !mode) {
       setNameInput("");
+      setSelectedAttachId("");
       return;
     }
     if (mode.type === "edit") {
       const node = findDepartmentNode(tree, mode.nodeId);
       setNameInput(node?.name ?? "");
+      setSelectedAttachId("");
       return;
     }
     setNameInput("");
+    setSelectedAttachId("");
   }, [open, mode, tree]);
 
   useEffect(() => {
@@ -124,19 +143,27 @@ function DepartmentFormDialog({
         ? "Add child department"
         : "Edit department";
 
-  const canSave = Boolean(
-    nameInput.trim() && (!isEdit || nameInput.trim() !== editNode?.name),
+  const trimmedName = nameInput.trim();
+  const hasNameChange = Boolean(
+    isEdit && trimmedName && trimmedName !== editNode?.name,
   );
+  const hasAttachSelection = Boolean(selectedAttachId);
+
+  const canSave =
+    mode.type === "add-root"
+      ? Boolean(trimmedName)
+      : mode.type === "add-child"
+        ? Boolean(trimmedName || hasAttachSelection)
+        : Boolean(hasNameChange || hasAttachSelection);
 
   const handleSave = () => {
-    const trimmed = nameInput.trim();
-    if (!trimmed) {
-      showMessage("Enter a department name", "warning");
-      return;
-    }
-
     if (mode.type === "add-root") {
-      const id = createRoot(trimmed);
+      if (!trimmedName) {
+        showMessage("Enter a department name", "warning");
+        return;
+      }
+
+      const id = createRoot(trimmedName);
       if (!id) {
         showMessage(
           "Could not add department — name may already exist",
@@ -144,28 +171,95 @@ function DepartmentFormDialog({
         );
         return;
       }
-      showMessage("Department added", "success");
+
+      if (selectedAttachId) {
+        const ok = reparent(selectedAttachId, id);
+        if (!ok) {
+          showMessage(
+            "Root created but could not attach child department",
+            "warning",
+          );
+          onTreeChanged?.();
+          onSaved(id);
+          return;
+        }
+      }
+
+      showMessage(
+        selectedAttachId
+          ? "Root department added with child attached"
+          : "Department added",
+        "success",
+      );
+      onTreeChanged?.();
       onSaved(id);
       return;
     }
 
     if (mode.type === "add-child") {
-      const id = createChild(mode.parentId, trimmed);
-      if (!id) {
-        showMessage("Could not add child department", "warning");
+      if (!trimmedName && !selectedAttachId) {
+        showMessage("Enter a name or select a department to attach", "warning");
         return;
       }
-      showMessage("Child department added", "success");
-      onSaved(id);
+
+      let savedId = mode.parentId;
+      if (trimmedName) {
+        const id = createChild(mode.parentId, trimmedName);
+        if (!id) {
+          showMessage("Could not add child department", "warning");
+          return;
+        }
+        savedId = id;
+      }
+
+      if (selectedAttachId) {
+        const ok = reparent(selectedAttachId, mode.parentId);
+        if (!ok) {
+          showMessage("Could not attach department", "warning");
+          return;
+        }
+      }
+
+      showMessage(
+        trimmedName && selectedAttachId
+          ? "Department added and attached"
+          : selectedAttachId
+            ? "Department attached"
+            : "Child department added",
+        "success",
+      );
+      onTreeChanged?.();
+      onSaved(savedId);
       return;
     }
 
-    const ok = rename(mode.nodeId, trimmed);
-    if (!ok) {
-      showMessage("Could not save — name may already exist", "warning");
-      return;
+    if (!hasNameChange && !selectedAttachId) return;
+
+    if (hasNameChange) {
+      const ok = rename(mode.nodeId, trimmedName);
+      if (!ok) {
+        showMessage("Could not save — name may already exist", "warning");
+        return;
+      }
     }
-    showMessage("Department updated", "success");
+
+    if (selectedAttachId) {
+      const ok = reparent(selectedAttachId, mode.nodeId);
+      if (!ok) {
+        showMessage("Could not attach department", "warning");
+        return;
+      }
+    }
+
+    showMessage(
+      hasNameChange && selectedAttachId
+        ? "Department updated and attached"
+        : selectedAttachId
+          ? "Department attached"
+          : "Department updated",
+      "success",
+    );
+    onTreeChanged?.();
     onSaved(mode.nodeId);
   };
 
@@ -185,6 +279,9 @@ function DepartmentFormDialog({
           m: 2,
           borderRadius: 2,
           overflow: "hidden",
+          maxHeight: "calc(100vh - 32px)",
+          display: "flex",
+          flexDirection: "column",
         },
       }}
       sx={{ zIndex: (t) => t.zIndex.modal + 4 }}
@@ -231,11 +328,11 @@ function DepartmentFormDialog({
         ) : null}
       </Box>
 
-      <Box sx={{ px: 2.5, py: 2 }}>
+      <Box sx={{ px: 2.5, py: 2, overflowY: "auto", flex: 1, minHeight: 0 }}>
         <DialogFormField
           label="Department name"
           htmlFor="departmentFormName"
-          required
+          required={mode.type === "add-root" || mode.type === "edit"}
         >
           <TextField
             id="departmentFormName"
@@ -250,6 +347,18 @@ function DepartmentFormDialog({
             sx={outlineFieldSx}
           />
         </DialogFormField>
+
+        {showChildrenSection ? (
+          <HierarchyFormChildrenSection
+            tree={tree}
+            parentId={childrenParentId}
+            entityLabel="department"
+            selectedAttachId={selectedAttachId}
+            onSelectedAttachIdChange={setSelectedAttachId}
+            dropdownZIndex={theme.zIndex.modal + 6}
+            isNewRoot={isNewRootChildren}
+          />
+        ) : null}
       </Box>
 
       <Box
@@ -560,6 +669,7 @@ export function DepartmentManageOverlay({
         tree={tree}
         onClose={closeForm}
         onSaved={handleFormSaved}
+        onTreeChanged={notifyTreeChanged}
       />
     </>
   );

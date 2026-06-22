@@ -16,6 +16,7 @@ import {
 } from '@mui/material'
 import { alpha, useTheme } from '@mui/material/styles'
 import type { OrgChartTreeNode } from '@/src/components/org-chart/hierarchy-flow-types'
+import { HierarchyFormChildrenSection } from '@/src/components/user-management/hierarchy-form-children-section'
 import { HierarchyManageTreePanel } from '@/src/components/user-management/hierarchy-manage-tree-panel'
 import { Globe } from 'lucide-react'
 import { useTerritoryStore } from '@/lib/territory-store'
@@ -62,20 +63,24 @@ function TerritoryFormDialog({
   tree,
   onClose,
   onSaved,
+  onTreeChanged,
 }: {
   open: boolean
   mode: TerritoryFormMode | null
   tree: HierarchyTreeNode[]
   onClose: () => void
   onSaved: (nodeId: string) => void
+  onTreeChanged?: () => void
 }) {
   const theme = useTheme()
   const { showMessage } = useAdminSnackbar()
   const createRoot = useTerritoryStore((state) => state.createRoot)
   const createChild = useTerritoryStore((state) => state.createChild)
   const rename = useTerritoryStore((state) => state.rename)
+  const reparent = useTerritoryStore((state) => state.reparent)
 
   const [nameInput, setNameInput] = useState('')
+  const [selectedAttachId, setSelectedAttachId] = useState('')
 
   const isEdit = mode?.type === 'edit'
   const parentId = mode?.type === 'add-child' ? mode.parentId : null
@@ -84,18 +89,30 @@ function TerritoryFormDialog({
   const parentPathLabel = parentId ? getTerritoryPathLabel(tree, parentId) : ''
   const editPathLabel = editNodeId ? getTerritoryPathLabel(tree, editNodeId) : ''
   const editNode = editNodeId ? findTerritoryNode(tree, editNodeId) : null
+  const childrenParentId =
+    mode?.type === 'edit'
+      ? mode.nodeId
+      : mode?.type === 'add-child'
+        ? mode.parentId
+        : null
+  const showChildrenSection =
+    mode?.type === 'edit' || mode?.type === 'add-child' || mode?.type === 'add-root'
+  const isNewRootChildren = mode?.type === 'add-root'
 
   useEffect(() => {
     if (!open || !mode) {
       setNameInput('')
+      setSelectedAttachId('')
       return
     }
     if (mode.type === 'edit') {
       const node = findTerritoryNode(tree, mode.nodeId)
       setNameInput(node?.name ?? '')
+      setSelectedAttachId('')
       return
     }
     setNameInput('')
+    setSelectedAttachId('')
   }, [open, mode, tree])
 
   useEffect(() => {
@@ -118,45 +135,113 @@ function TerritoryFormDialog({
         ? 'Add child territory'
         : 'Edit territory'
 
-  const canSave = Boolean(
-    nameInput.trim() && (!isEdit || nameInput.trim() !== editNode?.name),
-  )
+  const trimmedName = nameInput.trim()
+  const hasNameChange = Boolean(isEdit && trimmedName && trimmedName !== editNode?.name)
+  const hasAttachSelection = Boolean(selectedAttachId)
+
+  const canSave =
+    mode.type === 'add-root'
+      ? Boolean(trimmedName)
+      : mode.type === 'add-child'
+        ? Boolean(trimmedName || hasAttachSelection)
+        : Boolean(hasNameChange || hasAttachSelection)
 
   const handleSave = () => {
-    const trimmed = nameInput.trim()
-    if (!trimmed) {
-      showMessage('Enter a territory name', 'warning')
-      return
-    }
-
     if (mode.type === 'add-root') {
-      const id = createRoot(trimmed)
+      if (!trimmedName) {
+        showMessage('Enter a territory name', 'warning')
+        return
+      }
+
+      const id = createRoot(trimmedName)
       if (!id) {
         showMessage('Could not add territory — name may already exist', 'warning')
         return
       }
-      showMessage('Territory added', 'success')
+
+      if (selectedAttachId) {
+        const ok = reparent(selectedAttachId, id)
+        if (!ok) {
+          showMessage('Root created but could not attach child territory', 'warning')
+          onTreeChanged?.()
+          onSaved(id)
+          return
+        }
+      }
+
+      showMessage(
+        selectedAttachId ? 'Root territory added with child attached' : 'Territory added',
+        'success',
+      )
+      onTreeChanged?.()
       onSaved(id)
       return
     }
 
     if (mode.type === 'add-child') {
-      const id = createChild(mode.parentId, trimmed)
-      if (!id) {
-        showMessage('Could not add child territory', 'warning')
+      if (!trimmedName && !selectedAttachId) {
+        showMessage('Enter a name or select a territory to attach', 'warning')
         return
       }
-      showMessage('Child territory added', 'success')
-      onSaved(id)
+
+      let savedId = mode.parentId
+      if (trimmedName) {
+        const id = createChild(mode.parentId, trimmedName)
+        if (!id) {
+          showMessage('Could not add child territory', 'warning')
+          return
+        }
+        savedId = id
+      }
+
+      if (selectedAttachId) {
+        const ok = reparent(selectedAttachId, mode.parentId)
+        if (!ok) {
+          showMessage('Could not attach territory', 'warning')
+          return
+        }
+      }
+
+      showMessage(
+        trimmedName && selectedAttachId
+          ? 'Territory added and attached'
+          : selectedAttachId
+            ? 'Territory attached'
+            : 'Child territory added',
+        'success',
+      )
+      onTreeChanged?.()
+      onSaved(savedId)
       return
     }
 
-    const ok = rename(mode.nodeId, trimmed)
-    if (!ok) {
-      showMessage('Could not save — name may already exist', 'warning')
-      return
+    if (!hasNameChange && !selectedAttachId) return
+
+    if (hasNameChange) {
+      const ok = rename(mode.nodeId, trimmedName)
+      if (!ok) {
+        showMessage('Could not save — name may already exist', 'warning')
+        return
+      }
     }
-    showMessage('Territory updated', 'success')
+
+    if (selectedAttachId) {
+      const ok = reparent(selectedAttachId, mode.nodeId)
+      if (!ok) {
+        showMessage('Could not attach territory', 'warning')
+        return
+      }
+    }
+
+    showMessage(
+      hasNameChange && selectedAttachId
+        ? 'Territory updated and attached'
+        : selectedAttachId
+          ? 'Territory attached'
+          : 'Territory updated',
+      'success',
+    )
+    onTreeChanged?.()
     onSaved(mode.nodeId)
   }
 
@@ -176,6 +261,9 @@ function TerritoryFormDialog({
           m: 2,
           borderRadius: 2,
           overflow: 'hidden',
+          maxHeight: 'calc(100vh - 32px)',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
       sx={{ zIndex: (t) => t.zIndex.modal + 4 }}
@@ -206,8 +294,12 @@ function TerritoryFormDialog({
         ) : null}
       </Box>
 
-      <Box sx={{ px: 2.5, py: 2 }}>
-        <DialogFormField label="Territory name" htmlFor="territoryFormName" required>
+      <Box sx={{ px: 2.5, py: 2, overflowY: 'auto', flex: 1, minHeight: 0 }}>
+        <DialogFormField
+          label="Territory name"
+          htmlFor="territoryFormName"
+          required={mode.type === 'add-root' || mode.type === 'edit'}
+        >
           <TextField
             id="territoryFormName"
             fullWidth
@@ -221,6 +313,18 @@ function TerritoryFormDialog({
             sx={outlineFieldSx}
           />
         </DialogFormField>
+
+        {showChildrenSection ? (
+          <HierarchyFormChildrenSection
+            tree={tree}
+            parentId={childrenParentId}
+            entityLabel="territory"
+            selectedAttachId={selectedAttachId}
+            onSelectedAttachIdChange={setSelectedAttachId}
+            dropdownZIndex={theme.zIndex.modal + 6}
+            isNewRoot={isNewRootChildren}
+          />
+        ) : null}
       </Box>
 
       <Box
@@ -494,6 +598,7 @@ export function TerritoryManageOverlay({ onClose, onTreeChanged }: TerritoryMana
         tree={tree}
         onClose={closeForm}
         onSaved={handleFormSaved}
+        onTreeChanged={notifyTreeChanged}
       />
     </>
   )
