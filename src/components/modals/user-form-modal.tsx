@@ -31,7 +31,6 @@ import {
 import { Briefcase, UserRound } from "lucide-react";
 import { useDepartmentStore } from "@/lib/department-store";
 import { useJobTitleStore } from "@/lib/job-title-store";
-import { useOfficeStore } from "@/lib/office-store";
 import { useTerritoryStore } from "@/lib/territory-store";
 import { AppDialog, DialogFormField } from "@/src/components/modals/app-dialog";
 import { DialogFormFooter } from "@/src/components/modals/dialog-form-footer";
@@ -40,11 +39,9 @@ import { EARTH_DIALOG_SECTION_ACCENTS } from "@/src/components/modals/earth-dial
 import { DepartmentHierarchySelect } from "@/src/components/user-management/department-hierarchy-select";
 import { DepartmentManageModal } from "@/src/components/user-management/department-manage-modal";
 import { JobTitleManageModal } from "@/src/components/user-management/job-title-manage-modal";
-import { OfficeManageModal } from "@/src/components/user-management/office-manage-modal";
 import { TerritoryManageModal } from "@/src/components/user-management/territory-manage-modal";
 import { collectNestedPathOptions } from "@/src/lib/nested-tree-path-options";
 import { JobTitleHierarchySelect } from "@/src/components/user-management/job-title-hierarchy-select";
-import { OfficeHierarchySelect } from "@/src/components/user-management/office-hierarchy-select";
 import { TerritoryHierarchySelect } from "@/src/components/user-management/territory-hierarchy-select";
 import {
   DEFAULT_TENANT_NAME,
@@ -117,7 +114,6 @@ export function UserFormModal({
   const [departmentManageOpen, setDepartmentManageOpen] = useState(false);
   const [jobTitleManageOpen, setJobTitleManageOpen] = useState(false);
   const [territoryManageOpen, setTerritoryManageOpen] = useState(false);
-  const [officeManageOpen, setOfficeManageOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<UserFormTabId>("profile");
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
@@ -133,7 +129,6 @@ export function UserFormModal({
     setDepartmentManageOpen(false);
     setJobTitleManageOpen(false);
     setTerritoryManageOpen(false);
-    setOfficeManageOpen(false);
     setActiveTab(initialTab);
   }, [open, initial, initialTab, reset]);
 
@@ -177,18 +172,6 @@ export function UserFormModal({
       if (!prev.territory || prev.territory === SELECT_EMPTY_VALUE) return prev;
       if (validLabels.has(prev.territory)) return prev;
       return { ...prev, territory: SELECT_EMPTY_VALUE };
-    });
-  }, []);
-
-  const syncOfficeAfterTreeChange = useCallback(() => {
-    const tree = useOfficeStore.getState().tree;
-    const validLabels = new Set(
-      collectNestedPathOptions(tree).map((option) => option.label),
-    );
-    setForm((prev) => {
-      if (!prev.office || prev.office === SELECT_EMPTY_VALUE) return prev;
-      if (validLabels.has(prev.office)) return prev;
-      return { ...prev, office: SELECT_EMPTY_VALUE };
     });
   }, []);
 
@@ -677,39 +660,6 @@ export function UserFormModal({
                       ) : null}
                     </Box>
                   </DialogFormField>
-                  <DialogFormField label="Office" htmlFor="office">
-                    <Box
-                      sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}
-                    >
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <OfficeHierarchySelect
-                          id="office"
-                          value={form.office}
-                          onChange={(v) => update("office", v)}
-                          fieldSx={outlineFieldSx}
-                          disabled={readOnly}
-                        />
-                      </Box>
-                      {!readOnly ? (
-                        <Tooltip title="Manage offices">
-                          <IconButton
-                            type="button"
-                            aria-label="Manage offices"
-                            onClick={() => setOfficeManageOpen(true)}
-                            sx={{
-                              mt: 0.25,
-                              border: 1,
-                              borderColor: "divider",
-                              borderRadius: 2,
-                              flexShrink: 0,
-                            }}
-                          >
-                            <AccountTreeOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      ) : null}
-                    </Box>
-                  </DialogFormField>
                 </Stack>
               </EarthDialogSectionCard>
             </Box>
@@ -761,12 +711,6 @@ export function UserFormModal({
         open={open && territoryManageOpen}
         onClose={() => setTerritoryManageOpen(false)}
         onTreeChanged={syncTerritoryAfterTreeChange}
-      />
-
-      <OfficeManageModal
-        open={open && officeManageOpen}
-        onClose={() => setOfficeManageOpen(false)}
-        onTreeChanged={syncOfficeAfterTreeChange}
       />
     </>
   );
