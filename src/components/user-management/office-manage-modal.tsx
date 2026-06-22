@@ -399,6 +399,9 @@ function OfficeFormDialog({
           m: 2,
           borderRadius: 2,
           overflow: "hidden",
+          maxHeight: "calc(100vh - 32px)",
+          display: "flex",
+          flexDirection: "column",
         },
       }}
       sx={{ zIndex: (t) => t.zIndex.modal + 4 }}

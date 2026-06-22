@@ -10,6 +10,7 @@ import {
   CARD_DIMENSIONS,
   CARD_ICON_BORDER_RADIUS_UNIT,
 } from './placemark-card-constants'
+import { EARTH_DIALOG_SURFACE_ACCENT } from '@/src/components/modals/earth-dialog-constants'
 
 export interface PlacemarkSettingsCardProps {
   title: string
@@ -79,20 +80,18 @@ export function PlacemarkSettingsCard({
               ? '0 4px 16px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3)'
               : '0 4px 16px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.08)',
         },
-        '&::before': accentColor
-          ? {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              borderRadius: 'inherit',
-              background: `linear-gradient(180deg, ${accent}50 0%, ${accent}00 100%)`,
-              pointerEvents: 'none',
-              zIndex: 0,
-            }
-          : {},
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderRadius: 'inherit',
+          background: `linear-gradient(180deg, ${EARTH_DIALOG_SURFACE_ACCENT}50 0%, ${EARTH_DIALOG_SURFACE_ACCENT}00 100%)`,
+          pointerEvents: 'none',
+          zIndex: 0,
+        },
         ...surfaceSx,
         ...sx,
       }}

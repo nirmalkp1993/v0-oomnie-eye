@@ -3,6 +3,8 @@
  * - PlacemarkCard & pin editor: maxWidth="md" → 900px
  * - Wide layouts (schedule grid): maxWidth="lg" → 1200px
  */
+import type { SxProps, Theme } from '@mui/material/styles'
+
 export const EARTH_DIALOG_WIDTH_PX = 900
 export const EARTH_DIALOG_WIDTH_WIDE_PX = 1200
 export const EARTH_DIALOG_WIDTH_EXTRA_WIDE_PX = 1400
@@ -37,3 +39,32 @@ export const EARTH_DIALOG_SECTION_ACCENTS = {
   warning: '#ed6c02',
   success: '#2e7d32',
 } as const
+
+/** Identity-card surface tint used across all earth-themed popups */
+export const EARTH_DIALOG_SURFACE_ACCENT = EARTH_DIALOG_SECTION_ACCENTS.primary
+
+export function getEarthDialogSurfaceSx(theme: { palette: { mode: string } }): SxProps<Theme> {
+  return {
+    position: 'relative',
+    overflow: 'hidden',
+    bgcolor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#FFFFFF',
+    backgroundImage: 'none',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: 'inherit',
+      background: `linear-gradient(180deg, ${EARTH_DIALOG_SURFACE_ACCENT}50 0%, ${EARTH_DIALOG_SURFACE_ACCENT}00 100%)`,
+      pointerEvents: 'none',
+      zIndex: 0,
+    },
+  }
+}
+
+export const earthDialogSurfaceChildSx: SxProps<Theme> = {
+  position: 'relative',
+  zIndex: 1,
+}
