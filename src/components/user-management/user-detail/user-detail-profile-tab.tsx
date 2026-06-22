@@ -4,6 +4,7 @@ import { Box, Typography } from '@mui/material'
 import { Briefcase, UserRound } from 'lucide-react'
 import { EarthDialogSectionCard } from '@/src/components/modals/dialog-section-card'
 import { EARTH_DIALOG_SECTION_ACCENTS } from '@/src/components/modals/earth-dialog-constants'
+import { formatHierarchyFieldDisplay } from '@/src/lib/hierarchy-path.utils'
 import type { UserListItem } from '@/src/types/user-management'
 
 function ProfileField({ label, value }: { label: string; value: string }) {
@@ -24,10 +25,10 @@ export function UserDetailProfileTab({ user }: { user: UserListItem }) {
 
   const fields = [
     { label: 'Phone', value: user.phone?.trim() || dash },
-    { label: 'Job title', value: user.jobTitle?.trim() || dash },
-    { label: 'Department', value: user.department?.trim() || dash },
+    { label: 'Job title', value: formatHierarchyFieldDisplay(user.jobTitle) },
+    { label: 'Department', value: formatHierarchyFieldDisplay(user.department) },
     { label: 'Business unit', value: user.businessUnit?.trim() || dash },
-    { label: 'Territory', value: user.territory?.trim() || dash },
+    { label: 'Territory', value: formatHierarchyFieldDisplay(user.territory) },
     { label: 'Office', value: user.office?.trim() || dash },
     { label: 'Region', value: user.region?.trim() || dash },
     { label: 'Last login', value: user.lastLogin?.trim() || dash },

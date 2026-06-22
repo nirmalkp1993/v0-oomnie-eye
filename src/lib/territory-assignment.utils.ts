@@ -1,4 +1,4 @@
-import { SELECT_EMPTY_VALUE } from '@/src/constants/add-user'
+import { hierarchyFieldsFromUser } from '@/src/lib/hierarchy-path.utils'
 import type { UserListItem } from '@/src/types/user-management'
 
 const PATH_SEPARATOR = ' > '
@@ -9,17 +9,17 @@ function getTerritoryLeafName(pathLabel: string): string {
 }
 
 export function isTerritoryPathAssigned(
-  userTerritory: string | undefined,
+  userTerritory: string | string[] | undefined,
   territoryPathLabels: string[],
 ): boolean {
-  if (!userTerritory || userTerritory === '—' || userTerritory === SELECT_EMPTY_VALUE) {
-    return false
-  }
+  const assignments = hierarchyFieldsFromUser(userTerritory)
+  if (assignments.length === 0) return false
 
-  const trimmed = userTerritory.trim()
-  if (territoryPathLabels.includes(trimmed)) return true
-
-  return territoryPathLabels.some((label) => getTerritoryLeafName(label) === trimmed)
+  return assignments.some((userTerritoryValue) => {
+    const trimmed = userTerritoryValue.trim()
+    if (territoryPathLabels.includes(trimmed)) return true
+    return territoryPathLabels.some((label) => getTerritoryLeafName(label) === trimmed)
+  })
 }
 
 export function findUsersAssignedToTerritoryPaths(

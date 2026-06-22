@@ -43,6 +43,7 @@ import { TerritoryManageModal } from "@/src/components/user-management/territory
 import { collectNestedPathOptions } from "@/src/lib/nested-tree-path-options";
 import { JobTitleHierarchySelect } from "@/src/components/user-management/job-title-hierarchy-select";
 import { TerritoryHierarchySelect } from "@/src/components/user-management/territory-hierarchy-select";
+import { resolveStoredLabels } from "@/src/lib/hierarchy-path.utils";
 import {
   DEFAULT_TENANT_NAME,
   INITIAL_CREATE_USER_FORM,
@@ -140,38 +141,55 @@ export function UserFormModal({
 
   const syncDepartmentAfterTreeChange = useCallback(() => {
     const tree = useDepartmentStore.getState().tree;
-    const validLabels = new Set(
-      collectNestedPathOptions(tree).map((option) => option.label),
-    );
+    const options = collectNestedPathOptions(tree);
+    const validLabels = new Set(options.map((option) => option.label));
     setForm((prev) => {
-      if (!prev.department || prev.department === SELECT_EMPTY_VALUE)
+      const next = resolveStoredLabels(prev.department, options).filter((label) =>
+        validLabels.has(label),
+      );
+      if (
+        next.length === prev.department.length &&
+        next.every((label, index) => label === prev.department[index])
+      ) {
         return prev;
-      if (validLabels.has(prev.department)) return prev;
-      return { ...prev, department: SELECT_EMPTY_VALUE };
+      }
+      return { ...prev, department: next };
     });
   }, []);
 
   const syncJobTitleAfterTreeChange = useCallback(() => {
     const tree = useJobTitleStore.getState().tree;
-    const validLabels = new Set(
-      collectNestedPathOptions(tree).map((option) => option.label),
-    );
+    const options = collectNestedPathOptions(tree);
+    const validLabels = new Set(options.map((option) => option.label));
     setForm((prev) => {
-      if (!prev.jobTitle || prev.jobTitle === SELECT_EMPTY_VALUE) return prev;
-      if (validLabels.has(prev.jobTitle)) return prev;
-      return { ...prev, jobTitle: SELECT_EMPTY_VALUE };
+      const next = resolveStoredLabels(prev.jobTitle, options).filter((label) =>
+        validLabels.has(label),
+      );
+      if (
+        next.length === prev.jobTitle.length &&
+        next.every((label, index) => label === prev.jobTitle[index])
+      ) {
+        return prev;
+      }
+      return { ...prev, jobTitle: next };
     });
   }, []);
 
   const syncTerritoryAfterTreeChange = useCallback(() => {
     const tree = useTerritoryStore.getState().tree;
-    const validLabels = new Set(
-      collectNestedPathOptions(tree).map((option) => option.label),
-    );
+    const options = collectNestedPathOptions(tree);
+    const validLabels = new Set(options.map((option) => option.label));
     setForm((prev) => {
-      if (!prev.territory || prev.territory === SELECT_EMPTY_VALUE) return prev;
-      if (validLabels.has(prev.territory)) return prev;
-      return { ...prev, territory: SELECT_EMPTY_VALUE };
+      const next = resolveStoredLabels(prev.territory, options).filter((label) =>
+        validLabels.has(label),
+      );
+      if (
+        next.length === prev.territory.length &&
+        next.every((label, index) => label === prev.territory[index])
+      ) {
+        return prev;
+      }
+      return { ...prev, territory: next };
     });
   }, []);
 

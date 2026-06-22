@@ -1,4 +1,4 @@
-import { SELECT_EMPTY_VALUE } from '@/src/constants/add-user'
+import { hierarchyFieldsFromUser } from '@/src/lib/hierarchy-path.utils'
 import type { UserListItem } from '@/src/types/user-management'
 
 const PATH_SEPARATOR = ' > '
@@ -9,17 +9,17 @@ function getDepartmentLeafName(pathLabel: string): string {
 }
 
 export function isDepartmentPathAssigned(
-  userDepartment: string | undefined,
+  userDepartment: string | string[] | undefined,
   departmentPathLabels: string[],
 ): boolean {
-  if (!userDepartment || userDepartment === '—' || userDepartment === SELECT_EMPTY_VALUE) {
-    return false
-  }
+  const assignments = hierarchyFieldsFromUser(userDepartment)
+  if (assignments.length === 0) return false
 
-  const trimmed = userDepartment.trim()
-  if (departmentPathLabels.includes(trimmed)) return true
-
-  return departmentPathLabels.some((label) => getDepartmentLeafName(label) === trimmed)
+  return assignments.some((userDept) => {
+    const trimmed = userDept.trim()
+    if (departmentPathLabels.includes(trimmed)) return true
+    return departmentPathLabels.some((label) => getDepartmentLeafName(label) === trimmed)
+  })
 }
 
 export function findUsersAssignedToDepartmentPaths(

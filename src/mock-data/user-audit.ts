@@ -305,12 +305,12 @@ export function buildSeedEntriesForUser(user: UserListItem): UserAuditEntry[] {
     category: 'user_lifecycle',
   })
 
-  if (user.department && user.department !== '—') {
+  if (user.department.length > 0) {
     entries.push({
       id: `audit-${user.id}-department`,
       actionType: 'ADMIN DATA ADDED',
       description: 'Department assigned',
-      details: `users / department · ${user.department}`,
+      details: `users / department · ${user.department.join(', ')}`,
       date: toIsoDate(45, 10, 0),
       category: 'admin_data_add',
     })

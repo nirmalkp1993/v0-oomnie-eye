@@ -2,7 +2,7 @@
 
 import type { SxProps, Theme } from '@mui/material'
 import { useDepartmentStore } from '@/lib/department-store'
-import { HierarchyPathSelect } from '@/src/components/user-management/hierarchy-path-select'
+import { HierarchyPathMultiSelect } from '@/src/components/user-management/hierarchy-path-multi-select'
 
 export function DepartmentHierarchySelect({
   id,
@@ -12,15 +12,15 @@ export function DepartmentHierarchySelect({
   disabled,
 }: {
   id?: string
-  value: string
-  onChange: (departmentLabel: string) => void
+  value: string[]
+  onChange: (departmentLabels: string[]) => void
   fieldSx?: SxProps<Theme>
   disabled?: boolean
 }) {
   const tree = useDepartmentStore((state) => state.tree)
 
   return (
-    <HierarchyPathSelect
+    <HierarchyPathMultiSelect
       id={id}
       value={value}
       onChange={onChange}

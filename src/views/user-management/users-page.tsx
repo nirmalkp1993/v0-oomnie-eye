@@ -34,6 +34,7 @@ import {
   canDeleteUser,
   isUserRetired,
 } from '@/src/lib/user-management/user-lifecycle.utils'
+import { formatHierarchyFieldDisplay } from '@/src/lib/hierarchy-path.utils'
 import { getUserRowCellValue } from '@/src/lib/user-management/user-row-values'
 import { openUserImpersonationTab } from '@/src/lib/user-management/user-impersonation.utils'
 import {
@@ -111,8 +112,8 @@ export function UsersPage() {
         r.name,
         r.email,
         r.phone,
-        r.jobTitle,
-        r.department,
+        ...(r.jobTitle ?? []),
+        ...r.department,
         r.office,
         r.roles.join(' '),
         r.groups.join(' '),
@@ -313,7 +314,7 @@ export function UsersPage() {
       case 'groups':
         return <UmSecondaryText>{row.groups.join(', ') || '—'}</UmSecondaryText>
       case 'department':
-        return <UmSecondaryText>{row.department}</UmSecondaryText>
+        return <UmSecondaryText>{formatHierarchyFieldDisplay(row.department)}</UmSecondaryText>
       case 'office':
         return <UmSecondaryText>{row.office}</UmSecondaryText>
       case 'lastLogin':

@@ -1,3 +1,4 @@
+import { formatHierarchyFieldDisplay } from '@/src/lib/hierarchy-path.utils'
 import type { UserListItem } from '@/src/types/user-management'
 
 export function getUserRowCellValue(row: UserListItem, columnId: string): string {
@@ -11,7 +12,7 @@ export function getUserRowCellValue(row: UserListItem, columnId: string): string
     case 'groups':
       return row.groups.length > 0 ? row.groups.join(', ') : '—'
     case 'department':
-      return row.department
+      return formatHierarchyFieldDisplay(row.department)
     case 'office':
       return row.office
     case 'lastLogin':

@@ -12,6 +12,7 @@ import {
   resolveEffectiveUserGroupIds,
   userGroupsToFormGroupIds,
 } from '@/src/lib/user-management/group-members.utils'
+import { hierarchyFieldsFromUser } from '@/src/lib/hierarchy-path.utils'
 import type { CreateUserFormValues, UserListItem } from '@/src/types/user-management'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -61,9 +62,9 @@ export function userToFormValues(user: UserListItem): CreateUserFormValues {
     avatarUrl: user.avatarUrl ?? '',
     email: user.email,
     phone: user.phone ?? SELECT_EMPTY_VALUE,
-    department: fieldFromUser(user.department),
-    jobTitle: fieldFromUser(user.jobTitle),
-    territory: fieldFromUser(user.territory),
+    department: hierarchyFieldsFromUser(user.department),
+    jobTitle: hierarchyFieldsFromUser(user.jobTitle),
+    territory: hierarchyFieldsFromUser(user.territory),
     office: fieldFromUser(user.office),
     region: fieldFromUser(user.region),
     businessUnit: fieldFromUser(user.businessUnit),
@@ -86,9 +87,9 @@ export function buildUserListItemFromForm(
     avatarUrl: form.avatarUrl.trim() || undefined,
     email: form.email.trim(),
     phone: orEmpty(form.phone),
-    department: orEmpty(form.department) ?? '—',
-    jobTitle: orEmpty(form.jobTitle),
-    territory: orEmpty(form.territory),
+    department: form.department,
+    jobTitle: form.jobTitle.length > 0 ? form.jobTitle : undefined,
+    territory: form.territory.length > 0 ? form.territory : undefined,
     office: orEmpty(form.office) ?? '—',
     region: orEmpty(form.region),
     businessUnit: orEmpty(form.businessUnit),

@@ -1,4 +1,4 @@
-import { SELECT_EMPTY_VALUE } from '@/src/constants/add-user'
+import { hierarchyFieldsFromUser } from '@/src/lib/hierarchy-path.utils'
 import type { UserListItem } from '@/src/types/user-management'
 
 const PATH_SEPARATOR = ' > '
@@ -9,17 +9,17 @@ function getJobTitleLeafName(pathLabel: string): string {
 }
 
 export function isJobTitlePathAssigned(
-  userJobTitle: string | undefined,
+  userJobTitle: string | string[] | undefined,
   jobTitlePathLabels: string[],
 ): boolean {
-  if (!userJobTitle || userJobTitle === '—' || userJobTitle === SELECT_EMPTY_VALUE) {
-    return false
-  }
+  const assignments = hierarchyFieldsFromUser(userJobTitle)
+  if (assignments.length === 0) return false
 
-  const trimmed = userJobTitle.trim()
-  if (jobTitlePathLabels.includes(trimmed)) return true
-
-  return jobTitlePathLabels.some((label) => getJobTitleLeafName(label) === trimmed)
+  return assignments.some((userTitle) => {
+    const trimmed = userTitle.trim()
+    if (jobTitlePathLabels.includes(trimmed)) return true
+    return jobTitlePathLabels.some((label) => getJobTitleLeafName(label) === trimmed)
+  })
 }
 
 export function findUsersAssignedToJobTitlePaths(

@@ -15,9 +15,9 @@ export interface CreateUserFormValues {
   avatarUrl: string
   email: string
   phone: string
-  department: string
-  jobTitle: string
-  territory: string
+  department: string[]
+  jobTitle: string[]
+  territory: string[]
   office: string
   region: string
   businessUnit: string
@@ -34,13 +34,13 @@ export interface UserListItem {
   email: string
   roles: string[]
   groups: string[]
-  department: string
+  department: string[]
   office: string
   status: UserStatus
   lastLogin: string | null
-  jobTitle?: string
+  jobTitle?: string[]
   phone?: string
-  territory?: string
+  territory?: string[]
   region?: string
   businessUnit?: string
   customAttributes?: Record<string, string>

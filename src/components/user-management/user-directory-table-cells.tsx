@@ -6,6 +6,7 @@ import {
   UmSecondaryText,
 } from '@/src/components/user-management/user-management-table-primitives'
 import { UserStatusBadge } from '@/src/components/user-management/user-status-badge'
+import { formatHierarchyFieldDisplay } from '@/src/lib/hierarchy-path.utils'
 import type { UserListItem } from '@/src/types/user-management'
 
 export function renderUserDirectoryCell(row: UserListItem, columnId: string): ReactNode {
@@ -19,7 +20,7 @@ export function renderUserDirectoryCell(row: UserListItem, columnId: string): Re
     case 'groups':
       return <UmSecondaryText>{row.groups.join(', ') || '—'}</UmSecondaryText>
     case 'department':
-      return <UmSecondaryText>{row.department}</UmSecondaryText>
+      return <UmSecondaryText>{formatHierarchyFieldDisplay(row.department)}</UmSecondaryText>
     case 'office':
       return <UmSecondaryText>{row.office}</UmSecondaryText>
     case 'lastLogin':
