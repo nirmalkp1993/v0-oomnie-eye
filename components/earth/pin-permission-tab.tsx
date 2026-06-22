@@ -5,11 +5,13 @@ import {
   Business as BusinessIcon,
   Groups as GroupsIcon,
   Public as PublicIcon,
+  TravelExplore as TravelExploreIcon,
 } from '@mui/icons-material'
 import { Box, Stack, Switch } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import { PlacemarkSettingsCard } from '@/src/components/earth/placemark-card'
 import { NestedDepartmentPicker } from './nested-department-picker'
+import { NestedTerritoryPicker } from './nested-territory-picker'
 import { UserGroupMultiSelect } from './user-group-multi-select'
 
 export function PinPermissionTab({ onFieldChange }: { onFieldChange?: () => void }) {
@@ -17,6 +19,7 @@ export function PinPermissionTab({ onFieldChange }: { onFieldChange?: () => void
   const [availableToEveryone, setAvailableToEveryone] = useState(false)
   const [departmentIds, setDepartmentIds] = useState<string[]>([])
   const [groupIds, setGroupIds] = useState<string[]>([])
+  const [territoryIds, setTerritoryIds] = useState<string[]>([])
 
   return (
     <Stack spacing={2.5}>
@@ -61,10 +64,33 @@ export function PinPermissionTab({ onFieldChange }: { onFieldChange?: () => void
         </PlacemarkSettingsCard>
       </Box>
 
-      <Box sx={{ width: { xs: '100%', md: 'calc(50% - 12px)' } }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+          gap: 3,
+          alignItems: 'start',
+        }}
+      >
+        <PlacemarkSettingsCard
+          title="Territory"
+          tooltip="Select one or more territories — browse the nested tree or search to filter"
+          headerIcon={<TravelExploreIcon />}
+          accentColor={theme.palette.success.main}
+          fullHeight
+        >
+          <NestedTerritoryPicker
+            value={territoryIds}
+            onChange={(ids) => {
+              setTerritoryIds(ids)
+              onFieldChange?.()
+            }}
+          />
+        </PlacemarkSettingsCard>
+
         <PlacemarkSettingsCard
           title="Available to Everyone"
-          tooltip='When enabled, this placemark is visible to all users regardless of department or group restrictions'
+          tooltip='When enabled, this placemark is visible to all users regardless of department, group, or territory restrictions'
           headerIcon={<PublicIcon />}
           accentColor={theme.palette.primary.main}
           fullHeight
