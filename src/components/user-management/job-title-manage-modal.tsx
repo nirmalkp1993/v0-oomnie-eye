@@ -16,6 +16,7 @@ import {
 } from '@mui/material'
 import { alpha, useTheme } from '@mui/material/styles'
 import type { OrgChartTreeNode } from '@/src/components/org-chart/hierarchy-flow-types'
+import { HierarchyFormChildrenSection } from '@/src/components/user-management/hierarchy-form-children-section'
 import { HierarchyManageTreePanel } from '@/src/components/user-management/hierarchy-manage-tree-panel'
 import { Briefcase } from 'lucide-react'
 import { useJobTitleStore } from '@/lib/job-title-store'
@@ -62,20 +63,24 @@ function JobTitleFormDialog({
   tree,
   onClose,
   onSaved,
+  onTreeChanged,
 }: {
   open: boolean
   mode: JobTitleFormMode | null
   tree: HierarchyTreeNode[]
   onClose: () => void
   onSaved: (nodeId: string) => void
+  onTreeChanged?: () => void
 }) {
   const theme = useTheme()
   const { showMessage } = useAdminSnackbar()
   const createRoot = useJobTitleStore((state) => state.createRoot)
   const createChild = useJobTitleStore((state) => state.createChild)
   const rename = useJobTitleStore((state) => state.rename)
+  const reparent = useJobTitleStore((state) => state.reparent)
 
   const [nameInput, setNameInput] = useState('')
+  const [selectedAttachId, setSelectedAttachId] = useState('')
 
   const isEdit = mode?.type === 'edit'
   const parentId = mode?.type === 'add-child' ? mode.parentId : null
@@ -84,18 +89,30 @@ function JobTitleFormDialog({
   const parentPathLabel = parentId ? getJobTitlePathLabel(tree, parentId) : ''
   const editPathLabel = editNodeId ? getJobTitlePathLabel(tree, editNodeId) : ''
   const editNode = editNodeId ? findJobTitleNode(tree, editNodeId) : null
+  const childrenParentId =
+    mode?.type === 'edit'
+      ? mode.nodeId
+      : mode?.type === 'add-child'
+        ? mode.parentId
+        : null
+  const showChildrenSection =
+    mode?.type === 'edit' || mode?.type === 'add-child' || mode?.type === 'add-root'
+  const isNewRootChildren = mode?.type === 'add-root'
 
   useEffect(() => {
     if (!open || !mode) {
       setNameInput('')
+      setSelectedAttachId('')
       return
     }
     if (mode.type === 'edit') {
       const node = findJobTitleNode(tree, mode.nodeId)
       setNameInput(node?.name ?? '')
+      setSelectedAttachId('')
       return
     }
     setNameInput('')
+    setSelectedAttachId('')
   }, [open, mode, tree])
 
   useEffect(() => {
@@ -118,45 +135,113 @@ function JobTitleFormDialog({
         ? 'Add child job title'
         : 'Edit job title'
 
-  const canSave = Boolean(
-    nameInput.trim() && (!isEdit || nameInput.trim() !== editNode?.name),
-  )
+  const trimmedName = nameInput.trim()
+  const hasNameChange = Boolean(isEdit && trimmedName && trimmedName !== editNode?.name)
+  const hasAttachSelection = Boolean(selectedAttachId)
+
+  const canSave =
+    mode.type === 'add-root'
+      ? Boolean(trimmedName)
+      : mode.type === 'add-child'
+        ? Boolean(trimmedName || hasAttachSelection)
+        : Boolean(hasNameChange || hasAttachSelection)
 
   const handleSave = () => {
-    const trimmed = nameInput.trim()
-    if (!trimmed) {
-      showMessage('Enter a job title name', 'warning')
-      return
-    }
-
     if (mode.type === 'add-root') {
-      const id = createRoot(trimmed)
+      if (!trimmedName) {
+        showMessage('Enter a job title name', 'warning')
+        return
+      }
+
+      const id = createRoot(trimmedName)
       if (!id) {
         showMessage('Could not add job title — name may already exist', 'warning')
         return
       }
-      showMessage('Job title added', 'success')
+
+      if (selectedAttachId) {
+        const ok = reparent(selectedAttachId, id)
+        if (!ok) {
+          showMessage('Root created but could not attach child job title', 'warning')
+          onTreeChanged?.()
+          onSaved(id)
+          return
+        }
+      }
+
+      showMessage(
+        selectedAttachId ? 'Root job title added with child attached' : 'Job title added',
+        'success',
+      )
+      onTreeChanged?.()
       onSaved(id)
       return
     }
 
     if (mode.type === 'add-child') {
-      const id = createChild(mode.parentId, trimmed)
-      if (!id) {
-        showMessage('Could not add child job title', 'warning')
+      if (!trimmedName && !selectedAttachId) {
+        showMessage('Enter a name or select a job title to attach', 'warning')
         return
       }
-      showMessage('Child job title added', 'success')
-      onSaved(id)
+
+      let savedId = mode.parentId
+      if (trimmedName) {
+        const id = createChild(mode.parentId, trimmedName)
+        if (!id) {
+          showMessage('Could not add child job title', 'warning')
+          return
+        }
+        savedId = id
+      }
+
+      if (selectedAttachId) {
+        const ok = reparent(selectedAttachId, mode.parentId)
+        if (!ok) {
+          showMessage('Could not attach job title', 'warning')
+          return
+        }
+      }
+
+      showMessage(
+        trimmedName && selectedAttachId
+          ? 'Job title added and attached'
+          : selectedAttachId
+            ? 'Job title attached'
+            : 'Child job title added',
+        'success',
+      )
+      onTreeChanged?.()
+      onSaved(savedId)
       return
     }
 
-    const ok = rename(mode.nodeId, trimmed)
-    if (!ok) {
-      showMessage('Could not save — name may already exist', 'warning')
-      return
+    if (!hasNameChange && !selectedAttachId) return
+
+    if (hasNameChange) {
+      const ok = rename(mode.nodeId, trimmedName)
+      if (!ok) {
+        showMessage('Could not save — name may already exist', 'warning')
+        return
+      }
     }
-    showMessage('Job title updated', 'success')
+
+    if (selectedAttachId) {
+      const ok = reparent(selectedAttachId, mode.nodeId)
+      if (!ok) {
+        showMessage('Could not attach job title', 'warning')
+        return
+      }
+    }
+
+    showMessage(
+      hasNameChange && selectedAttachId
+        ? 'Job title updated and attached'
+        : selectedAttachId
+          ? 'Job title attached'
+          : 'Job title updated',
+      'success',
+    )
+    onTreeChanged?.()
     onSaved(mode.nodeId)
   }
 
@@ -176,6 +261,9 @@ function JobTitleFormDialog({
           m: 2,
           borderRadius: 2,
           overflow: 'hidden',
+          maxHeight: 'calc(100vh - 32px)',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
       sx={{ zIndex: (t) => t.zIndex.modal + 4 }}
@@ -206,8 +294,12 @@ function JobTitleFormDialog({
         ) : null}
       </Box>
 
-      <Box sx={{ px: 2.5, py: 2 }}>
-        <DialogFormField label="Job title name" htmlFor="jobTitleFormName" required>
+      <Box sx={{ px: 2.5, py: 2, overflowY: 'auto', flex: 1, minHeight: 0 }}>
+        <DialogFormField
+          label="Job title name"
+          htmlFor="jobTitleFormName"
+          required={mode.type === 'add-root' || mode.type === 'edit'}
+        >
           <TextField
             id="jobTitleFormName"
             fullWidth
@@ -221,6 +313,18 @@ function JobTitleFormDialog({
             sx={outlineFieldSx}
           />
         </DialogFormField>
+
+        {showChildrenSection ? (
+          <HierarchyFormChildrenSection
+            tree={tree}
+            parentId={childrenParentId}
+            entityLabel="job title"
+            selectedAttachId={selectedAttachId}
+            onSelectedAttachIdChange={setSelectedAttachId}
+            dropdownZIndex={theme.zIndex.modal + 6}
+            isNewRoot={isNewRootChildren}
+          />
+        ) : null}
       </Box>
 
       <Box
@@ -499,6 +603,7 @@ export function JobTitleManageOverlay({ onClose, onTreeChanged }: JobTitleManage
         tree={tree}
         onClose={closeForm}
         onSaved={handleFormSaved}
+        onTreeChanged={notifyTreeChanged}
       />
     </>
   )

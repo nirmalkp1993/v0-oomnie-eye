@@ -9,6 +9,7 @@ import {
   jobTitleNameExists,
   updateJobTitleName,
 } from '@/src/lib/job-title-tree.utils'
+import { reparentHierarchySubtree } from '@/src/lib/hierarchy-tree.utils'
 import type { HierarchyTreeNode } from '@/src/lib/nested-tree-path-options'
 import { JOB_TITLE_HIERARCHY_TREE } from '@/src/mock-data/job-title-hierarchy'
 
@@ -18,6 +19,7 @@ interface JobTitleStore {
   createRoot: (name: string) => string | null
   createChild: (parentId: string, name: string) => string | null
   rename: (id: string, name: string) => boolean
+  reparent: (nodeId: string, newParentId: string) => boolean
   remove: (id: string) => string[]
   getSubtreePathLabels: (id: string) => string[]
   nameExists: (name: string, excludeId?: string) => boolean
@@ -59,6 +61,13 @@ export const useJobTitleStore = create<JobTitleStore>((set, get) => ({
     const error = validateName(name, get().tree, id)
     if (error) return false
     set({ tree: updateJobTitleName(get().tree, id, name) })
+    return true
+  },
+
+  reparent: (nodeId, newParentId) => {
+    const next = reparentHierarchySubtree(get().tree, nodeId, newParentId)
+    if (!next) return false
+    set({ tree: next })
     return true
   },
 
