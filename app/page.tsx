@@ -9,6 +9,7 @@ import { EarthView } from '@/components/earth/earth-view'
 import { ReportManagement } from '@/components/report/report-management'
 import { MuiAdminProvider } from '@/src/components/providers/mui-admin-provider'
 import { GroupsPage } from '@/src/views/user-management/groups-page'
+import { OfficesPage } from '@/src/views/user-management/offices-page'
 import { PermissionsPage } from '@/src/views/user-management/permissions-page'
 import { RolesPage } from '@/src/views/user-management/roles-page'
 import { UsersPage } from '@/src/views/user-management/users-page'
@@ -51,6 +52,7 @@ export default function Home() {
       {activeTab === 'reports' && <ReportManagement />}
       {activeTab === 'um-users' && <UsersPage />}
       {activeTab === 'um-groups' && <GroupsPage />}
+      {activeTab === 'um-offices' && <OfficesPage />}
       {activeTab === 'um-roles' && <RolesPage />}
       {activeTab === 'um-permissions' && <PermissionsPage />}
       {activeTab !== 'earth' &&

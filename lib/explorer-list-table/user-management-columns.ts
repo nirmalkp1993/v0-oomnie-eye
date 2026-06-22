@@ -28,6 +28,17 @@ export const USER_GROUP_ASSIGN_USER_COLUMNS: ExplorerListColumnDef[] = USER_LIST
   (column) => column.id !== 'actions',
 )
 
+export const OFFICE_ASSIGN_COLUMNS: ExplorerListColumnDef[] = [
+  {
+    id: 'name',
+    label: 'Office',
+    headerClassName: 'sticky left-0 z-10 min-w-[180px] bg-card',
+  },
+  { id: 'city', label: 'City', headerClassName: 'min-w-[120px]' },
+  { id: 'state', label: 'State', headerClassName: 'min-w-[120px]' },
+  { id: 'country', label: 'Country', headerClassName: 'min-w-[120px]' },
+]
+
 export const GROUP_LIST_COLUMNS: ExplorerListColumnDef[] = [
   {
     id: 'name',

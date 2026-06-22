@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   ClipboardList,
   FolderTree,
+  MapPin,
   Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,7 @@ export type AppTab =
   | "settings"
   | "um-users"
   | "um-groups"
+  | "um-offices"
   | "um-roles"
   | "um-permissions";
 
@@ -55,6 +57,7 @@ export function isUserManagementTab(tab: AppTab): boolean {
   return (
     tab === "um-users" ||
     tab === "um-groups" ||
+    tab === "um-offices" ||
     tab === "um-roles" ||
     tab === "um-permissions"
   );
@@ -103,6 +106,7 @@ const userManagementChildren: {
 }[] = [
   { icon: User, label: "Users", tab: "um-users" },
   { icon: UsersRound, label: "Groups", tab: "um-groups" },
+  { icon: MapPin, label: "Offices", tab: "um-offices" },
   // { icon: ShieldCheck, label: 'Roles', tab: 'um-roles' },
   { icon: ClipboardList, label: "Roles & Permissions", tab: "um-permissions" },
 ];
