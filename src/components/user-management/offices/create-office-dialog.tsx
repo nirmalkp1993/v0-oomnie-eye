@@ -64,15 +64,26 @@ function SearchableLocationField({
     <DialogFormField label={label} htmlFor={htmlFor} required>
       <Autocomplete
         id={htmlFor}
+        fullWidth
         options={options}
         value={value || null}
-        onChange={(_, next) => onChange(next ?? '')}
         disabled={disabled}
-        freeSolo
-        onInputChange={(_, next) => onChange(next)}
+        openOnFocus
+        onChange={(_, nextValue) => onChange(nextValue ?? '')}
+        isOptionEqualToValue={(option, selected) => option === selected}
+        noOptionsText="No matches"
+        slotProps={{
+          popper: {
+            sx: { zIndex: theme.zIndex.modal + 10 },
+          },
+          listbox: {
+            sx: { maxHeight: 240 },
+          },
+        }}
         renderInput={(params) => (
           <TextField
             {...params}
+            fullWidth
             placeholder={placeholder}
             sx={outlineFieldSx}
             InputProps={{
@@ -88,11 +99,6 @@ function SearchableLocationField({
             }}
           />
         )}
-        slotProps={{
-          paper: {
-            sx: { borderRadius: 2, boxShadow: theme.shadows[4] },
-          },
-        }}
       />
     </DialogFormField>
   )
