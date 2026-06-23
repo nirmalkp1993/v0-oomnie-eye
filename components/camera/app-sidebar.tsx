@@ -106,7 +106,7 @@ const userManagementChildren: {
 }[] = [
   { icon: User, label: "Users", tab: "um-users" },
   { icon: UsersRound, label: "Groups", tab: "um-groups" },
-  { icon: MapPin, label: "Offices", tab: "um-offices" },
+  { icon: MapPin, label: "Territories", tab: "um-offices" },
   // { icon: ShieldCheck, label: 'Roles', tab: 'um-roles' },
   { icon: ClipboardList, label: "Roles & Permissions", tab: "um-permissions" },
 ];

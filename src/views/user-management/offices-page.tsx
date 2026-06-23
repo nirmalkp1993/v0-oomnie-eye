@@ -98,7 +98,7 @@ export function OfficesPage() {
 
   return (
     <>
-      <UserManagementPageShell title="Offices" description="">
+      <UserManagementPageShell title="Territories" description="">
         <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, display: 'flex', opacity: loading ? 0.6 : 1 }}>
           <OfficeTerritoryHierarchyView
             onOpenCreateRoot={handleOpenCreateRoot}
