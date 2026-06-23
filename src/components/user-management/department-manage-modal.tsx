@@ -33,6 +33,7 @@ import {
   collectNestedPathOptions,
   type HierarchyTreeNode,
 } from "@/src/lib/nested-tree-path-options";
+import { useAdminSnackbar } from "@/src/hooks/use-admin-snackbar";
 
 const MANAGE_MODAL_WIDTH_PX = 980;
 const FORM_DIALOG_WIDTH_PX = 520;
