@@ -2,6 +2,7 @@
 
 import { Fragment, useMemo, useState } from 'react'
 import AddBusinessOutlinedIcon from '@mui/icons-material/AddBusinessOutlined'
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import CreateNewFolderOutlinedIcon from '@mui/icons-material/CreateNewFolderOutlined'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -12,8 +13,10 @@ import {
   Box,
   Button,
   IconButton,
+  ListItemIcon,
+  Menu,
+  MenuItem,
   Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -220,6 +223,20 @@ export function OfficeTerritoryTreePanel({
   const getTerritoryTree = useOfficeTerritoryPageStore((state) => state.getTerritoryTree)
 
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
+  const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null)
+  const addMenuOpen = Boolean(addMenuAnchor)
+
+  const closeAddMenu = () => setAddMenuAnchor(null)
+
+  const handleNewTerritory = () => {
+    closeAddMenu()
+    onOpenCreateRoot()
+  }
+
+  const handleCreateOffice = () => {
+    closeAddMenu()
+    onOpenCreateOffice()
+  }
 
   const rootTrees = useMemo(() => getTerritoryTree(tree), [getTerritoryTree, tree, searchQuery])
 
@@ -292,27 +309,38 @@ export function OfficeTerritoryTreePanel({
           ) : null
         }
         trailingActions={
-          <Stack direction="row" spacing={1} alignItems="center">
+          <>
             <Button
               variant="contained"
               disableElevation
               size="small"
-              startIcon={<CreateNewFolderOutlinedIcon />}
-              onClick={onOpenCreateRoot}
+              endIcon={<ArrowDropDownIcon />}
+              onClick={(event) => setAddMenuAnchor(event.currentTarget)}
               sx={myDrawingsPrimaryButtonSx}
             >
-              New territory
+              New
             </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<AddBusinessOutlinedIcon />}
-              onClick={onOpenCreateOffice}
-              sx={{ textTransform: 'none' }}
+            <Menu
+              anchorEl={addMenuAnchor}
+              open={addMenuOpen}
+              onClose={closeAddMenu}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             >
-              Create office
-            </Button>
-          </Stack>
+              <MenuItem onClick={handleNewTerritory}>
+                <ListItemIcon>
+                  <CreateNewFolderOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+                New territory
+              </MenuItem>
+              <MenuItem onClick={handleCreateOffice}>
+                <ListItemIcon>
+                  <AddBusinessOutlinedIcon fontSize="small" />
+                </ListItemIcon>
+                Create office
+              </MenuItem>
+            </Menu>
+          </>
         }
       />
       <TableContainer sx={{ flex: 1, minHeight: 0, overflow: 'auto', pb: 1 }}>

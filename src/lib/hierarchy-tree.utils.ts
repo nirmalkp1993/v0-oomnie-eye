@@ -1,5 +1,4 @@
 import {
-  collectNestedPathOptions,
   type HierarchyTreeNode,
   type NestedPathOption,
 } from '@/src/lib/nested-tree-path-options'
@@ -108,10 +107,14 @@ export function getDirectChildNodes(
   return findHierarchyNode(nodes, parentId)?.children ?? []
 }
 
+function getRootPathOptions(tree: HierarchyTreeNode[]): NestedPathOption[] {
+  return tree.map((node) => ({ id: node.id, label: node.name }))
+}
+
 export function getAttachCandidatesForNewRoot(
   tree: HierarchyTreeNode[],
 ): NestedPathOption[] {
-  return collectNestedPathOptions(tree)
+  return getRootPathOptions(tree)
 }
 
 export function getReparentCandidateOptions(
@@ -120,9 +123,8 @@ export function getReparentCandidateOptions(
 ): NestedPathOption[] {
   const parent = findHierarchyNode(tree, parentId)
   const directChildIds = new Set((parent?.children ?? []).map((child) => child.id))
-  const allOptions = collectNestedPathOptions(tree)
 
-  return allOptions.filter((option) => {
+  return getRootPathOptions(tree).filter((option) => {
     if (option.id === parentId) return false
     if (directChildIds.has(option.id)) return false
     if (isDescendantOf(tree, parentId, option.id)) return false
